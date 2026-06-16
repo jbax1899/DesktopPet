@@ -9,4 +9,8 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Resource Include="Assets\bug.png" />
+  </ItemGroup>
+
 </Project>

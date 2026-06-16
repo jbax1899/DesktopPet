@@ -54,7 +54,6 @@ public sealed class PetTrayController : IDisposable
 
     private void ShowOverlay()
     {
-        _overlayWindow.Show();
-        _overlayWindow.Activate();
+        _overlayWindow.ShowNearBottomRight();
     }
 }

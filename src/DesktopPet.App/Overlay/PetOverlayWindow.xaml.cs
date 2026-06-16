@@ -7,8 +7,9 @@ namespace DesktopPet.App.Overlay;
 
 public partial class PetOverlayWindow : Window
 {
-    private const int ExtendedWindowStyleIndex = -20;
-    private const int TransparentWindowStyle = 0x00000020;
+    private const int ExtendedWindowStyleIndex = -20; // GWL_EXSTYLE (Read or write the window's extended styles)
+    private const int TransparentWindowStyle = 0x00000020; // WS_EX_TRANSPARENT (Makes the window transparent)
+    private const double EdgeMargin = 32;
 
     private bool _isClickThrough;
 
@@ -37,6 +38,14 @@ public partial class PetOverlayWindow : Window
         SetWindowLongPtr(handle, ExtendedWindowStyleIndex, updatedStyle);
     }
 
+    public void ShowNearBottomRight()
+    {
+        MoveNearBottomRight();
+
+        Show();
+        Activate();
+    }
+
     private void OnOverlayMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (_isClickThrough || e.ButtonState != MouseButtonState.Pressed)
@@ -50,8 +59,8 @@ public partial class PetOverlayWindow : Window
     private void MoveNearBottomRight()
     {
         var workArea = SystemParameters.WorkArea;
-        Left = workArea.Right - Width - 32;
-        Top = workArea.Bottom - Height - 32;
+        Left = workArea.Right - Width - EdgeMargin;
+        Top = workArea.Bottom - Height - EdgeMargin;
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]

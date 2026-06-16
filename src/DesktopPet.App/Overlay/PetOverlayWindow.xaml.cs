@@ -54,6 +54,7 @@ public partial class PetOverlayWindow : Window
         }
 
         DragMove();
+        KeepInsideWorkArea();
     }
 
     private void MoveNearBottomRight()
@@ -61,6 +62,31 @@ public partial class PetOverlayWindow : Window
         var workArea = SystemParameters.WorkArea;
         Left = workArea.Right - Width - EdgeMargin;
         Top = workArea.Bottom - Height - EdgeMargin;
+    }
+
+    private void KeepInsideWorkArea()
+    {
+        var workArea = SystemParameters.WorkArea;
+        var windowWidth = GetWindowWidth();
+        var windowHeight = GetWindowHeight();
+
+        Left = Clamp(Left, workArea.Left, Math.Max(workArea.Left, workArea.Right - windowWidth));
+        Top = Clamp(Top, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - windowHeight));
+    }
+
+    private double GetWindowWidth()
+    {
+        return ActualWidth > 0 ? ActualWidth : Width;
+    }
+
+    private double GetWindowHeight()
+    {
+        return ActualHeight > 0 ? ActualHeight : Height;
+    }
+
+    private static double Clamp(double value, double minimum, double maximum)
+    {
+        return Math.Min(Math.Max(value, minimum), maximum);
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]

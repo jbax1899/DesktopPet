@@ -1,0 +1,62 @@
+<Window x:Class="DesktopPet.App.Chat.ChatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Desktop Pet Chat"
+        Width="560"
+        Height="430"
+        MinWidth="480"
+        MinHeight="360"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="110" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Margin="0,0,0,6"
+                   Text="Message" />
+        <TextBox x:Name="UserMessageTextBox"
+                 Grid.Row="1"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" />
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,14,0,6"
+                   Text="Latest reply" />
+        <TextBox x:Name="ReplyTextBox"
+                 Grid.Row="3"
+                 AcceptsReturn="True"
+                 IsReadOnly="True"
+                 TextChanged="OnReplyTextChanged"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" />
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="4"
+                   Margin="0,12,0,8"
+                   Text="Ready." />
+
+        <StackPanel Grid.Row="5"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="SendButton"
+                    Width="90"
+                    Margin="0,0,8,0"
+                    Padding="10,4"
+                    Click="OnSendClicked"
+                    Content="Send" />
+            <Button x:Name="SpeakReplyButton"
+                    Width="110"
+                    Padding="10,4"
+                    Click="OnSpeakReplyClicked"
+                    Content="Speak reply" />
+        </StackPanel>
+    </Grid>
+</Window>

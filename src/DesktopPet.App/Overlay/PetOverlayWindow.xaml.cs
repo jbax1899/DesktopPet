@@ -7,8 +7,9 @@ namespace DesktopPet.App.Overlay;
 
 public partial class PetOverlayWindow : Window
 {
-    private const int ExtendedWindowStyleIndex = -20; // GWL_EXSTYLE (Read or write the window's extended styles)
-    private const int TransparentWindowStyle = 0x00000020; // WS_EX_TRANSPARENT (Makes the window transparent)
+    // WPF has no click-through property, so this uses the Win32 window flags.
+    private const int ExtendedWindowStyleIndex = -20; // GWL_EXSTYLE
+    private const int TransparentWindowStyle = 0x00000020; // WS_EX_TRANSPARENT
     private const double EdgeMargin = 32;
 
     private bool _isClickThrough;

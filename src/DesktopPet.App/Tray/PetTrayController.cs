@@ -7,13 +7,21 @@ namespace DesktopPet.App.Tray;
 public sealed class PetTrayController : IDisposable
 {
     private readonly PetOverlayWindow _overlayWindow;
+    private readonly Action _showSettings;
+    private readonly Action _showChat;
     private readonly Action _exitApplication;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly Forms.ToolStripMenuItem _clickThroughMenuItem;
 
-    public PetTrayController(PetOverlayWindow overlayWindow, Action exitApplication)
+    public PetTrayController(
+        PetOverlayWindow overlayWindow,
+        Action showSettings,
+        Action showChat,
+        Action exitApplication)
     {
         _overlayWindow = overlayWindow;
+        _showSettings = showSettings;
+        _showChat = showChat;
         _exitApplication = exitApplication;
 
         _clickThroughMenuItem = new Forms.ToolStripMenuItem("Click through")
@@ -27,6 +35,9 @@ public sealed class PetTrayController : IDisposable
         menu.Items.Add("Show", null, (_, _) => ShowOverlay());
         menu.Items.Add("Hide", null, (_, _) => _overlayWindow.Hide());
         menu.Items.Add(_clickThroughMenuItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Settings", null, (_, _) => _showSettings());
+        menu.Items.Add("Chat", null, (_, _) => _showChat());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => _exitApplication());
 

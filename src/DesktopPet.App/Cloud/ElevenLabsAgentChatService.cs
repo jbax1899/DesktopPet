@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
@@ -12,6 +13,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan ReplyTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan AgentResponseIdleTimeout = TimeSpan.FromSeconds(3);
 
     private readonly HttpClient _httpClient;
     private readonly Func<CloudAiSettings> _settingsProvider;
@@ -58,6 +60,8 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
     private async Task<string> GetSignedUrlAsync(CloudAiSettings settings, CancellationToken cancellationToken)
     {
         var escapedAgentId = Uri.EscapeDataString(settings.ElevenLabsAgentId!);
+        Debug.WriteLine($"ElevenLabs signed URL requested for Agent ID: {settings.ElevenLabsAgentId}");
+
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             $"https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id={escapedAgentId}");
@@ -103,10 +107,39 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         }, cancellationToken);
 
         var latestResponse = string.Empty;
+        var lastAgentResponseAt = (DateTimeOffset?)null;
 
         while (webSocket.State == WebSocketState.Open)
         {
-            var message = await ReceiveTextMessageAsync(webSocket, cancellationToken);
+            var remainingIdleTime = GetRemainingIdleTime(lastAgentResponseAt);
+            if (remainingIdleTime <= TimeSpan.Zero)
+            {
+                Debug.WriteLine("ElevenLabs WebSocket received no further agent response before chat idle timeout; returning latest response.");
+                await CloseAsync(webSocket, cancellationToken);
+                return latestResponse.Trim();
+            }
+
+            using var responseIdleTimeout = remainingIdleTime is null
+                ? null
+                : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            if (remainingIdleTime is not null)
+            {
+                responseIdleTimeout!.CancelAfter(remainingIdleTime.Value);
+            }
+
+            string? message;
+            try
+            {
+                message = await ReceiveTextMessageAsync(webSocket, responseIdleTimeout?.Token ?? cancellationToken);
+            }
+            catch (OperationCanceledException) when (responseIdleTimeout?.IsCancellationRequested == true && !cancellationToken.IsCancellationRequested)
+            {
+                Debug.WriteLine("ElevenLabs WebSocket received no further agent response before chat idle timeout; returning latest response.");
+                await CloseAsync(webSocket, cancellationToken);
+                return latestResponse.Trim();
+            }
+
             if (message is null)
             {
                 break;
@@ -114,6 +147,8 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
 
             using var document = JsonDocument.Parse(message);
             var root = document.RootElement;
+            TraceIncomingWebSocketMessage(root, message);
+
             if (!root.TryGetProperty("type", out var typeElement))
             {
                 continue;
@@ -127,10 +162,12 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
 
                 case "agent_response":
                     latestResponse = ReadNestedString(root, "agent_response_event", "agent_response") ?? latestResponse;
+                    lastAgentResponseAt = DateTimeOffset.UtcNow;
                     break;
 
                 case "agent_response_correction":
                     latestResponse = ReadNestedString(root, "agent_response_correction_event", "corrected_agent_response") ?? latestResponse;
+                    lastAgentResponseAt = DateTimeOffset.UtcNow;
                     break;
 
                 case "agent_response_complete":
@@ -145,6 +182,41 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         }
 
         throw new InvalidOperationException("ElevenLabs Agent disconnected before returning a reply.");
+    }
+
+    private static TimeSpan? GetRemainingIdleTime(DateTimeOffset? lastAgentResponseAt)
+    {
+        if (lastAgentResponseAt is null)
+        {
+            return null;
+        }
+
+        var elapsed = DateTimeOffset.UtcNow - lastAgentResponseAt.Value;
+        return AgentResponseIdleTimeout - elapsed;
+    }
+
+    private static void TraceIncomingWebSocketMessage(JsonElement root, string rawMessage)
+    {
+        if (!root.TryGetProperty("type", out var typeElement))
+        {
+            Debug.WriteLine($"ElevenLabs WebSocket received message without type: {Truncate(rawMessage, 300)}");
+            return;
+        }
+
+        var type = typeElement.GetString() ?? "<null>";
+        var detail = type switch
+        {
+            "conversation_initiation_metadata" => ReadNestedString(root, "conversation_initiation_metadata_event", "conversation_id"),
+            "agent_response" => Preview(ReadNestedString(root, "agent_response_event", "agent_response")),
+            "agent_response_correction" => Preview(ReadNestedString(root, "agent_response_correction_event", "corrected_agent_response")),
+            "client_tool_call" => ReadNestedString(root, "client_tool_call", "tool_name"),
+            "ping" => ReadNestedNumber(root, "ping_event", "event_id"),
+            _ => null
+        };
+
+        Debug.WriteLine(string.IsNullOrWhiteSpace(detail)
+            ? $"ElevenLabs WebSocket received: {type}"
+            : $"ElevenLabs WebSocket received: {type} ({detail})");
     }
 
     private static async Task ReplyToPingAsync(ClientWebSocket webSocket, JsonElement root, CancellationToken cancellationToken)
@@ -171,6 +243,33 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         }
 
         return value.GetString();
+    }
+
+    private static string? ReadNestedNumber(JsonElement root, string objectName, string propertyName)
+    {
+        if (!root.TryGetProperty(objectName, out var nested)
+            || !nested.TryGetProperty(propertyName, out var value))
+        {
+            return null;
+        }
+
+        return value.ValueKind == JsonValueKind.Number
+            ? value.GetRawText()
+            : value.ToString();
+    }
+
+    private static string? Preview(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? value
+            : Truncate(value.ReplaceLineEndings(" "), 120);
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        return value.Length <= maxLength
+            ? value
+            : string.Concat(value.AsSpan(0, maxLength), "...");
     }
 
     private static async Task SendJsonAsync(ClientWebSocket webSocket, object message, CancellationToken cancellationToken)

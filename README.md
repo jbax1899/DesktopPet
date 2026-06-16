@@ -1,12 +1,18 @@
 # Desktop Pet
 
-A native Windows desktop companion prototype.
+A small native Windows desktop companion prototype.
+
+## Current Features
+
+- Overlay pet image
+- Basic chat window with reply generation and spoken playback
+- Tray menu for chat and settings
 
 ## Stack
 
-- .NET 10
-- WPF
-- Windows tray icon via `System.Windows.Forms.NotifyIcon`
+- .NET 10 / C#
+- WPF for the desktop UI
+- ElevenLabs cloud APIs for prototype chat and voice
 
 ## Run
 

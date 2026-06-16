@@ -2,3 +2,4 @@
 - Work in small, understandable steps, and only if asked (otherwise just comment/explain).
 - Point out relevant .NET, C#, Windows, or architecture concepts as they come up.
 - Treat `notes.md` as working architecture notes, and keep it updated.
+- Use Context7 MCP for current, version-specific docs when working with libraries, frameworks, SDKs, APIs, or tooling. Resolve the library ID before fetching docs unless the exact Context7 ID is already known. Fetch only targeted docs, summarize the useful parts inline, and say explicitly when docs are unavailable or when using a fallback.

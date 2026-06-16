@@ -1,13 +1,25 @@
-﻿using System.Configuration;
-using System.Data;
+using DesktopPet.App.Shell;
 using System.Windows;
 
 namespace DesktopPet.App;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
+public partial class App
 {
-}
+    private DesktopPetApplication? _desktopPetApplication;
 
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        _desktopPetApplication = new DesktopPetApplication(this);
+        _desktopPetApplication.Start();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _desktopPetApplication?.Dispose();
+        base.OnExit(e);
+    }
+}

@@ -1,0 +1,22 @@
+<Window x:Class="DesktopPet.App.Overlay.PetOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Desktop Pet"
+        Width="240"
+        Height="240"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowStartupLocation="Manual"
+        WindowStyle="None">
+    <Grid MouseLeftButtonDown="OnOverlayMouseLeftButtonDown">
+        <Image Source="/Assets/bug.png"
+               Stretch="Uniform"
+               RenderOptions.BitmapScalingMode="HighQuality" />
+    </Grid>
+</Window>

@@ -17,6 +17,10 @@
                     Padding="12,5"
                     Click="OnClearClicked"
                     Content="Clear" />
+            <Button Margin="8,0,0,0"
+                    Padding="12,5"
+                    Click="OnProposeMemoryClicked"
+                    Content="Propose memory..." />
         </StackPanel>
         <ListBox x:Name="DecisionsList">
             <ListBox.ItemTemplate>

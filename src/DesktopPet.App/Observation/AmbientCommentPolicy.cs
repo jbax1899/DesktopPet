@@ -66,7 +66,8 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         if (!candidate.IsStillCurrent) return Reject(AmbientDecisionReason.ActiveApplicationChanged);
         if (_activityState.IsUserRequestActive) return Reject(AmbientDecisionReason.UserRequestActive);
         if (_activityState.IsSpeechActive) return Reject(AmbientDecisionReason.SpeechActive);
-        if (now - _activityState.LastUserInputAt < RecentTypingWindow) return Reject(AmbientDecisionReason.UserRecentlyTyping);
+        if (now - _activityState.LastUserInputAt < RecentTypingWindow
+            || GetSystemIdleDuration() < TimeSpan.FromSeconds(3)) return Reject(AmbientDecisionReason.UserRecentlyTyping);
         if (IsForegroundFullScreen()) return Reject(AmbientDecisionReason.FullScreenApplication);
         if (settings.DoNotDisturb) return Reject(AmbientDecisionReason.DoNotDisturb);
 
@@ -130,6 +131,10 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static partial bool GetWindowRect(nint windowHandle, out NativeRect bounds);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static partial bool GetLastInputInfo(ref LastInputInfo info);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -139,5 +144,26 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LastInputInfo
+    {
+        public uint Size;
+        public uint Time;
+    }
+
+    private static TimeSpan GetSystemIdleDuration()
+    {
+        var info = new LastInputInfo
+        {
+            Size = (uint)Marshal.SizeOf<LastInputInfo>()
+        };
+        if (!NativeMethods.GetLastInputInfo(ref info))
+        {
+            return TimeSpan.MaxValue;
+        }
+
+        return TimeSpan.FromMilliseconds(unchecked((uint)Environment.TickCount - info.Time));
     }
 }

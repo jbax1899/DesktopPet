@@ -179,7 +179,8 @@ public sealed class DesktopPetApplication : IDisposable
             _observationSettingsWindow = new ObservationSettingsWindow(
                 _observationPermissionService,
                 _observationCoordinator,
-                _ambientDecisionStore);
+                _ambientDecisionStore,
+                _memoryStore);
             _observationSettingsWindow.Closed += (_, _) => _observationSettingsWindow = null;
         }
 

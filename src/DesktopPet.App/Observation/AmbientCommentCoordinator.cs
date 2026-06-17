@@ -59,6 +59,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         _observationCoordinator.ChangeDetected -= OnChangeDetected;
         _activityState.UserRequestStarted -= OnUserRequestStarted;
+        Interlocked.Increment(ref _turnId);
         _currentCancellation?.Cancel();
         _currentCancellation?.Dispose();
         _disposed = true;
@@ -88,6 +89,11 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
     private async Task HandleChangeAsync(DesktopObservationChange change)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var turnId = Interlocked.Increment(ref _turnId);
         var candidate = CreateCandidate(change);
         var initialDecision = _policy.Evaluate(candidate, DateTimeOffset.UtcNow);
@@ -100,6 +106,11 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         await _gate.WaitAsync();
         try
         {
+            if (_disposed || turnId != Volatile.Read(ref _turnId))
+            {
+                return;
+            }
+
             _currentCancellation?.Cancel();
             _currentCancellation?.Dispose();
             _currentCancellation = new CancellationTokenSource();

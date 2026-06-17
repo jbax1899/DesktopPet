@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using DesktopPet.App.Memory;
 
 namespace DesktopPet.App.Observation;
 
@@ -12,16 +13,19 @@ public partial class ObservationSettingsWindow : Window
     private readonly IObservationPermissionService _permissionService;
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _decisionStore;
+    private readonly IMemoryStore _memoryStore;
     private readonly ObservableCollection<ApplicationRuleRow> _rows = [];
 
     public ObservationSettingsWindow(
         IObservationPermissionService permissionService,
         IDesktopObservationCoordinator observationCoordinator,
-        AmbientDecisionStore decisionStore)
+        AmbientDecisionStore decisionStore,
+        IMemoryStore memoryStore)
     {
         _permissionService = permissionService;
         _observationCoordinator = observationCoordinator;
         _decisionStore = decisionStore;
+        _memoryStore = memoryStore;
         InitializeComponent();
         CommentaryLevelComboBox.ItemsSource = Enum.GetValues<CommentaryLevel>();
         ApplicationsGrid.ItemsSource = _rows;
@@ -30,7 +34,7 @@ public partial class ObservationSettingsWindow : Window
 
     private void OnRecentObservationsClicked(object sender, RoutedEventArgs e)
     {
-        var window = new RecentObservationsWindow(_observationCoordinator)
+        var window = new RecentObservationsWindow(_observationCoordinator, _memoryStore)
         {
             Owner = this
         };
@@ -39,7 +43,7 @@ public partial class ObservationSettingsWindow : Window
 
     private void OnRecentDecisionsClicked(object sender, RoutedEventArgs e)
     {
-        var window = new AmbientDecisionsWindow(_decisionStore)
+        var window = new AmbientDecisionsWindow(_decisionStore, _memoryStore)
         {
             Owner = this
         };

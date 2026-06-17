@@ -3,11 +3,10 @@
 This is the working status and architecture note for the current prototype. Keep
 it short and update it when implementation decisions change.
 
-The current prototype focuses on a typed-chat loop with local playback,
-lightweight character behavior, and local JSON-backed history and memory. The
-next direction is screen-aware typed chat for explicitly permitted
-applications. Ambient comments come later, after permission, reduction, and
-retention boundaries are working.
+The current prototype combines typed chat, local playback, lightweight
+character behavior, local history and memory, and permission-controlled desktop
+context. Ambient comments are available but default off and are governed by
+local cooldown, activity, freshness, and duplicate checks.
 
 ## ElevenLabs Agent Prompt Setup
 
@@ -52,10 +51,11 @@ Configure `desktop_context` with a harmless fallback such as
 - The old separate `ChatWindow` has been removed; chat now stays in the top-level conversation overlay.
 - The global chat shortcut uses Win32 hotkey registration and may be unavailable if another app owns the same shortcut.
 - Automatic memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
-- Foreground-window tracking, process inspection, UI Automation, screenshots, user-idle tracking, and global Windows event hooks are not implemented.
-- Existing Windows integration is limited to click-through window styles, mouse-button polling, global hotkeys, cursor position, display bounds, and WPF window-message hooks.
 - `ChatRequest` now has a separate optional desktop-context field and `ConversationController` uses a provider-neutral context boundary.
-- The current desktop-context provider returns no context; no Windows desktop data is collected yet.
+- Permitted typed chat can include reduced foreground metadata and bounded UI Automation summaries with exact user-visible disclosure.
+- Background observation keeps short-lived reduced state, detects meaningful changes, and can produce sparse ambient comments when enabled.
+- Window capture is implemented in memory, but the unavailable visual analyzer prevents capture until a provider is selected.
+- Recent observations and ambient decisions can create editable memory proposals; nothing is saved without explicit confirmation.
 - ElevenLabs diagnostics report safe event and variable names without logging provider values, Agent IDs, replies, or full exceptions.
 
 ## Decisions
@@ -67,11 +67,11 @@ Configure `desktop_context` with a harmless fallback such as
 - Keep desktop observation separate from durable memories and add it to chat as distinct optional per-turn context.
 - Only `DesktopContextFormatter` converts reduced context into provider text; it enforces field and total-length limits.
 - Desktop context must not be added to chat-history, memory, audio-cache, settings, error, or diagnostic models.
-- `DesktopPetApplication` should construct and dispose future observation services.
+- `DesktopPetApplication` constructs and disposes observation and ambient services.
 - `ConversationController` should request already permission-filtered, reduced desktop context when building a turn.
 - Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.
 - Use separate models for local raw Windows observations and compact model-facing context. Do not send window handles, process IDs, or exact bounds without a concrete need.
-- Default observation permission to denied. Keep structural inspection and visual capture permissions separate, and prefer session-only grants for early prototypes.
+- Default observation permission to denied and keep metadata, structural inspection, and visual capture permissions separate.
 - Observation permissions now use a separate `%LOCALAPPDATA%\DesktopPet\observation-settings.json` store. They default to globally paused with no application rules.
 - Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
 - Settings now opens a Screen Context Privacy window that merges saved rules with visible running applications and explains each access level.
@@ -83,15 +83,16 @@ Configure `desktop_context` with a harmless fallback such as
 - A permission-rechecking window-capture service can produce a downscaled in-memory bitmap for a visible, non-minimized foreground window; images are never written to disk.
 - Visual analysis is behind `IVisualContextAnalyzer`; the current unavailable implementation prevents capture until a provider is deliberately selected.
 - A cancellable background coordinator polls permitted metadata every two seconds off the UI thread and retains only the latest 50 reduced observations for at most 30 minutes.
-- Screen Context settings can open a manual recent-observations view. Background observation does not speak yet.
+- Screen Context settings can open a manual recent-observations view.
 - The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and long-running activity.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
 - Ambient policy is local-first and rejects paused, disabled, stale, changed, busy, recently typed, full-screen, do-not-disturb, cooldown, hourly-limit, and duplicate candidates before generation.
-- Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits; nothing generates or speaks ambient comments yet.
+- Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
 - Ambient work has separate turn cancellation, is checked again before speech, and is cancelled when a user request starts.
 - Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from Settings.
 - Screen Context settings now controls ambient enablement, do-not-disturb, and Quiet/Balanced/Talkative behavior independently from application permissions.
+- Reduced observations and decisions can propose editable memories, but only an explicit Add memory action writes through the existing memory store.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.
@@ -118,31 +119,20 @@ Configure `desktop_context` with a harmless fallback such as
 - Reduce raw observations to compact context before sending them to an LLM.
 - Do not write desktop context to chat history, memories, audio metadata, debug logs, or user-visible exception messages.
 - Show the user what desktop context was used for a turn.
-- Persist a global pause and denied-application list; keep temporary grants in memory for the current app session.
+- Persist global controls and explicit application allow or deny rules in the separate observation settings store.
 
-## Next Prototype Target
+## Observation Follow-up
 
-Prepare and then prove the smallest screen-aware typed-chat loop:
-
-1. Redact complete ElevenLabs dynamic-variable values and review exception logging.
-2. Add an optional provider-neutral desktop-context field separate from `MemoriesContext`.
-3. Add a narrow desktop-context provider with a no-context implementation.
-4. Verify that context is not retained in history, memories, audio metadata, logs, or errors.
-5. Add explicit metadata permission for selected applications.
-6. On typed submission, collect the permitted foreground application's process identity, title, visibility or minimized state, bounds, and approximate foreground duration.
-7. Reduce that raw snapshot to compact model-facing context and send it through the existing chat, TTS, playback, transcript, and history path.
-
-The first observation prototype does not use screenshots or UI Automation.
+- Manually smoke-test permissions, scaling, multiple monitors, UI Automation timeouts, shutdown, and user-chat interruption.
+- Select a vision provider before enabling visual capture or analysis.
+- Tune ambient cooldowns and change heuristics from real use while keeping silence as the normal outcome.
+- Keep auditing logs and local JSON files whenever observation models change.
 
 ## Near-Term Work
 
 - Keep a simple stop/interruption path so speech can be cancelled.
 - Add a more polished transcript timing path if full-text-at-once feels too abrupt.
 - Keep the TTS request path small and fixed to `eleven_v3`.
-- Add tests around request-context retention and provider logging before collecting desktop data.
-- Add a minimal global observation pause, denied-application list, session grant, and metadata-only permission.
-- Identify applications primarily by executable or process identity rather than changing window titles.
-- Show the reduced context used for a typed turn.
 - Add local Mem0 Compose files with pinned published images once the exact image and routes are tested.
 - Add the one-time memory enable prompt.
 - Start the local Mem0 stack from the app after memory is enabled.
@@ -154,12 +144,7 @@ The first observation prototype does not use screenshots or UI Automation.
 
 ## Later Work
 
-- UI Automation summaries.
-- Screenshots of permitted windows.
-- Screen-aware comments from the pet.
-- Scoring whether a desktop observation deserves a comment.
-- Detailed records of why the pet spoke or stayed quiet.
-- Desktop information in memory, but only after it has been reduced and approved.
+- A selected vision provider for permitted-window analysis.
 - Optional microphone input after typed chat works, not a live voice session.
 - Better credential storage than plain JSON.
 - Blinking.

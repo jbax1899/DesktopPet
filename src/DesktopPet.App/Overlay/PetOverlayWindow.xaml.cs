@@ -24,8 +24,13 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private const double IdleBreathPeriodSeconds = 4.0;
     private const double IdleBobPixels = 2.0;
     private const double IdleSquashAmount = 0.018;
+    private const double ActionPadMaximumCursorDistance = 320;
+    private const int LeftMouseButtonVirtualKey = 0x01; // VK_LBUTTON
+    private const int RightMouseButtonVirtualKey = 0x02; // VK_RBUTTON
     private static readonly TimeSpan MouthFrameInterval = TimeSpan.FromMilliseconds(140);
     private static readonly TimeSpan GazeUpdateInterval = TimeSpan.FromMilliseconds(33);
+    private static readonly TimeSpan ActionPadUpdateInterval = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan ActionPadMouseAwayDelay = TimeSpan.FromSeconds(3);
     private const string MouthA = "Mouth A";
     private const string MouthB = "Mouth B";
     private const string LeftEye = "Left Eye";
@@ -34,17 +39,25 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private static readonly Vector RightEyeNeutralOffset = new(-14, 12);
 
     private readonly WpfInochiPuppetView _puppetView = new();
+    private readonly PetOverlayCommands _commands;
     private readonly DispatcherTimer _mouthTimer;
     private readonly DispatcherTimer _gazeTimer;
+    private readonly DispatcherTimer _actionPadTimer;
     private readonly Stopwatch _idleClock = Stopwatch.StartNew();
     private bool _isClickThrough;
     private bool _isSpeaking;
     private bool _showMouthB;
+    private bool _wasLeftMouseButtonDown;
+    private bool _wasRightMouseButtonDown;
+    private bool _closedActionPadOnRightMouseDown;
+    private DateTime _lastActionPadMouseOverAt;
     private Vector _currentLeftEyeOffset = LeftEyeNeutralOffset;
     private Vector _currentRightEyeOffset = RightEyeNeutralOffset;
 
-    public PetOverlayWindow()
+    public PetOverlayWindow(PetOverlayCommands commands)
     {
+        _commands = commands;
+
         InitializeComponent();
 
         var puppetPath = Path.Combine(AppContext.BaseDirectory, "Assets", "bug.inp");
@@ -65,6 +78,12 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         };
         _gazeTimer.Tick += OnGazeTimerTick;
 
+        _actionPadTimer = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+        {
+            Interval = ActionPadUpdateInterval
+        };
+        _actionPadTimer.Tick += OnActionPadTimerTick;
+
         Loaded += (_, _) => MoveNearBottomRight();
         Loaded += (_, _) => _gazeTimer.Start();
         Closed += (_, _) =>
@@ -73,6 +92,8 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             _mouthTimer.Tick -= OnMouthTimerTick;
             _gazeTimer.Stop();
             _gazeTimer.Tick -= OnGazeTimerTick;
+            _actionPadTimer.Stop();
+            _actionPadTimer.Tick -= OnActionPadTimerTick;
         };
     }
 
@@ -89,6 +110,10 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     public void SetClickThrough(bool isClickThrough)
     {
         _isClickThrough = isClickThrough;
+        if (isClickThrough)
+        {
+            HideActionPad();
+        }
 
         var handle = new WindowInteropHelper(this).Handle;
         if (handle == nint.Zero)
@@ -106,6 +131,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     public void ShowNearBottomRight()
     {
+        HideActionPad();
         MoveNearBottomRight();
 
         Show();
@@ -119,8 +145,148 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             return;
         }
 
+        if (ActionPad.Visibility == Visibility.Visible)
+        {
+            if (ActionPad.IsMouseOver)
+            {
+                return;
+            }
+
+            HideActionPad();
+        }
+
         DragMove();
         KeepInsideWorkArea();
+    }
+
+    private void OnOverlayPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_isClickThrough)
+        {
+            return;
+        }
+
+        _closedActionPadOnRightMouseDown = ActionPad.Visibility == Visibility.Visible;
+        if (_closedActionPadOnRightMouseDown)
+        {
+            HideActionPad();
+            e.Handled = true;
+        }
+    }
+
+    private void OnOverlayMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isClickThrough)
+        {
+            return;
+        }
+
+        if (_closedActionPadOnRightMouseDown)
+        {
+            _closedActionPadOnRightMouseDown = false;
+            e.Handled = true;
+            return;
+        }
+
+        ShowActionPad();
+        e.Handled = true;
+    }
+
+    private void OnChatActionClicked(object sender, RoutedEventArgs e)
+    {
+        HideActionPad();
+        _commands.ShowChat();
+    }
+
+    private void OnSettingsActionClicked(object sender, RoutedEventArgs e)
+    {
+        HideActionPad();
+        _commands.ShowSettings();
+    }
+
+    private void ToggleActionPad()
+    {
+        if (ActionPad.Visibility == Visibility.Visible)
+        {
+            HideActionPad();
+            return;
+        }
+
+        ShowActionPad();
+    }
+
+    private void ShowActionPad()
+    {
+        _closedActionPadOnRightMouseDown = false;
+        ActionPad.Visibility = Visibility.Visible;
+        _lastActionPadMouseOverAt = DateTime.UtcNow;
+        _wasLeftMouseButtonDown = IsMouseButtonDown(LeftMouseButtonVirtualKey);
+        _wasRightMouseButtonDown = IsMouseButtonDown(RightMouseButtonVirtualKey);
+        _actionPadTimer.Start();
+    }
+
+    private void HideActionPad()
+    {
+        ActionPad.Visibility = Visibility.Collapsed;
+        _actionPadTimer.Stop();
+    }
+
+    private void OnActionPadTimerTick(object? sender, EventArgs e)
+    {
+        if (ActionPad.Visibility != Visibility.Visible)
+        {
+            _actionPadTimer.Stop();
+            return;
+        }
+
+        var cursor = Forms.Control.MousePosition;
+        var cursorPoint = new System.Windows.Point(cursor.X, cursor.Y);
+        var actionPadBounds = GetActionPadScreenBounds();
+        var isMouseOverActionPad = actionPadBounds.Contains(cursorPoint);
+        var now = DateTime.UtcNow;
+
+        if (isMouseOverActionPad)
+        {
+            _lastActionPadMouseOverAt = now;
+        }
+
+        var leftMouseButtonDown = IsMouseButtonDown(LeftMouseButtonVirtualKey);
+        var rightMouseButtonDown = IsMouseButtonDown(RightMouseButtonVirtualKey);
+        var leftMouseClicked = leftMouseButtonDown && !_wasLeftMouseButtonDown;
+        var rightMouseClicked = rightMouseButtonDown && !_wasRightMouseButtonDown;
+
+        _wasLeftMouseButtonDown = leftMouseButtonDown;
+        _wasRightMouseButtonDown = rightMouseButtonDown;
+
+        if (rightMouseClicked
+            || leftMouseClicked && !isMouseOverActionPad
+            || GetDistanceFromRect(cursorPoint, actionPadBounds) > ActionPadMaximumCursorDistance
+            || !isMouseOverActionPad && now - _lastActionPadMouseOverAt > ActionPadMouseAwayDelay)
+        {
+            HideActionPad();
+        }
+    }
+
+    private Rect GetActionPadScreenBounds()
+    {
+        var topLeft = ActionPad.PointToScreen(new System.Windows.Point(0, 0));
+        var bottomRight = ActionPad.PointToScreen(new System.Windows.Point(ActionPad.ActualWidth, ActionPad.ActualHeight));
+        return new Rect(topLeft, bottomRight);
+    }
+
+    private static double GetDistanceFromRect(System.Windows.Point point, Rect rect)
+    {
+        var closestX = Clamp(point.X, rect.Left, rect.Right);
+        var closestY = Clamp(point.Y, rect.Top, rect.Bottom);
+        var distanceX = point.X - closestX;
+        var distanceY = point.Y - closestY;
+
+        return Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
+    }
+
+    private static bool IsMouseButtonDown(int virtualKey)
+    {
+        return (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
     }
 
     private void MoveNearBottomRight()
@@ -316,4 +482,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
 }

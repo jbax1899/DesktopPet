@@ -37,7 +37,6 @@ public sealed class PetTrayController : IDisposable
         menu.Items.Add(_clickThroughMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Settings", null, (_, _) => _showSettings());
-        menu.Items.Add("Chat", null, (_, _) => _showChat());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => _exitApplication());
 

@@ -34,7 +34,10 @@ public sealed class DesktopPetApplication : IDisposable
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _settingsStore.Load);
         _audioPlayer = new TempFileAudioPlayer();
 
-        _overlayWindow = new PetOverlayWindow();
+        _overlayWindow = new PetOverlayWindow(new PetOverlayCommands(
+            ShowChat,
+            ShowSettings,
+            StartSpeak));
         _trayController = new PetTrayController(
             _overlayWindow,
             ShowSettings,
@@ -80,5 +83,10 @@ public sealed class DesktopPetApplication : IDisposable
 
         _chatWindow.Show();
         _chatWindow.Activate();
+    }
+
+    private static void StartSpeak()
+    {
+        // Voice input is intentionally a visible stub until the microphone path exists.
     }
 }

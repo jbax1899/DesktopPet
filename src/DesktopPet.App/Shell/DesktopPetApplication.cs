@@ -68,7 +68,8 @@ public sealed class DesktopPetApplication : IDisposable
             _profileSettingsStore.Load,
             _audioPlayer,
             _overlayWindow,
-            _errorMessageStore);
+            _errorMessageStore,
+            _memoryStore);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,

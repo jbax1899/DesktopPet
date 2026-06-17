@@ -23,6 +23,7 @@ public sealed class ConversationController : IDisposable
     private readonly StreamingMp3AudioPlayer _audioPlayer;
     private readonly ICharacterStateController _characterStateController;
     private readonly CharacterErrorMessageStore _errorMessageStore;
+    private readonly IMemoryStore _memoryStore;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -40,7 +41,8 @@ public sealed class ConversationController : IDisposable
         Func<ProfileSettings> profileSettingsProvider,
         StreamingMp3AudioPlayer audioPlayer,
         ICharacterStateController characterStateController,
-        CharacterErrorMessageStore errorMessageStore)
+        CharacterErrorMessageStore errorMessageStore,
+        IMemoryStore memoryStore)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -51,6 +53,7 @@ public sealed class ConversationController : IDisposable
         _audioPlayer = audioPlayer;
         _characterStateController = characterStateController;
         _errorMessageStore = errorMessageStore;
+        _memoryStore = memoryStore;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
     }
@@ -113,7 +116,7 @@ public sealed class ConversationController : IDisposable
             try
             {
                 var reply = await _chatService.ReplyAsync(
-                    new ChatRequest(message, _profileSettingsProvider()),
+                    new ChatRequest(message, _profileSettingsProvider(), BuildMemoriesContext()),
                     CancellationToken.None);
                 var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
                 audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
@@ -320,6 +323,25 @@ public sealed class ConversationController : IDisposable
         }
         catch (OperationCanceledException)
         {
+        }
+    }
+
+    private string? BuildMemoriesContext()
+    {
+        try
+        {
+            var memories = _memoryStore.List();
+            if (memories.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Join("\n", memories.Select(m => m.Text));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DesktopPet memory load error: {ex.Message}");
+            return null;
         }
     }
 }

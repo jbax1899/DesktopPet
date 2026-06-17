@@ -107,6 +107,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
             initiationData["dynamic_variables"] = dynamicVariables;
         }
 
+        Debug.WriteLine($"ElevenLabs WebSocket initiation dynamic_variables: {JsonSerializer.Serialize(dynamicVariables, JsonOptions)}");
         await SendJsonAsync(webSocket, initiationData, cancellationToken);
 
         await SendJsonAsync(webSocket, new
@@ -207,6 +208,12 @@ public sealed class ElevenLabsAgentChatService : IChatService
     private static Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
     {
         var dynamicVariables = new Dictionary<string, string>();
+
+        if (!string.IsNullOrWhiteSpace(request.MemoriesContext))
+        {
+            dynamicVariables["memories_context"] = request.MemoriesContext;
+        }
+
         var profile = request.ProfileSettings;
         if (profile is null)
         {

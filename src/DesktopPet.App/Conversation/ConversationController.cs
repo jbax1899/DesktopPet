@@ -120,6 +120,7 @@ public sealed class ConversationController : IDisposable
             try
             {
                 var desktopContext = await _desktopContextProvider.GetCurrentContextAsync(CancellationToken.None);
+                _overlayWindow.ShowDesktopContext(DesktopContextFormatter.Format(desktopContext.Context));
                 var reply = await _chatService.ReplyAsync(
                     new ChatRequest(
                         message,

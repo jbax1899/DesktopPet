@@ -126,6 +126,22 @@ public partial class ConversationOverlayWindow : Window
         ArrangeOverlay();
     }
 
+    public void ShowDesktopContext(string? context)
+    {
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            DesktopContextShell.Visibility = Visibility.Collapsed;
+            DesktopContextTextBlock.Text = string.Empty;
+            DesktopContextTextBlock.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        DesktopContextTextBlock.Text = context;
+        DesktopContextTextBlock.Visibility = Visibility.Collapsed;
+        DesktopContextShell.Visibility = Visibility.Visible;
+        ArrangeOverlay();
+    }
+
     public void SetRequestPending(bool isPending)
     {
         _pendingCount += isPending ? 1 : -1;
@@ -148,7 +164,7 @@ public partial class ConversationOverlayWindow : Window
         }
 
         handled = true;
-        return IsScreenPointOverInput(GetScreenPoint(lParam))
+        return IsScreenPointInteractive(GetScreenPoint(lParam))
             ? ClientHitTest
             : TransparentHitTest;
     }
@@ -214,6 +230,14 @@ public partial class ConversationOverlayWindow : Window
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
+        ArrangeOverlay();
+    }
+
+    private void OnDesktopContextClicked(object sender, RoutedEventArgs e)
+    {
+        DesktopContextTextBlock.Visibility = DesktopContextTextBlock.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
         ArrangeOverlay();
     }
 
@@ -296,6 +320,13 @@ public partial class ConversationOverlayWindow : Window
             System.Windows.Controls.Canvas.SetTop(ErrorShell, Math.Max(0, System.Windows.Controls.Canvas.GetTop(InputShell) - ErrorShell.DesiredSize.Height - ErrorGap));
         }
 
+        if (DesktopContextShell.Visibility == Visibility.Visible)
+        {
+            DesktopContextShell.Measure(new System.Windows.Size(520, double.PositiveInfinity));
+            System.Windows.Controls.Canvas.SetLeft(DesktopContextShell, 18);
+            System.Windows.Controls.Canvas.SetTop(DesktopContextShell, 18);
+        }
+
         if (TranscriptShell.Visibility != Visibility.Visible)
         {
             return;
@@ -337,15 +368,21 @@ public partial class ConversationOverlayWindow : Window
         Height = bounds.Height;
     }
 
-    private bool IsScreenPointOverInput(System.Windows.Point screenPoint)
+    private bool IsScreenPointInteractive(System.Windows.Point screenPoint)
     {
-        if (InputShell.Visibility != Visibility.Visible)
+        return IsPointOverElement(InputShell, screenPoint)
+            || IsPointOverElement(DesktopContextShell, screenPoint);
+    }
+
+    private static bool IsPointOverElement(FrameworkElement element, System.Windows.Point screenPoint)
+    {
+        if (element.Visibility != Visibility.Visible || element.ActualWidth <= 0 || element.ActualHeight <= 0)
         {
             return false;
         }
 
-        var topLeft = InputShell.PointToScreen(new System.Windows.Point(0, 0));
-        var bottomRight = InputShell.PointToScreen(new System.Windows.Point(InputShell.ActualWidth, InputShell.ActualHeight));
+        var topLeft = element.PointToScreen(new System.Windows.Point(0, 0));
+        var bottomRight = element.PointToScreen(new System.Windows.Point(element.ActualWidth, element.ActualHeight));
         return new Rect(topLeft, bottomRight).Contains(screenPoint);
     }
 

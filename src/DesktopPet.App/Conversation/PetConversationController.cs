@@ -7,6 +7,7 @@ namespace DesktopPet.App.Conversation;
 public sealed class PetConversationController : IDisposable
 {
     private static readonly TimeSpan TranscriptHoldAfterSpeech = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
 
     private readonly ConversationOverlayWindow _overlayWindow;
     private readonly IPetChatService _chatService;
@@ -61,6 +62,7 @@ public sealed class PetConversationController : IDisposable
         var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
         _overlayWindow.SetRequestPending(isPending: true);
 
+        using var thinking = _performanceController.BeginMood(PetMood.Thinking);
         try
         {
             var reply = await _chatService.ReplyAsync(new PetChatRequest(message), CancellationToken.None);
@@ -78,6 +80,7 @@ public sealed class PetConversationController : IDisposable
             if (turnId == Volatile.Read(ref _newestSubmittedTurnId))
             {
                 _overlayWindow.ShowError($"Chat failed: {ex.Message}");
+                _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
         finally
@@ -145,6 +148,7 @@ public sealed class PetConversationController : IDisposable
             if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
             {
                 _overlayWindow.ShowError($"Playback failed: {ex.Message}");
+                _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
     }

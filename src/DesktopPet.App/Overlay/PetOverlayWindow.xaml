@@ -70,6 +70,57 @@
     <Grid MouseLeftButtonDown="OnOverlayMouseLeftButtonDown"
           PreviewMouseRightButtonDown="OnOverlayPreviewMouseRightButtonDown"
           MouseRightButtonUp="OnOverlayMouseRightButtonUp">
+        <Border x:Name="MoodBadge"
+                Width="54"
+                Height="34"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,8,0,0"
+                Background="#F9FAFB"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsHitTestVisible="False"
+                Panel.ZIndex="2"
+                Visibility="Collapsed">
+            <Grid HorizontalAlignment="Center"
+                  VerticalAlignment="Center">
+                <Grid x:Name="ThinkingMoodIcon"
+                      Width="22"
+                      Height="22"
+                      RenderTransformOrigin="0.5,0.5"
+                      Visibility="Collapsed">
+                    <Grid.RenderTransform>
+                        <RotateTransform x:Name="ThinkingMoodRotate" />
+                    </Grid.RenderTransform>
+                    <Path Data="M 11,2 A 9,9 0 1 1 4.64,4.64"
+                          Fill="Transparent"
+                          Stroke="#2563EB"
+                          StrokeEndLineCap="Round"
+                          StrokeStartLineCap="Round"
+                          StrokeThickness="3" />
+                </Grid>
+
+                <TextBlock x:Name="AlarmedMoodIcon"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#DC2626"
+                           Text="!"
+                           Visibility="Collapsed" />
+
+                <TextBlock x:Name="SleepyMoodIcon"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="#374151"
+                           Text="ZZZ"
+                           Visibility="Collapsed" />
+            </Grid>
+        </Border>
+
         <Viewbox x:Name="PuppetHost"
                  Stretch="Uniform" />
 

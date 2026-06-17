@@ -8,6 +8,8 @@ namespace DesktopPet.App.Chat;
 
 public partial class ChatWindow : Window
 {
+    private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
+
     private readonly IPetChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly TempFileAudioPlayer _audioPlayer;
@@ -37,7 +39,7 @@ public partial class ChatWindow : Window
             return;
         }
 
-        await RunOperationAsync("Sending...", async cancellationToken =>
+        await RunOperationAsync("Sending...", PetMood.Thinking, async cancellationToken =>
         {
             var reply = await _chatService.ReplyAsync(
                 new PetChatRequest(UserMessageTextBox.Text),
@@ -55,7 +57,7 @@ public partial class ChatWindow : Window
             return;
         }
 
-        await RunOperationAsync("Speaking...", async cancellationToken =>
+        await RunOperationAsync("Speaking...", PetMood.Thinking, async cancellationToken =>
         {
             var audio = await _voiceSynthesisService.SynthesizeAsync(
                 new VoiceSynthesisRequest(ReplyTextBox.Text),
@@ -71,13 +73,14 @@ public partial class ChatWindow : Window
         });
     }
 
-    private async Task RunOperationAsync(string status, Func<CancellationToken, Task> operation)
+    private async Task RunOperationAsync(string status, PetMood busyMood, Func<CancellationToken, Task> operation)
     {
         // Keep async button work in one place so failures show in the window.
         _isBusy = true;
         StatusTextBlock.Text = status;
         UpdateButtonState();
 
+        using var mood = _performanceController.BeginMood(busyMood);
         try
         {
             await operation(CancellationToken.None);
@@ -85,6 +88,7 @@ public partial class ChatWindow : Window
         catch (Exception ex)
         {
             StatusTextBlock.Text = $"Failed: {ex.Message}";
+            _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
         }
         finally
         {

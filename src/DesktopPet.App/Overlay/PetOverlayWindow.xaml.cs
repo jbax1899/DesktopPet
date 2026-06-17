@@ -27,6 +27,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private const double IdleSquashAmount = 0.018;
     private const double ActionPadMaximumCursorDistance = 320;
     private const double MouthOpenThreshold = 0.28;
+    private static readonly TimeSpan IdleMoodDelay = TimeSpan.FromSeconds(45);
     private const double MouthCloseThreshold = 0.16;
     private const int LeftMouseButtonVirtualKey = 0x01; // VK_LBUTTON
     private const int RightMouseButtonVirtualKey = 0x02; // VK_RBUTTON
@@ -45,6 +46,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private readonly Action<Rect> _positionChanged;
     private readonly DispatcherTimer _gazeTimer;
     private readonly DispatcherTimer _actionPadTimer;
+    private readonly Dictionary<int, PetMood> _moodScopes = [];
     private readonly Stopwatch _idleClock = Stopwatch.StartNew();
     private bool _isClickThrough;
     private bool _isSpeaking;
@@ -52,7 +54,12 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private bool _wasLeftMouseButtonDown;
     private bool _wasRightMouseButtonDown;
     private bool _closedActionPadOnRightMouseDown;
+    private PetMood _currentMood = PetMood.Idle;
+    private PetMood? _temporaryMood;
+    private DateTime _temporaryMoodExpiresAtUtc;
+    private DateTime _lastActivityAtUtc = DateTime.UtcNow;
     private DateTime _lastActionPadMouseOverAt;
+    private int _nextMoodScopeId;
     private Vector _currentLeftEyeOffset = LeftEyeNeutralOffset;
     private Vector _currentRightEyeOffset = RightEyeNeutralOffset;
     private OverlayPosition? _initialPosition;
@@ -95,11 +102,62 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     public IPetSpeakingScope BeginSpeaking()
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            return Dispatcher.Invoke(BeginSpeaking);
+        }
+
+        var moodScope = BeginMood(PetMood.Speaking);
         _isSpeaking = true;
         _showMouthB = false;
         SetMouthFrame(showMouthB: false);
+        UpdateMood();
 
-        return new SpeakingScope(this);
+        return new SpeakingScope(this, moodScope);
+    }
+
+    public IDisposable BeginMood(PetMood mood)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            return Dispatcher.Invoke(() => BeginMood(mood));
+        }
+
+        MarkActivity();
+        var scopeId = ++_nextMoodScopeId;
+        _moodScopes[scopeId] = mood;
+        UpdateMood();
+
+        return new MoodScope(this, scopeId);
+    }
+
+    public void ShowTemporaryMood(PetMood mood, TimeSpan duration)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => ShowTemporaryMood(mood, duration));
+            return;
+        }
+
+        MarkActivity();
+        _temporaryMood = mood;
+        _temporaryMoodExpiresAtUtc = DateTime.UtcNow + duration;
+        UpdateMood();
+    }
+
+    public void MarkActivity()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(MarkActivity);
+            return;
+        }
+
+        _lastActivityAtUtc = DateTime.UtcNow;
+        if (_currentMood == PetMood.Sleepy)
+        {
+            UpdateMood();
+        }
     }
 
     public void SetClickThrough(bool isClickThrough)
@@ -155,6 +213,8 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             return;
         }
 
+        MarkActivity();
+
         if (ActionPad.Visibility == Visibility.Visible)
         {
             if (ActionPad.IsMouseOver)
@@ -177,7 +237,9 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             return;
         }
 
+        MarkActivity();
         _closedActionPadOnRightMouseDown = ActionPad.Visibility == Visibility.Visible;
+
         if (_closedActionPadOnRightMouseDown)
         {
             HideActionPad();
@@ -192,6 +254,8 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             return;
         }
 
+        MarkActivity();
+
         if (_closedActionPadOnRightMouseDown)
         {
             _closedActionPadOnRightMouseDown = false;
@@ -205,12 +269,14 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     private void OnChatActionClicked(object sender, RoutedEventArgs e)
     {
+        MarkActivity();
         HideActionPad();
         _commands.ShowChat();
     }
 
     private void OnSettingsActionClicked(object sender, RoutedEventArgs e)
     {
+        MarkActivity();
         HideActionPad();
         _commands.ShowSettings();
     }
@@ -348,6 +414,8 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     private void OnGazeTimerTick(object? sender, EventArgs e)
     {
+        UpdateMood();
+        UpdateMoodIconAnimation();
         UpdateIdlePose();
 
         var (leftOffset, rightOffset) = _isSpeaking
@@ -362,10 +430,11 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         var phase = _idleClock.Elapsed.TotalSeconds / IdleBreathPeriodSeconds * Math.Tau;
         var breath = Math.Sin(phase);
         var liftedBreath = (breath + 1) / 2;
-        var speakingLift = _isSpeaking ? -1.5 : 0;
+        var speakingLift = _currentMood == PetMood.Speaking ? -1.5 : 0;
+        var sleepySink = _currentMood == PetMood.Sleepy ? 1.5 : 0;
 
         _puppetView.SetRootPose(
-            offsetY: speakingLift - liftedBreath * IdleBobPixels,
+            offsetY: sleepySink + speakingLift - liftedBreath * IdleBobPixels,
             scaleX: 1 + liftedBreath * IdleSquashAmount * 0.6,
             scaleY: 1 + liftedBreath * IdleSquashAmount);
     }
@@ -448,6 +517,83 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
             Clamp((viewerTarget.Y - eyeCenter.Y) / viewerDistance * MaximumEyeOffsetY, -MaximumEyeOffsetY, MaximumEyeOffsetY));
     }
 
+    private void EndMood(int scopeId)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => EndMood(scopeId));
+            return;
+        }
+
+        if (_moodScopes.Remove(scopeId))
+        {
+            UpdateMood();
+        }
+    }
+
+    private void UpdateMood()
+    {
+        var now = DateTime.UtcNow;
+        var mood = ResolveMood(now);
+        if (mood == _currentMood)
+        {
+            return;
+        }
+
+        _currentMood = mood;
+        ApplyMoodIcon(mood);
+    }
+
+    private PetMood ResolveMood(DateTime now)
+    {
+        if (_temporaryMood is not null)
+        {
+            if (now < _temporaryMoodExpiresAtUtc)
+            {
+                return _temporaryMood.Value;
+            }
+
+            _temporaryMood = null;
+        }
+
+        if (_moodScopes.ContainsValue(PetMood.Speaking))
+        {
+            return PetMood.Speaking;
+        }
+
+        if (_moodScopes.ContainsValue(PetMood.Thinking))
+        {
+            return PetMood.Thinking;
+        }
+
+        return now - _lastActivityAtUtc >= IdleMoodDelay
+            ? PetMood.Sleepy
+            : PetMood.Idle;
+    }
+
+    private void ApplyMoodIcon(PetMood mood)
+    {
+        MoodBadge.Visibility = mood is PetMood.Thinking or PetMood.Alarmed or PetMood.Sleepy
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ThinkingMoodIcon.Visibility = mood == PetMood.Thinking ? Visibility.Visible : Visibility.Collapsed;
+        AlarmedMoodIcon.Visibility = mood == PetMood.Alarmed ? Visibility.Visible : Visibility.Collapsed;
+        SleepyMoodIcon.Visibility = mood == PetMood.Sleepy ? Visibility.Visible : Visibility.Collapsed;
+
+        if (mood != PetMood.Thinking)
+        {
+            ThinkingMoodRotate.Angle = 0;
+        }
+    }
+
+    private void UpdateMoodIconAnimation()
+    {
+        if (_currentMood == PetMood.Thinking)
+        {
+            ThinkingMoodRotate.Angle = _idleClock.Elapsed.TotalSeconds * 180 % 360;
+        }
+    }
+
     private void StopSpeaking()
     {
         _isSpeaking = false;
@@ -504,10 +650,12 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private sealed class SpeakingScope : IPetSpeakingScope
     {
         private PetOverlayWindow? _window;
+        private IDisposable? _moodScope;
 
-        public SpeakingScope(PetOverlayWindow window)
+        public SpeakingScope(PetOverlayWindow window, IDisposable moodScope)
         {
             _window = window;
+            _moodScope = moodScope;
         }
 
         public void SetMouthOpen(double openness)
@@ -518,6 +666,26 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         public void Dispose()
         {
             _window?.StopSpeaking();
+            _window = null;
+            _moodScope?.Dispose();
+            _moodScope = null;
+        }
+    }
+
+    private sealed class MoodScope : IDisposable
+    {
+        private PetOverlayWindow? _window;
+        private readonly int _scopeId;
+
+        public MoodScope(PetOverlayWindow window, int scopeId)
+        {
+            _window = window;
+            _scopeId = scopeId;
+        }
+
+        public void Dispose()
+        {
+            _window?.EndMood(_scopeId);
             _window = null;
         }
     }

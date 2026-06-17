@@ -18,7 +18,7 @@ prototype-grade.
 - Global chat shortcut is configurable and defaults to Ctrl+Space.
 - Click-through uses Win32 extended window styles.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.
-- Character behavior includes basic gaze, mouth movement during playback, and subtle idle breathing/bob animation.
+- Character behavior includes basic gaze, amplitude-driven mouth movement during playback, and subtle idle breathing/bob animation.
 - Settings window stores ElevenLabs API key, Agent ID, and voice ID in local JSON under the user's local app data folder.
 - ElevenLabs Agent text interaction and ElevenLabs TTS/local MP3 playback have both been smoke-tested.
 - Provider calls are behind small interfaces instead of being called directly from XAML.
@@ -26,8 +26,8 @@ prototype-grade.
 - The source puppet asset lives at `src/DesktopPet.App/Assets/bug.inp` and is copied to the build output as `Assets/bug.inp`.
 - The loader reads the INP container, embedded TGA atlas, and node tree, then draws cropped WPF image layers.
 - Mesh deformation, real rig parameters, real expressions, and native renderer integration are not implemented.
-- Mouth movement and breathing are simple WPF-layer animations, not rig-, amplitude-, phoneme-, or viseme-driven behavior.
-- Audio playback uses temporary MP3 files and WPF `MediaPlayer`.
+- Mouth movement is driven from decoded speech amplitude using the two existing mouth frames; breathing remains a simple WPF-layer animation.
+- Audio playback uses temporary MP3 files and NAudio for playback plus local amplitude analysis.
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - `IPetChatService`, `IVoiceSynthesisService`, and `TempFileAudioPlayer` are good enough for smoke testing.
 - The old separate `ChatWindow` is deprecated and no longer used by the normal runtime path.
@@ -79,7 +79,6 @@ Build the smaller conversation-and-memory loop:
 - Replace temp-file-only playback with streaming playback.
 - Keep a simple stop/interruption path so speech can be cancelled.
 - Add a more polished transcript timing path if full-text-at-once feels too abrupt.
-- Drive mouth movement from audio timing or amplitude if practical; otherwise keep the current simple mouth frames until playback is stable.
 - Keep the TTS request path small and fixed to `eleven_v3`.
 - Add local Mem0 Compose files with pinned published images once the exact image and routes are tested.
 - Add the one-time memory enable prompt.

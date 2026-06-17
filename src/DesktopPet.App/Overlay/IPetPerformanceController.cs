@@ -2,5 +2,10 @@ namespace DesktopPet.App.Overlay;
 
 public interface IPetPerformanceController
 {
-    IDisposable BeginSpeaking();
+    IPetSpeakingScope BeginSpeaking();
+}
+
+public interface IPetSpeakingScope : IDisposable
+{
+    void SetMouthOpen(double openness);
 }

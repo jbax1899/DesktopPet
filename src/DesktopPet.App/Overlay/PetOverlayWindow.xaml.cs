@@ -26,9 +26,10 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private const double IdleBobPixels = 2.0;
     private const double IdleSquashAmount = 0.018;
     private const double ActionPadMaximumCursorDistance = 320;
+    private const double MouthOpenThreshold = 0.28;
+    private const double MouthCloseThreshold = 0.16;
     private const int LeftMouseButtonVirtualKey = 0x01; // VK_LBUTTON
     private const int RightMouseButtonVirtualKey = 0x02; // VK_RBUTTON
-    private static readonly TimeSpan MouthFrameInterval = TimeSpan.FromMilliseconds(140);
     private static readonly TimeSpan GazeUpdateInterval = TimeSpan.FromMilliseconds(33);
     private static readonly TimeSpan ActionPadUpdateInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan ActionPadMouseAwayDelay = TimeSpan.FromSeconds(3);
@@ -42,7 +43,6 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private readonly WpfInochiPuppetView _puppetView = new();
     private readonly PetOverlayCommands _commands;
     private readonly Action<Rect> _positionChanged;
-    private readonly DispatcherTimer _mouthTimer;
     private readonly DispatcherTimer _gazeTimer;
     private readonly DispatcherTimer _actionPadTimer;
     private readonly Stopwatch _idleClock = Stopwatch.StartNew();
@@ -70,12 +70,6 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         SetMouthFrame(showMouthB: false);
         ApplyEyeOffset(_currentLeftEyeOffset, _currentRightEyeOffset);
 
-        _mouthTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
-        {
-            Interval = MouthFrameInterval
-        };
-        _mouthTimer.Tick += OnMouthTimerTick;
-
         _gazeTimer = new DispatcherTimer(DispatcherPriority.Render, Dispatcher)
         {
             Interval = GazeUpdateInterval
@@ -92,8 +86,6 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         Loaded += (_, _) => _gazeTimer.Start();
         Closed += (_, _) =>
         {
-            _mouthTimer.Stop();
-            _mouthTimer.Tick -= OnMouthTimerTick;
             _gazeTimer.Stop();
             _gazeTimer.Tick -= OnGazeTimerTick;
             _actionPadTimer.Stop();
@@ -101,12 +93,11 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         };
     }
 
-    public IDisposable BeginSpeaking()
+    public IPetSpeakingScope BeginSpeaking()
     {
         _isSpeaking = true;
         _showMouthB = false;
         SetMouthFrame(showMouthB: false);
-        _mouthTimer.Start();
 
         return new SpeakingScope(this);
     }
@@ -355,12 +346,6 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         return Math.Min(Math.Max(value, minimum), maximum);
     }
 
-    private void OnMouthTimerTick(object? sender, EventArgs e)
-    {
-        _showMouthB = !_showMouthB;
-        SetMouthFrame(_showMouthB);
-    }
-
     private void OnGazeTimerTick(object? sender, EventArgs e)
     {
         UpdateIdlePose();
@@ -466,9 +451,30 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private void StopSpeaking()
     {
         _isSpeaking = false;
-        _mouthTimer.Stop();
         _showMouthB = false;
         SetMouthFrame(showMouthB: false);
+    }
+
+    private void SetMouthOpen(double openness)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => SetMouthOpen(openness));
+            return;
+        }
+
+        var threshold = _showMouthB ? MouthCloseThreshold : MouthOpenThreshold;
+        var shouldShowOpenMouth = _showMouthB
+            ? openness > threshold
+            : openness >= threshold;
+
+        if (shouldShowOpenMouth == _showMouthB)
+        {
+            return;
+        }
+
+        _showMouthB = shouldShowOpenMouth;
+        SetMouthFrame(_showMouthB);
     }
 
     private void SetMouthFrame(bool showMouthB)
@@ -495,13 +501,18 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         return current + (target - current) * amount;
     }
 
-    private sealed class SpeakingScope : IDisposable
+    private sealed class SpeakingScope : IPetSpeakingScope
     {
         private PetOverlayWindow? _window;
 
         public SpeakingScope(PetOverlayWindow window)
         {
             _window = window;
+        }
+
+        public void SetMouthOpen(double openness)
+        {
+            _window?.SetMouthOpen(openness);
         }
 
         public void Dispose()

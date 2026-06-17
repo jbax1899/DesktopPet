@@ -62,7 +62,11 @@ public partial class ChatWindow : Window
                 cancellationToken);
 
             using var speaking = _performanceController.BeginSpeaking();
-            await _audioPlayer.PlayAsync(audio.AudioBytes, audio.AudioFormat, cancellationToken);
+            await _audioPlayer.PlayAsync(
+                audio.AudioBytes,
+                audio.AudioFormat,
+                cancellationToken,
+                speaking.SetMouthOpen);
             StatusTextBlock.Text = "Done.";
         });
     }

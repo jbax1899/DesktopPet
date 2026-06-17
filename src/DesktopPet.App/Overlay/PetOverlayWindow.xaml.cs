@@ -138,6 +138,11 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         Activate();
     }
 
+    public Rect GetScreenBounds()
+    {
+        return new Rect(Left, Top, GetWindowWidth(), GetWindowHeight());
+    }
+
     private void OnOverlayMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (_isClickThrough || e.ButtonState != MouseButtonState.Pressed)

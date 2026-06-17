@@ -5,8 +5,8 @@ A small native Windows desktop companion prototype.
 ## Current Features
 
 - Overlay pet image
-- Basic chat window with reply generation and spoken playback
-- Tray menu for chat and settings
+- Conversation overlay with reply generation and spoken playback
+- Tray menu for settings and app controls
 
 ## Stack
 

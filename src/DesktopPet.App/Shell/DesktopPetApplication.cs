@@ -62,7 +62,6 @@ public sealed class DesktopPetApplication : IDisposable
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
-            ShowChat,
             _application.Shutdown);
 
         _application.MainWindow = _overlayWindow;

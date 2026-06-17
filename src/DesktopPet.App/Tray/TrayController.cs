@@ -8,7 +8,6 @@ public sealed class TrayController : IDisposable
 {
     private readonly PetOverlayWindow _overlayWindow;
     private readonly Action _showSettings;
-    private readonly Action _showChat;
     private readonly Action _exitApplication;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly Forms.ToolStripMenuItem _clickThroughMenuItem;
@@ -16,12 +15,10 @@ public sealed class TrayController : IDisposable
     public TrayController(
         PetOverlayWindow overlayWindow,
         Action showSettings,
-        Action showChat,
         Action exitApplication)
     {
         _overlayWindow = overlayWindow;
         _showSettings = showSettings;
-        _showChat = showChat;
         _exitApplication = exitApplication;
 
         _clickThroughMenuItem = new Forms.ToolStripMenuItem("Click through")

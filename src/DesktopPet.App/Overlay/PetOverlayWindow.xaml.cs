@@ -438,10 +438,9 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
         var breath = Math.Sin(phase);
         var liftedBreath = (breath + 1) / 2;
         var speakingLift = _currentMood == PetMood.Speaking ? -1.5 : 0;
-        var sleepySink = _currentMood == PetMood.Sleepy ? 1.5 : 0;
 
         _puppetView.SetRootPose(
-            offsetY: sleepySink + speakingLift - liftedBreath * IdleBobPixels,
+            offsetY: speakingLift - liftedBreath * IdleBobPixels,
             scaleX: 1 + liftedBreath * IdleSquashAmount * 0.6,
             scaleY: 1 + liftedBreath * IdleSquashAmount);
     }
@@ -580,12 +579,11 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
 
     private void ApplyMoodIcon(PetMood mood)
     {
-        MoodBadge.Visibility = mood is PetMood.Thinking or PetMood.Alarmed or PetMood.Sleepy
+        MoodBadge.Visibility = mood is PetMood.Thinking or PetMood.Alarmed
             ? Visibility.Visible
             : Visibility.Collapsed;
         ThinkingMoodIcon.Visibility = mood == PetMood.Thinking ? Visibility.Visible : Visibility.Collapsed;
         AlarmedMoodIcon.Visibility = mood == PetMood.Alarmed ? Visibility.Visible : Visibility.Collapsed;
-        SleepyMoodIcon.Visibility = mood == PetMood.Sleepy ? Visibility.Visible : Visibility.Collapsed;
 
         if (mood != PetMood.Thinking)
         {

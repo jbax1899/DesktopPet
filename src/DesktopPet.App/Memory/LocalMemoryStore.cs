@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace DesktopPet.App.Memory;
 
-public sealed class LocalPetMemoryStore : IPetMemoryStore
+public sealed class LocalMemoryStore : IMemoryStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -12,7 +12,7 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
 
     private readonly string _memoryFilePath;
 
-    public LocalPetMemoryStore()
+    public LocalMemoryStore()
     {
         var settingsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -21,14 +21,14 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
         _memoryFilePath = Path.Combine(settingsDirectory, "memories.json");
     }
 
-    public IReadOnlyList<PetMemoryEntry> List()
+    public IReadOnlyList<MemoryEntry> List()
     {
         return LoadAll()
             .OrderByDescending(memory => memory.CreatedAtUtc)
             .ToList();
     }
 
-    public PetMemoryEntry Add(string text)
+    public MemoryEntry Add(string text)
     {
         var trimmedText = text.Trim();
         if (string.IsNullOrWhiteSpace(trimmedText))
@@ -36,7 +36,7 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
             throw new ArgumentException("Memory text cannot be blank.", nameof(text));
         }
 
-        var memory = new PetMemoryEntry(
+        var memory = new MemoryEntry(
             Guid.NewGuid().ToString("N"),
             trimmedText,
             DateTime.UtcNow);
@@ -58,7 +58,7 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
         SaveAll([]);
     }
 
-    private List<PetMemoryEntry> LoadAll()
+    private List<MemoryEntry> LoadAll()
     {
         if (!File.Exists(_memoryFilePath))
         {
@@ -68,7 +68,7 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
         try
         {
             var json = File.ReadAllText(_memoryFilePath);
-            return JsonSerializer.Deserialize<List<PetMemoryEntry>>(json, JsonOptions) ?? [];
+            return JsonSerializer.Deserialize<List<MemoryEntry>>(json, JsonOptions) ?? [];
         }
         catch (JsonException)
         {
@@ -80,7 +80,7 @@ public sealed class LocalPetMemoryStore : IPetMemoryStore
         }
     }
 
-    private void SaveAll(IReadOnlyCollection<PetMemoryEntry> memories)
+    private void SaveAll(IReadOnlyCollection<MemoryEntry> memories)
     {
         var directory = Path.GetDirectoryName(_memoryFilePath)
             ?? throw new InvalidOperationException("Memory file path does not have a directory.");

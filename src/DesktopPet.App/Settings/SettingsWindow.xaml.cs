@@ -6,22 +6,22 @@ namespace DesktopPet.App.Settings;
 
 public partial class SettingsWindow : Window
 {
-    private readonly CloudAiSettingsStore _cloudSettingsStore;
+    private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
-    private readonly PetProfileSettingsStore _profileSettingsStore;
+    private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly Func<UiSettings, string?> _applyUiSettings;
     private readonly Func<string?> _getHotkeyWarning;
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
 
     public SettingsWindow(
-        CloudAiSettingsStore cloudSettingsStore,
+        ElevenLabsSettingsStore elevenLabsSettingsStore,
         UiSettingsStore uiSettingsStore,
-        PetProfileSettingsStore profileSettingsStore,
+        ProfileSettingsStore profileSettingsStore,
         Func<UiSettings, string?> applyUiSettings,
         Func<string?> getHotkeyWarning)
     {
-        _cloudSettingsStore = cloudSettingsStore;
+        _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _uiSettingsStore = uiSettingsStore;
         _profileSettingsStore = profileSettingsStore;
         _applyUiSettings = applyUiSettings;
@@ -35,14 +35,14 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            _cloudSettingsStore.Save(new CloudAiSettings(
+            _elevenLabsSettingsStore.Save(new ElevenLabsSettings(
                 ToNullIfWhiteSpace(ElevenLabsApiKeyTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
 
-            _profileSettingsStore.Save(new PetProfileSettings(
+            _profileSettingsStore.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
-                ToNullIfWhiteSpace(PetNicknameTextBox.Text),
+                ToNullIfWhiteSpace(NicknameTextBox.Text),
                 GetSelectedPersonalityTone()));
 
             var currentUiSettings = _uiSettingsStore.Load();
@@ -65,14 +65,14 @@ public partial class SettingsWindow : Window
 
     private void LoadSettings()
     {
-        var settings = _cloudSettingsStore.Load();
+        var settings = _elevenLabsSettingsStore.Load();
         ElevenLabsApiKeyTextBox.Text = settings.ElevenLabsApiKey ?? string.Empty;
         ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
         ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
 
         var profileSettings = _profileSettingsStore.Load();
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
-        PetNicknameTextBox.Text = profileSettings.PetNickname ?? string.Empty;
+        NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
         SelectPersonalityTone(profileSettings.PersonalityTone);
 
         _selectedChatShortcut = _uiSettingsStore.Load().ChatShortcut;
@@ -98,10 +98,10 @@ public partial class SettingsWindow : Window
 
     private void SelectPersonalityTone(string? tone)
     {
-        PersonalityToneComboBox.ItemsSource = PetProfileSettings.PersonalityTones;
+        PersonalityToneComboBox.ItemsSource = ProfileSettings.PersonalityTones;
 
         if (string.IsNullOrWhiteSpace(tone)
-            || !PetProfileSettings.PersonalityTones.Contains(tone))
+            || !ProfileSettings.PersonalityTones.Contains(tone))
         {
             PersonalityToneComboBox.SelectedIndex = -1;
             return;

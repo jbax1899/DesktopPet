@@ -15,18 +15,18 @@ namespace DesktopPet.App.Shell;
 public sealed class DesktopPetApplication : IDisposable
 {
     private readonly WpfApplication _application;
-    private readonly CloudAiSettingsStore _cloudSettingsStore;
+    private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
-    private readonly PetProfileSettingsStore _profileSettingsStore;
+    private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly HttpClient _httpClient;
-    private readonly IPetChatService _chatService;
+    private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
-    private readonly IPetMemoryStore _memoryStore;
+    private readonly IMemoryStore _memoryStore;
     private readonly TempFileAudioPlayer _audioPlayer;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
-    private readonly PetConversationController _conversationController;
-    private readonly PetTrayController _trayController;
+    private readonly ConversationController _conversationController;
+    private readonly TrayController _trayController;
 
     private SettingsWindow? _settingsWindow;
     private MemoryWindow? _memoryWindow;
@@ -36,30 +36,30 @@ public sealed class DesktopPetApplication : IDisposable
     {
         _application = application;
 
-        _cloudSettingsStore = new CloudAiSettingsStore();
+        _elevenLabsSettingsStore = new ElevenLabsSettingsStore();
         _uiSettingsStore = new UiSettingsStore();
-        _profileSettingsStore = new PetProfileSettingsStore();
+        _profileSettingsStore = new ProfileSettingsStore();
         _httpClient = new HttpClient();
-        _chatService = new ElevenLabsAgentChatService(_httpClient, _cloudSettingsStore.Load);
-        _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _cloudSettingsStore.Load);
-        _memoryStore = new LocalPetMemoryStore();
+        _chatService = new ElevenLabsAgentChatService(_httpClient, _elevenLabsSettingsStore.Load);
+        _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
+        _memoryStore = new LocalMemoryStore();
         _audioPlayer = new TempFileAudioPlayer();
 
-        _overlayWindow = new PetOverlayWindow(new PetOverlayCommands(
+        _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,
             ShowSettings,
             ShowMemories,
             StartSpeak),
             SaveOverlayPosition);
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
-        _conversationController = new PetConversationController(
+        _conversationController = new ConversationController(
             _conversationOverlayWindow,
             _chatService,
             _voiceSynthesisService,
             _profileSettingsStore.Load,
             _audioPlayer,
             _overlayWindow);
-        _trayController = new PetTrayController(
+        _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
             ShowChat,
@@ -94,7 +94,7 @@ public sealed class DesktopPetApplication : IDisposable
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(
-                _cloudSettingsStore,
+                _elevenLabsSettingsStore,
                 _uiSettingsStore,
                 _profileSettingsStore,
                 ApplyUiSettings,

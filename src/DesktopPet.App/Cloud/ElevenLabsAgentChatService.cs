@@ -9,22 +9,22 @@ using System.Text.Json.Serialization;
 
 namespace DesktopPet.App.Cloud;
 
-public sealed class ElevenLabsAgentChatService : IPetChatService
+public sealed class ElevenLabsAgentChatService : IChatService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan ReplyTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan AgentResponseIdleTimeout = TimeSpan.FromSeconds(3);
 
     private readonly HttpClient _httpClient;
-    private readonly Func<CloudAiSettings> _settingsProvider;
+    private readonly Func<ElevenLabsSettings> _settingsProvider;
 
-    public ElevenLabsAgentChatService(HttpClient httpClient, Func<CloudAiSettings> settingsProvider)
+    public ElevenLabsAgentChatService(HttpClient httpClient, Func<ElevenLabsSettings> settingsProvider)
     {
         _httpClient = httpClient;
         _settingsProvider = settingsProvider;
     }
 
-    public async Task<PetChatReply> ReplyAsync(PetChatRequest request, CancellationToken cancellationToken)
+    public async Task<ChatReply> ReplyAsync(ChatRequest request, CancellationToken cancellationToken)
     {
         var settings = _settingsProvider();
         if (string.IsNullOrWhiteSpace(settings.ElevenLabsApiKey))
@@ -49,7 +49,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         {
             var signedUrl = await GetSignedUrlAsync(settings, linkedCancellation.Token);
             var replyText = await SendMessageAsync(signedUrl, BuildUserMessage(request), linkedCancellation.Token);
-            return new PetChatReply(replyText);
+            return new ChatReply(replyText);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -57,7 +57,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         }
     }
 
-    private async Task<string> GetSignedUrlAsync(CloudAiSettings settings, CancellationToken cancellationToken)
+    private async Task<string> GetSignedUrlAsync(ElevenLabsSettings settings, CancellationToken cancellationToken)
     {
         var escapedAgentId = Uri.EscapeDataString(settings.ElevenLabsAgentId!);
         Debug.WriteLine($"ElevenLabs signed URL requested for Agent ID: {settings.ElevenLabsAgentId}");
@@ -195,7 +195,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         return AgentResponseIdleTimeout - elapsed;
     }
 
-    private static string BuildUserMessage(PetChatRequest request)
+    private static string BuildUserMessage(ChatRequest request)
     {
         var profileContext = BuildProfileContext(request);
         if (string.IsNullOrWhiteSpace(profileContext))
@@ -211,7 +211,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
             request.UserMessage);
     }
 
-    private static string? BuildProfileContext(PetChatRequest request)
+    private static string? BuildProfileContext(ChatRequest request)
     {
         var profile = request.ProfileSettings;
         if (profile is null)
@@ -221,7 +221,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
 
         var lines = new List<string>();
         var userName = profile.UserName?.Trim();
-        var petNickname = profile.PetNickname?.Trim();
+        var nickname = profile.Nickname?.Trim();
         var tone = profile.PersonalityTone?.Trim();
 
         if (!string.IsNullOrWhiteSpace(userName))
@@ -229,9 +229,9 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
             lines.Add($"The user's name is {userName}.");
         }
 
-        if (!string.IsNullOrWhiteSpace(petNickname))
+        if (!string.IsNullOrWhiteSpace(nickname))
         {
-            lines.Add($"The pet's nickname is {petNickname}.");
+            lines.Add($"The pet's nickname is {nickname}.");
         }
 
         if (!string.IsNullOrWhiteSpace(tone))

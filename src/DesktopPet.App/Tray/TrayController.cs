@@ -4,7 +4,7 @@ using Forms = System.Windows.Forms;
 
 namespace DesktopPet.App.Tray;
 
-public sealed class PetTrayController : IDisposable
+public sealed class TrayController : IDisposable
 {
     private readonly PetOverlayWindow _overlayWindow;
     private readonly Action _showSettings;
@@ -13,7 +13,7 @@ public sealed class PetTrayController : IDisposable
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly Forms.ToolStripMenuItem _clickThroughMenuItem;
 
-    public PetTrayController(
+    public TrayController(
         PetOverlayWindow overlayWindow,
         Action showSettings,
         Action showChat,

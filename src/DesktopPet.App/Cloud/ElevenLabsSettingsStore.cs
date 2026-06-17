@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace DesktopPet.App.Cloud;
 
-public sealed class CloudAiSettingsStore
+public sealed class ElevenLabsSettingsStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -12,7 +12,7 @@ public sealed class CloudAiSettingsStore
 
     private readonly string _settingsFilePath;
 
-    public CloudAiSettingsStore()
+    public ElevenLabsSettingsStore()
     {
         // Plain JSON is temporary, so keep the storage detail boxed in here.
         var settingsDirectory = Path.Combine(
@@ -22,7 +22,7 @@ public sealed class CloudAiSettingsStore
         _settingsFilePath = Path.Combine(settingsDirectory, "cloud-ai-settings.json");
     }
 
-    public CloudAiSettings Load()
+    public ElevenLabsSettings Load()
     {
         if (!File.Exists(_settingsFilePath))
         {
@@ -32,7 +32,7 @@ public sealed class CloudAiSettingsStore
         try
         {
             var json = File.ReadAllText(_settingsFilePath);
-            return JsonSerializer.Deserialize<CloudAiSettings>(json, JsonOptions) ?? EmptySettings();
+            return JsonSerializer.Deserialize<ElevenLabsSettings>(json, JsonOptions) ?? EmptySettings();
         }
         catch (JsonException)
         {
@@ -45,7 +45,7 @@ public sealed class CloudAiSettingsStore
         }
     }
 
-    public void Save(CloudAiSettings settings)
+    public void Save(ElevenLabsSettings settings)
     {
         var directory = Path.GetDirectoryName(_settingsFilePath)
             ?? throw new InvalidOperationException("Settings file path does not have a directory.");
@@ -54,8 +54,8 @@ public sealed class CloudAiSettingsStore
         File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
     }
 
-    private static CloudAiSettings EmptySettings()
+    private static ElevenLabsSettings EmptySettings()
     {
-        return new CloudAiSettings(null, null, null);
+        return new ElevenLabsSettings(null, null, null);
     }
 }

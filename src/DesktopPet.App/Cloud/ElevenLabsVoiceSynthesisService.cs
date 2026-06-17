@@ -9,9 +9,9 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
     private const string ModelId = "eleven_multilingual_v2";
 
     private readonly HttpClient _httpClient;
-    private readonly Func<CloudAiSettings> _settingsProvider;
+    private readonly Func<ElevenLabsSettings> _settingsProvider;
 
-    public ElevenLabsVoiceSynthesisService(HttpClient httpClient, Func<CloudAiSettings> settingsProvider)
+    public ElevenLabsVoiceSynthesisService(HttpClient httpClient, Func<ElevenLabsSettings> settingsProvider)
     {
         _httpClient = httpClient;
         _settingsProvider = settingsProvider;

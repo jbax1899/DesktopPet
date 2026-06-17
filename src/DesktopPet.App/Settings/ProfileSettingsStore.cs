@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace DesktopPet.App.Settings;
 
-public sealed class PetProfileSettingsStore
+public sealed class ProfileSettingsStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -12,7 +12,7 @@ public sealed class PetProfileSettingsStore
 
     private readonly string _settingsFilePath;
 
-    public PetProfileSettingsStore()
+    public ProfileSettingsStore()
     {
         var settingsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -21,30 +21,30 @@ public sealed class PetProfileSettingsStore
         _settingsFilePath = Path.Combine(settingsDirectory, "pet-profile-settings.json");
     }
 
-    public PetProfileSettings Load()
+    public ProfileSettings Load()
     {
         if (!File.Exists(_settingsFilePath))
         {
-            return PetProfileSettings.Default;
+            return ProfileSettings.Default;
         }
 
         try
         {
             var json = File.ReadAllText(_settingsFilePath);
-            return JsonSerializer.Deserialize<PetProfileSettings>(json, JsonOptions)
-                ?? PetProfileSettings.Default;
+            return JsonSerializer.Deserialize<ProfileSettings>(json, JsonOptions)
+                ?? ProfileSettings.Default;
         }
         catch (JsonException)
         {
-            return PetProfileSettings.Default;
+            return ProfileSettings.Default;
         }
         catch (IOException)
         {
-            return PetProfileSettings.Default;
+            return ProfileSettings.Default;
         }
     }
 
-    public void Save(PetProfileSettings settings)
+    public void Save(ProfileSettings settings)
     {
         var directory = Path.GetDirectoryName(_settingsFilePath)
             ?? throw new InvalidOperationException("Settings file path does not have a directory.");

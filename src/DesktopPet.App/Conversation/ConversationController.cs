@@ -5,17 +5,17 @@ using DesktopPet.App.Voice;
 
 namespace DesktopPet.App.Conversation;
 
-public sealed class PetConversationController : IDisposable
+public sealed class ConversationController : IDisposable
 {
     private static readonly TimeSpan TranscriptHoldAfterSpeech = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
 
     private readonly ConversationOverlayWindow _overlayWindow;
-    private readonly IPetChatService _chatService;
+    private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
-    private readonly Func<PetProfileSettings> _profileSettingsProvider;
+    private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly TempFileAudioPlayer _audioPlayer;
-    private readonly IPetPerformanceController _performanceController;
+    private readonly ICharacterStateController _characterStateController;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -24,20 +24,20 @@ public sealed class PetConversationController : IDisposable
     private Task _currentPlaybackTask = Task.CompletedTask;
     private bool _isDisposed;
 
-    public PetConversationController(
+    public ConversationController(
         ConversationOverlayWindow overlayWindow,
-        IPetChatService chatService,
+        IChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
-        Func<PetProfileSettings> profileSettingsProvider,
+        Func<ProfileSettings> profileSettingsProvider,
         TempFileAudioPlayer audioPlayer,
-        IPetPerformanceController performanceController)
+        ICharacterStateController characterStateController)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
         _voiceSynthesisService = voiceSynthesisService;
         _profileSettingsProvider = profileSettingsProvider;
         _audioPlayer = audioPlayer;
-        _performanceController = performanceController;
+        _characterStateController = characterStateController;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
     }
@@ -66,11 +66,11 @@ public sealed class PetConversationController : IDisposable
         var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
         _overlayWindow.SetRequestPending(isPending: true);
 
-        using var thinking = _performanceController.BeginMood(PetMood.Thinking);
+        using var thinking = _characterStateController.BeginMood(PetMood.Thinking);
         try
         {
             var reply = await _chatService.ReplyAsync(
-                new PetChatRequest(message, _profileSettingsProvider()),
+                new ChatRequest(message, _profileSettingsProvider()),
                 CancellationToken.None);
             var audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
 
@@ -86,7 +86,7 @@ public sealed class PetConversationController : IDisposable
             if (turnId == Volatile.Read(ref _newestSubmittedTurnId))
             {
                 _overlayWindow.ShowError($"Chat failed: {ex.Message}");
-                _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+                _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
         finally
@@ -131,7 +131,7 @@ public sealed class PetConversationController : IDisposable
     {
         try
         {
-            using (var speaking = _performanceController.BeginSpeaking())
+            using (var speaking = _characterStateController.BeginSpeaking())
             {
                 await _audioPlayer.PlayAsync(
                     audio.AudioBytes,
@@ -154,7 +154,7 @@ public sealed class PetConversationController : IDisposable
             if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
             {
                 _overlayWindow.ShowError($"Playback failed: {ex.Message}");
-                _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+                _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
     }

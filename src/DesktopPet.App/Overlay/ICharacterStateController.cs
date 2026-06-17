@@ -1,14 +1,14 @@
 namespace DesktopPet.App.Overlay;
 
-public interface IPetPerformanceController
+public interface ICharacterStateController
 {
-    IPetSpeakingScope BeginSpeaking();
+    ISpeakingScope BeginSpeaking();
     IDisposable BeginMood(PetMood mood);
     void ShowTemporaryMood(PetMood mood, TimeSpan duration);
     void MarkActivity();
 }
 
-public interface IPetSpeakingScope : IDisposable
+public interface ISpeakingScope : IDisposable
 {
     void SetMouthOpen(double openness);
 }

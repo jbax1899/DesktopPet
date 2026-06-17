@@ -10,7 +10,7 @@ using Forms = System.Windows.Forms;
 
 namespace DesktopPet.App.Overlay;
 
-public partial class PetOverlayWindow : Window, IPetPerformanceController
+public partial class PetOverlayWindow : Window, ICharacterStateController
 {
     // WPF has no click-through property, so this uses the Win32 window flags.
     private const int ExtendedWindowStyleIndex = -20; // GWL_EXSTYLE
@@ -42,7 +42,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private static readonly Vector RightEyeNeutralOffset = new(-14, 12);
 
     private readonly WpfInochiPuppetView _puppetView = new();
-    private readonly PetOverlayCommands _commands;
+    private readonly OverlayCommands _commands;
     private readonly Action<Rect> _positionChanged;
     private readonly DispatcherTimer _gazeTimer;
     private readonly DispatcherTimer _actionPadTimer;
@@ -64,7 +64,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private Vector _currentRightEyeOffset = RightEyeNeutralOffset;
     private OverlayPosition? _initialPosition;
 
-    public PetOverlayWindow(PetOverlayCommands commands, Action<Rect> positionChanged)
+    public PetOverlayWindow(OverlayCommands commands, Action<Rect> positionChanged)
     {
         _commands = commands;
         _positionChanged = positionChanged;
@@ -100,7 +100,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         };
     }
 
-    public IPetSpeakingScope BeginSpeaking()
+    public ISpeakingScope BeginSpeaking()
     {
         if (!Dispatcher.CheckAccess())
         {
@@ -654,7 +654,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         return current + (target - current) * amount;
     }
 
-    private sealed class SpeakingScope : IPetSpeakingScope
+    private sealed class SpeakingScope : ISpeakingScope
     {
         private PetOverlayWindow? _window;
         private IDisposable? _moodScope;

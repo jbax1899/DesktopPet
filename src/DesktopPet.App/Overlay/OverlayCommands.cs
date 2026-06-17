@@ -1,6 +1,6 @@
 namespace DesktopPet.App.Overlay;
 
-public sealed record PetOverlayCommands(
+public sealed record OverlayCommands(
     Action ShowChat,
     Action ShowSettings,
     Action ShowMemories,

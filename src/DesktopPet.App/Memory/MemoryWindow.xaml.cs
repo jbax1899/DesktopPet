@@ -4,10 +4,10 @@ namespace DesktopPet.App.Memory;
 
 public partial class MemoryWindow : Window
 {
-    private readonly IPetMemoryStore _memoryStore;
-    private List<PetMemoryEntry> _memories = [];
+    private readonly IMemoryStore _memoryStore;
+    private List<MemoryEntry> _memories = [];
 
-    public MemoryWindow(IPetMemoryStore memoryStore)
+    public MemoryWindow(IMemoryStore memoryStore)
     {
         _memoryStore = memoryStore;
 
@@ -43,7 +43,7 @@ public partial class MemoryWindow : Window
 
     private void OnDeleteClicked(object sender, RoutedEventArgs e)
     {
-        if (MemoryListBox.SelectedItem is not PetMemoryEntry selectedMemory)
+        if (MemoryListBox.SelectedItem is not MemoryEntry selectedMemory)
         {
             return;
         }
@@ -91,7 +91,7 @@ public partial class MemoryWindow : Window
 
     private void OnMemorySelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        DeleteMemoryButton.IsEnabled = MemoryListBox.SelectedItem is PetMemoryEntry;
+        DeleteMemoryButton.IsEnabled = MemoryListBox.SelectedItem is MemoryEntry;
     }
 
     private void RefreshMemories(string successMessage)

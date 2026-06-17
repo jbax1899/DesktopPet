@@ -1,11 +1,11 @@
 namespace DesktopPet.App.Settings;
 
-public sealed record PetProfileSettings(
+public sealed record ProfileSettings(
     string? UserName,
-    string? PetNickname,
+    string? Nickname,
     string? PersonalityTone)
 {
-    public static PetProfileSettings Default { get; } = new(null, null, null);
+    public static ProfileSettings Default { get; } = new(null, null, null);
 
     public static IReadOnlyList<string> PersonalityTones { get; } =
     [

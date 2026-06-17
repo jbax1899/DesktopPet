@@ -10,23 +10,23 @@ public partial class ChatWindow : Window
 {
     private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
 
-    private readonly IPetChatService _chatService;
+    private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly TempFileAudioPlayer _audioPlayer;
-    private readonly IPetPerformanceController _performanceController;
+    private readonly ICharacterStateController _characterStateController;
 
     private bool _isBusy;
 
     public ChatWindow(
-        IPetChatService chatService,
+        IChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
         TempFileAudioPlayer audioPlayer,
-        IPetPerformanceController performanceController)
+        ICharacterStateController characterStateController)
     {
         _chatService = chatService;
         _voiceSynthesisService = voiceSynthesisService;
         _audioPlayer = audioPlayer;
-        _performanceController = performanceController;
+        _characterStateController = characterStateController;
 
         InitializeComponent();
         UpdateButtonState();
@@ -42,7 +42,7 @@ public partial class ChatWindow : Window
         await RunOperationAsync("Sending...", PetMood.Thinking, async cancellationToken =>
         {
             var reply = await _chatService.ReplyAsync(
-                new PetChatRequest(UserMessageTextBox.Text),
+                new ChatRequest(UserMessageTextBox.Text),
                 cancellationToken);
 
             ReplyTextBox.Text = reply.Text;
@@ -63,7 +63,7 @@ public partial class ChatWindow : Window
                 new VoiceSynthesisRequest(ReplyTextBox.Text),
                 cancellationToken);
 
-            using var speaking = _performanceController.BeginSpeaking();
+            using var speaking = _characterStateController.BeginSpeaking();
             await _audioPlayer.PlayAsync(
                 audio.AudioBytes,
                 audio.AudioFormat,
@@ -80,7 +80,7 @@ public partial class ChatWindow : Window
         StatusTextBlock.Text = status;
         UpdateButtonState();
 
-        using var mood = _performanceController.BeginMood(busyMood);
+        using var mood = _characterStateController.BeginMood(busyMood);
         try
         {
             await operation(CancellationToken.None);
@@ -88,7 +88,7 @@ public partial class ChatWindow : Window
         catch (Exception ex)
         {
             StatusTextBlock.Text = $"Failed: {ex.Message}";
-            _performanceController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+            _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
         }
         finally
         {

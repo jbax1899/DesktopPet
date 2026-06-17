@@ -47,7 +47,7 @@
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
-                           Text="Cloud AI" />
+                           Text="ElevenLabs" />
 
                 <TextBlock Grid.Row="1"
                            Grid.Column="0"
@@ -99,8 +99,8 @@
                            Grid.Column="0"
                            Margin="0,0,12,12"
                            VerticalAlignment="Center"
-                           Text="Pet nickname" />
-                <TextBox x:Name="PetNicknameTextBox"
+                           Text="Nickname" />
+                <TextBox x:Name="NicknameTextBox"
                          Grid.Row="6"
                          Grid.Column="1"
                          Margin="0,0,0,12" />

@@ -4,16 +4,27 @@ This is the working status and architecture note for the current prototype. Keep
 it short and update it when implementation decisions change.
 
 The current prototype focuses on a typed-chat loop with local playback,
-lightweight character behavior, and a future local memory path. The WPF overlay
-and service interfaces are usable enough for smoke testing, but the character
-renderer, audio pipeline, credential storage, and memory integration are still
-prototype-grade.
+lightweight character behavior, and local JSON-backed history and memory. The
+next direction is screen-aware typed chat for explicitly permitted
+applications. Ambient comments come later, after permission, reduction, and
+retention boundaries are working.
+
+## ElevenLabs Agent Prompt Setup
+
+The Agent prompt should reference these DesktopPet dynamic variables:
+
+- `{{user_name}}`
+- `{{pet_name}}`
+
+Example prompt fragment:
+
+`You are a desktop pet named {{pet_name}}. The user's name is {{user_name}}.`
 
 ## Current State
 
 - Transparent always-on-top WPF overlay with draggable, clamped, saved character placement.
 - Notification-area icon exposes Show, Hide, Click through, Settings, and Exit.
-- Right-click action pad exposes Chat, Speak, and Settings. Speak is still a microphone-input stub.
+- Right-click action pad exposes Chat, Memories, Settings, and a disabled microphone placeholder.
 - Conversation overlay handles typed input, submitted-message state, transcript display, content-sized chat bubbles, and basic dismissal behavior.
 - Global chat shortcut is configurable and defaults to Ctrl+Space.
 - Click-through uses Win32 extended window styles.
@@ -32,75 +43,79 @@ prototype-grade.
 - Memory window has a Chat History tab plus the existing Memories tab.
 - Chat history stores user attempts and Agent replies in local JSON, with bot audio cached as local MP3 files when playback completes.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
+- All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
 - The old separate `ChatWindow` has been removed; chat now stays in the top-level conversation overlay.
 - The global chat shortcut uses Win32 hotkey registration and may be unavailable if another app owns the same shortcut.
 - Automatic memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
+- Foreground-window tracking, process inspection, UI Automation, screenshots, user-idle tracking, and global Windows event hooks are not implemented.
+- Existing Windows integration is limited to click-through window styles, mouse-button polling, global hotkeys, cursor position, display bounds, and WPF window-message hooks.
+- The current `ChatRequest` carries user text, profile settings, and memory context only.
+- ElevenLabs initiation logging currently prints complete dynamic-variable values and must be redacted before desktop context is added.
 
-## Current Decisions
+## Decisions
 
-- Keep the next loop typed-chat first. Screen-aware commenting and microphone input are later.
-- Keep chat in the top-level conversation overlay, with input usable while previous replies display or speak.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
 - Replies use ElevenLabs Agent Chat Mode; speech uses standalone ElevenLabs TTS with hard-coded `eleven_v3`.
-- Pet profile values are passed to ElevenLabs Agent Chat Mode as dynamic variables, not as text prepended to the user's message.
 - Playback, interruption, mouth movement, and character behavior stay local. TTS streams as MP3 into local playback and cache.
 - Keep the existing chat and voice interfaces unless they get in the way; `IVoiceSynthesisService` should stay small.
+- Keep desktop observation separate from durable memories and add it to chat as distinct optional per-turn context.
+- `DesktopPetApplication` should construct and dispose future observation services.
+- `ConversationController` should request already permission-filtered, reduced desktop context when building a turn.
+- Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.
+- Use separate models for local raw Windows observations and compact model-facing context. Do not send window handles, process IDs, or exact bounds without a concrete need.
+- Default observation permission to denied. Keep structural inspection and visual capture permissions separate, and prefer session-only grants for early prototypes.
+- Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.
 - Ship a small localhost-only Mem0 Docker Compose stack with authentication, persistent storage, and no committed secrets.
 - Ask before enabling memory, never silently install Docker, and show one clear setup or repair message if startup fails.
 - Do not make the Mem0 dashboard part of the normal user flow.
 
-## Memory Privacy Rules
+## Privacy Rules
+
+### Memory
 
 - Do not store raw screenshots.
 - Do not store full UI Automation trees.
 - Do not store credentials.
+- Do not add desktop observations to durable memories automatically.
 - Show users what memories exist.
 - Allow deleting one memory and clearing all memories.
 
-## Reference Checks
+### Desktop Observation
 
-Context7 docs checked:
-
-- ElevenLabs Chat Mode supports text-only Agent responses, and ElevenLabs TTS can stream audio from text.
-- ElevenLabs TTS accepts a `model_id`; this prototype should hard-code `eleven_v3` in the ElevenLabs implementation.
-- Mem0 exposes memory operations such as add, search, list/get, update, and delete through SDKs and a REST API server.
-
-ElevenLabs docs checked:
-
-- Conversational AI dynamic variables can be used in system prompts, first messages, and tools.
-- The WebSocket `conversation_initiation_client_data` payload accepts a `dynamic_variables` object alongside `conversation_config_override`.
-
-## ElevenLabs Agent Prompt Setup
-
-The Agent prompt should reference these DesktopPet dynamic variables:
-
-- `{{user_name}}`
-- `{{pet_name}}`
-
-Example prompt fragment:
-
-`You are a desktop pet named {{pet_name}}. The user's name is {{user_name}}.`
-
-Configure fallback placeholder values in ElevenLabs if any profile field is blank.
+- Observe only explicitly permitted applications and default to no access.
+- Keep metadata or structural inspection and visual capture as separate permissions.
+- Keep exact coordinates and other raw behavior data local unless the model needs them.
+- Reduce raw observations to compact context before sending them to an LLM.
+- Do not write desktop context to chat history, memories, audio metadata, debug logs, or user-visible exception messages.
+- Show the user what desktop context was used for a turn.
+- Persist a global pause and denied-application list; keep temporary grants in memory for the current app session.
 
 ## Next Prototype Target
 
-Build the smaller conversation-and-memory loop:
+Prepare and then prove the smallest screen-aware typed-chat loop:
 
-1. Send typed messages with a few relevant retrieved memories.
-2. Get ElevenLabs Agent text replies.
-3. Generate accepted speech with standalone ElevenLabs TTS using `eleven_v3`.
-4. Play speech locally while showing the transcript and simple character behavior.
-5. Store completed exchanges in Mem0 and surface them through the memory management UI.
+1. Redact complete ElevenLabs dynamic-variable values and review exception logging.
+2. Add an optional provider-neutral desktop-context field separate from `MemoriesContext`.
+3. Add a narrow desktop-context provider with a no-context implementation.
+4. Verify that context is not retained in history, memories, audio metadata, logs, or errors.
+5. Add explicit metadata permission for selected applications.
+6. On typed submission, collect the permitted foreground application's process identity, title, visibility or minimized state, bounds, and approximate foreground duration.
+7. Reduce that raw snapshot to compact model-facing context and send it through the existing chat, TTS, playback, transcript, and history path.
+
+The first observation prototype does not use screenshots or UI Automation.
 
 ## Near-Term Work
 
 - Keep a simple stop/interruption path so speech can be cancelled.
 - Add a more polished transcript timing path if full-text-at-once feels too abrupt.
 - Keep the TTS request path small and fixed to `eleven_v3`.
+- Add tests around request-context retention and provider logging before collecting desktop data.
+- Add a minimal global observation pause, denied-application list, session grant, and metadata-only permission.
+- Identify applications primarily by executable or process identity rather than changing window titles.
+- Show the reduced context used for a typed turn.
 - Add local Mem0 Compose files with pinned published images once the exact image and routes are tested.
 - Add the one-time memory enable prompt.
 - Start the local Mem0 stack from the app after memory is enabled.
@@ -110,13 +125,8 @@ Build the smaller conversation-and-memory loop:
 - Add a small pronunciation dictionary screen with list, add, edit, preview, and delete entries.
 - Let each pronunciation entry choose either alias text or a supported phoneme pronunciation.
 
-The pronunciation dictionary assumes `eleven_v3`. Advanced PLS editing, model
-compatibility UI, and import/export can wait.
-
 ## Later Work
 
-- Window permissions.
-- Foreground-window tracking.
 - UI Automation summaries.
 - Screenshots of permitted windows.
 - Screen-aware comments from the pet.
@@ -133,17 +143,3 @@ compatibility UI, and import/export can wait.
 - Subtitles or a speech bubble.
 - Output-device selection.
 - Hosted Mem0, if local Mem0 works and there is a clear reason to add it.
-
-## Out of Scope For Now
-
-- Alternate TTS models, model selection, fallback logic, or provider framework work.
-- Live Agent audio sessions, microphone-first interaction, request stitching, or stitching IDs.
-- Advanced memory infrastructure such as vector tuning, graph memory, local model hosting, migrations, background summarization, dashboards, repair tooling, or custom supervisors.
-- General plugin system work.
-- Advanced pronunciation dictionary import/export or PLS editing.
-
-## Open Questions
-
-- Is the current WPF-layered puppet good enough for the memory/chat prototype, or should the renderer boundary be cleaned up first?
-- Which Mem0 image, REST routes, and local configuration shape should the Compose stack use?
-- What shape should the pronunciation dictionary use in settings?

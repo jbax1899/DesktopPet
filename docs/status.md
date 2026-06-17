@@ -82,6 +82,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Typed context now reduces useful focused-control and visible-label data when structural access succeeds; unsupported, empty, and timed-out inspection falls back to metadata.
 - A permission-rechecking window-capture service can produce a downscaled in-memory bitmap for a visible, non-minimized foreground window; images are never written to disk.
 - Visual analysis is behind `IVisualContextAnalyzer`; the current unavailable implementation prevents capture until a provider is deliberately selected.
+- A cancellable background coordinator polls permitted metadata every two seconds off the UI thread and retains only the latest 50 reduced observations for at most 30 minutes.
+- Screen Context settings can open a manual recent-observations view. Background observation does not speak yet.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

@@ -35,6 +35,10 @@
                     Content="Refresh apps" />
             <Button Margin="8,0,0,0"
                     Padding="12,5"
+                    Click="OnRecentObservationsClicked"
+                    Content="Recent observations..." />
+            <Button Margin="8,0,0,0"
+                    Padding="12,5"
                     Click="OnSaveClicked"
                     Content="Save" />
         </StackPanel>

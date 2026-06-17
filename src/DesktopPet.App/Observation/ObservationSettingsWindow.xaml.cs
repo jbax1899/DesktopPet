@@ -10,14 +10,27 @@ namespace DesktopPet.App.Observation;
 public partial class ObservationSettingsWindow : Window
 {
     private readonly IObservationPermissionService _permissionService;
+    private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly ObservableCollection<ApplicationRuleRow> _rows = [];
 
-    public ObservationSettingsWindow(IObservationPermissionService permissionService)
+    public ObservationSettingsWindow(
+        IObservationPermissionService permissionService,
+        IDesktopObservationCoordinator observationCoordinator)
     {
         _permissionService = permissionService;
+        _observationCoordinator = observationCoordinator;
         InitializeComponent();
         ApplicationsGrid.ItemsSource = _rows;
         LoadSettings();
+    }
+
+    private void OnRecentObservationsClicked(object sender, RoutedEventArgs e)
+    {
+        var window = new RecentObservationsWindow(_observationCoordinator)
+        {
+            Owner = this
+        };
+        window.Show();
     }
 
     private void LoadSettings()

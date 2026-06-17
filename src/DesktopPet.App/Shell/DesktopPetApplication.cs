@@ -35,6 +35,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IUiAutomationContextCollector _uiAutomationContextCollector;
     private readonly IWindowCaptureService _windowCaptureService;
     private readonly IVisualContextAnalyzer _visualContextAnalyzer;
+    private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -66,6 +67,9 @@ public sealed class DesktopPetApplication : IDisposable
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _windowCaptureService = new WindowCaptureService(_observationPermissionService);
         _visualContextAnalyzer = new UnavailableVisualContextAnalyzer();
+        _observationCoordinator = new DesktopObservationCoordinator(
+            _foregroundWindowCollector,
+            _observationPermissionService);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -107,6 +111,7 @@ public sealed class DesktopPetApplication : IDisposable
         _overlayWindow.Show();
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
         ApplyUiSettings(uiSettings);
+        _observationCoordinator.Start();
     }
 
     public void Dispose()
@@ -116,6 +121,7 @@ public sealed class DesktopPetApplication : IDisposable
         _memoryWindow?.Close();
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
+        _observationCoordinator.Dispose();
         _chatHotkeyService?.Dispose();
         _trayController.Dispose();
         _audioPlayer.Dispose();
@@ -145,7 +151,9 @@ public sealed class DesktopPetApplication : IDisposable
     {
         if (_observationSettingsWindow is null)
         {
-            _observationSettingsWindow = new ObservationSettingsWindow(_observationPermissionService);
+            _observationSettingsWindow = new ObservationSettingsWindow(
+                _observationPermissionService,
+                _observationCoordinator);
             _observationSettingsWindow.Closed += (_, _) => _observationSettingsWindow = null;
         }
 

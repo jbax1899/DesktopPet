@@ -232,11 +232,7 @@ public sealed class ConversationController : IDisposable
                     audioCacheSaved = true;
                 }
 
-                await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
-                if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
-                {
-                    _overlayWindow.HideTranscript();
-                }
+                await HideTranscriptAfterHoldAsync(turnId, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -247,6 +243,7 @@ public sealed class ConversationController : IDisposable
                 {
                     ShowError(ex, PetErrorCode.PlaybackFailed);
                     _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+                    await HideTranscriptAfterHoldAsync(turnId, cancellationToken);
                 }
             }
             finally
@@ -257,6 +254,15 @@ public sealed class ConversationController : IDisposable
                     _chatAudioStore.Delete(audioFileName);
                 }
             }
+        }
+    }
+
+    private async Task HideTranscriptAfterHoldAsync(int turnId, CancellationToken cancellationToken)
+    {
+        await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
+        if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
+        {
+            _overlayWindow.HideTranscript();
         }
     }
 
@@ -302,6 +308,7 @@ public sealed class ConversationController : IDisposable
     {
         var error = PetError.FromException(exception, fallbackCode);
         Debug.WriteLine($"DesktopPet error ({error.Code}): {error.TechnicalMessage}");
+        Debug.WriteLine(exception.ToString());
         _overlayWindow.ShowError(_errorMessageStore.GetMessage(error.Code));
     }
 

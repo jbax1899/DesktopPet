@@ -56,6 +56,6 @@ public sealed class ElevenLabsSettingsStore
 
     private static ElevenLabsSettings EmptySettings()
     {
-        return new ElevenLabsSettings(null, null, null);
+        return new ElevenLabsSettings(null, null, null, []);
     }
 }

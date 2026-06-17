@@ -53,7 +53,8 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
             TryDispose(audioStream);
         });
 
-        var firstFrame = LoadNextFrame(audioStream, cancellationToken);
+        var frameStream = new ReadFullyStream(audioStream);
+        var firstFrame = LoadNextFrame(frameStream, cancellationToken);
         if (firstFrame is null)
         {
             return;
@@ -108,7 +109,7 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
                     waveOut.Play();
                 }
 
-                frame = LoadNextFrame(audioStream, cancellationToken);
+                frame = LoadNextFrame(frameStream, cancellationToken);
             }
 
             cacheStream?.Flush();
@@ -295,6 +296,79 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
         public bool IsStopped { get; set; }
 
         public Exception? Exception { get; set; }
+    }
+
+    private sealed class ReadFullyStream : Stream
+    {
+        private readonly Stream _source;
+        private long _position;
+
+        public ReadFullyStream(Stream source)
+        {
+            _source = source;
+        }
+
+        public override bool CanRead => _source.CanRead;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => _position;
+            set
+            {
+                if (value != _position)
+                {
+                    throw new NotSupportedException();
+                }
+            }
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var totalBytesRead = 0;
+            while (totalBytesRead < count)
+            {
+                var bytesRead = _source.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                totalBytesRead += bytesRead;
+            }
+
+            _position += totalBytesRead;
+            return totalBytesRead;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (origin == SeekOrigin.Current && offset == 0)
+            {
+                return _position;
+            }
+
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     private sealed class DecodedAmplitudeAnalyzer

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using DesktopPet.App.Errors;
 
 namespace DesktopPet.App.Cloud;
@@ -42,11 +43,7 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
             HttpMethod.Post,
             $"https://api.elevenlabs.io/v1/text-to-speech/{escapedVoiceId}/stream?output_format={OutputFormat}")
         {
-            Content = JsonContent.Create(new
-            {
-                text = request.Text,
-                model_id = ModelId
-            })
+            Content = JsonContent.Create(CreateRequestBody(request.Text, settings))
         };
 
         // ElevenLabs uses this header instead of Authorization.
@@ -73,4 +70,32 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
             throw;
         }
     }
+
+    private static ElevenLabsTextToSpeechRequest CreateRequestBody(string text, ElevenLabsSettings settings)
+    {
+        var locators = settings.PronunciationDictionaries?
+            .Where(locator =>
+                !string.IsNullOrWhiteSpace(locator.PronunciationDictionaryId)
+                && !string.IsNullOrWhiteSpace(locator.VersionId))
+            .Take(3)
+            .Select(locator => new ElevenLabsPronunciationDictionaryRequestLocator(
+                locator.PronunciationDictionaryId.Trim(),
+                locator.VersionId.Trim()))
+            .ToArray();
+
+        return new ElevenLabsTextToSpeechRequest(
+            text,
+            ModelId,
+            locators is { Length: > 0 } ? locators : null);
+    }
+
+    private sealed record ElevenLabsTextToSpeechRequest(
+        string text,
+        string model_id,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        IReadOnlyList<ElevenLabsPronunciationDictionaryRequestLocator>? pronunciation_dictionary_locators);
+
+    private sealed record ElevenLabsPronunciationDictionaryRequestLocator(
+        string pronunciation_dictionary_id,
+        string version_id);
 }

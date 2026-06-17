@@ -27,7 +27,7 @@ prototype-grade.
 - The loader reads the INP container, embedded TGA atlas, and node tree, then draws cropped WPF image layers.
 - Mesh deformation, real rig parameters, real expressions, and native renderer integration are not implemented.
 - Mouth movement is driven from decoded speech amplitude using the two existing mouth frames; breathing remains a simple WPF-layer animation.
-- Audio playback streams MP3 frames through NAudio with full-frame HTTP reads while caching completed bot replies for replay.
+- Audio playback streams MP3 frames through NAudio with full-frame HTTP reads, a short output-drain guard to avoid clipping the tail, and completed bot-reply MP3 caching for replay.
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - Memory window has a Chat History tab plus the existing Memories tab.
 - Chat history stores user attempts and Agent replies in local JSON, with bot audio cached as local MP3 files when playback completes.

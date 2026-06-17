@@ -38,9 +38,11 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly IAmbientActivityState _ambientActivityState;
     private readonly IAmbientCommentPolicy _ambientCommentPolicy;
+    private readonly IAmbientCommentGenerator _ambientCommentGenerator;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
+    private readonly AmbientCommentCoordinator _ambientCommentCoordinator;
     private readonly TrayController _trayController;
 
     private SettingsWindow? _settingsWindow;
@@ -77,6 +79,7 @@ public sealed class DesktopPetApplication : IDisposable
         _ambientCommentPolicy = new AmbientCommentPolicy(
             _observationPermissionService,
             _ambientActivityState);
+        _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(_chatService);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -104,6 +107,16 @@ public sealed class DesktopPetApplication : IDisposable
             _memoryStore,
             _desktopContextProvider,
             _ambientActivityState);
+        _ambientCommentCoordinator = new AmbientCommentCoordinator(
+            _observationCoordinator,
+            _observationPermissionService,
+            _ambientCommentPolicy,
+            _ambientCommentGenerator,
+            _voiceSynthesisService,
+            _audioPlayer,
+            _conversationOverlayWindow,
+            _overlayWindow,
+            _ambientActivityState);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
@@ -127,6 +140,7 @@ public sealed class DesktopPetApplication : IDisposable
         _settingsWindow?.Close();
         _observationSettingsWindow?.Close();
         _memoryWindow?.Close();
+        _ambientCommentCoordinator.Dispose();
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
         _observationCoordinator.Dispose();

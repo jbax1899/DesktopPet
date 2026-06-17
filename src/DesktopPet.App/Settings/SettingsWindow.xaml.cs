@@ -50,8 +50,7 @@ public partial class SettingsWindow : Window
 
             _profileSettingsStore.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
-                ToNullIfWhiteSpace(NicknameTextBox.Text),
-                GetSelectedPersonalityTone()));
+                ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
             var currentUiSettings = _uiSettingsStore.Load();
             var uiSettings = currentUiSettings with
@@ -82,7 +81,6 @@ public partial class SettingsWindow : Window
         var profileSettings = _profileSettingsStore.Load();
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
         NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
-        SelectPersonalityTone(profileSettings.PersonalityTone);
 
         _selectedChatShortcut = _uiSettingsStore.Load().ChatShortcut;
         UpdateShortcutButton();
@@ -161,26 +159,6 @@ public partial class SettingsWindow : Window
         nameTextBox.Text = locator?.DisplayName ?? string.Empty;
         dictionaryIdTextBox.Text = locator?.PronunciationDictionaryId ?? string.Empty;
         versionIdTextBox.Text = locator?.VersionId ?? string.Empty;
-    }
-
-    private string? GetSelectedPersonalityTone()
-    {
-        var selectedTone = PersonalityToneComboBox.SelectedItem as string;
-        return string.IsNullOrWhiteSpace(selectedTone) ? null : selectedTone;
-    }
-
-    private void SelectPersonalityTone(string? tone)
-    {
-        PersonalityToneComboBox.ItemsSource = ProfileSettings.PersonalityTones;
-
-        if (string.IsNullOrWhiteSpace(tone)
-            || !ProfileSettings.PersonalityTones.Contains(tone))
-        {
-            PersonalityToneComboBox.SelectedIndex = -1;
-            return;
-        }
-
-        PersonalityToneComboBox.SelectedItem = tone;
     }
 
     private void OnRecordShortcutClicked(object sender, RoutedEventArgs e)

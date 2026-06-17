@@ -215,7 +215,6 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
         var userName = profile.UserName?.Trim();
         var petName = profile.Nickname?.Trim();
-        var tone = profile.PersonalityTone?.Trim();
 
         if (!string.IsNullOrWhiteSpace(userName))
         {
@@ -225,11 +224,6 @@ public sealed class ElevenLabsAgentChatService : IChatService
         if (!string.IsNullOrWhiteSpace(petName))
         {
             dynamicVariables["pet_name"] = petName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(tone))
-        {
-            dynamicVariables["personality_tone"] = tone;
         }
 
         return dynamicVariables;

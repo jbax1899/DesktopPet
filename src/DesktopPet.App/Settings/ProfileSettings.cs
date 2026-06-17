@@ -2,17 +2,7 @@ namespace DesktopPet.App.Settings;
 
 public sealed record ProfileSettings(
     string? UserName,
-    string? Nickname,
-    string? PersonalityTone)
+    string? Nickname)
 {
-    public static ProfileSettings Default { get; } = new(null, null, null);
-
-    public static IReadOnlyList<string> PersonalityTones { get; } =
-    [
-        "Playful",
-        "Calm",
-        "Encouraging",
-        "Dry",
-        "Gentle"
-    ];
+    public static ProfileSettings Default { get; } = new(null, null);
 }

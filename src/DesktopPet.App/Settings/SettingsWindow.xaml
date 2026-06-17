@@ -38,7 +38,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150" />
@@ -199,22 +198,12 @@
                          Margin="0,0,0,12" />
 
                 <TextBlock Grid.Row="9"
-                           Grid.Column="0"
-                           Margin="0,0,12,18"
-                           VerticalAlignment="Center"
-                           Text="Personality tone" />
-                <ComboBox x:Name="PersonalityToneComboBox"
-                          Grid.Row="9"
-                          Grid.Column="1"
-                          Margin="0,0,0,18" />
-
-                <TextBlock Grid.Row="10"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Input" />
 
-                <TextBlock Grid.Row="11"
+                <TextBlock Grid.Row="10"
                            Grid.Column="0"
                            Margin="0,0,12,0"
                            VerticalAlignment="Center"

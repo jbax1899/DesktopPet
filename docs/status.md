@@ -79,11 +79,10 @@ The Agent prompt should reference these DesktopPet dynamic variables:
 
 - `{{user_name}}`
 - `{{pet_name}}`
-- `{{personality_tone}}`
 
 Example prompt fragment:
 
-`You are a desktop pet named {{pet_name}}. The user's name is {{user_name}}. Use a {{personality_tone}} tone.`
+`You are a desktop pet named {{pet_name}}. The user's name is {{user_name}}.`
 
 Configure fallback placeholder values in ElevenLabs if any profile field is blank.
 

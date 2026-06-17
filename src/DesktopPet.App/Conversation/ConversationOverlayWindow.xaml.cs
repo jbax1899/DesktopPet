@@ -241,8 +241,7 @@ public partial class ConversationOverlayWindow : Window
         ShowSubmittedMessage(message);
         ErrorShell.Visibility = Visibility.Collapsed;
         MessageSubmitted?.Invoke(this, message);
-        InputTextBox.Focus();
-        Keyboard.Focus(InputTextBox);
+        Keyboard.ClearFocus();
     }
 
     private void ResizeInputForText()

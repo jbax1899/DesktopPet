@@ -26,6 +26,7 @@ public sealed class ConversationController : IDisposable
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly IMemoryStore _memoryStore;
     private readonly IDesktopContextProvider _desktopContextProvider;
+    private readonly IAmbientActivityState _ambientActivityState;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -45,7 +46,8 @@ public sealed class ConversationController : IDisposable
         ICharacterStateController characterStateController,
         CharacterErrorMessageStore errorMessageStore,
         IMemoryStore memoryStore,
-        IDesktopContextProvider desktopContextProvider)
+        IDesktopContextProvider desktopContextProvider,
+        IAmbientActivityState ambientActivityState)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -58,8 +60,10 @@ public sealed class ConversationController : IDisposable
         _errorMessageStore = errorMessageStore;
         _memoryStore = memoryStore;
         _desktopContextProvider = desktopContextProvider;
+        _ambientActivityState = ambientActivityState;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
+        _overlayWindow.UserInputActivity += OnUserInputActivity;
     }
 
     public async Task ReplayCachedSpeechAsync(ChatHistoryMessage message)
@@ -96,6 +100,7 @@ public sealed class ConversationController : IDisposable
         }
 
         _overlayWindow.MessageSubmitted -= OnMessageSubmitted;
+        _overlayWindow.UserInputActivity -= OnUserInputActivity;
         _currentPlaybackCancellation?.Cancel();
         _currentPlaybackCancellation?.Dispose();
         _playbackGate.Dispose();
@@ -107,8 +112,14 @@ public sealed class ConversationController : IDisposable
         await SubmitAsync(message);
     }
 
+    private void OnUserInputActivity(object? sender, EventArgs e)
+    {
+        _ambientActivityState.RecordUserInput();
+    }
+
     private async Task SubmitAsync(string message)
     {
+        _ambientActivityState.SetUserRequestActive(true);
         var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
         TryAddHistoryMessage(ChatHistoryRole.User, message);
         _overlayWindow.SetRequestPending(isPending: true);
@@ -158,6 +169,7 @@ public sealed class ConversationController : IDisposable
         finally
         {
             _overlayWindow.SetRequestPending(isPending: false);
+            _ambientActivityState.SetUserRequestActive(false);
         }
     }
 
@@ -231,12 +243,20 @@ public sealed class ConversationController : IDisposable
 
                 using (var speaking = _characterStateController.BeginSpeaking())
                 {
-                    await _audioPlayer.PlayAsync(
-                        playbackStream,
-                        audio.AudioFormat,
-                        cancellationToken,
-                        speaking.SetMouthOpen,
-                        cacheStream);
+                    _ambientActivityState.SetSpeechActive(true);
+                    try
+                    {
+                        await _audioPlayer.PlayAsync(
+                            playbackStream,
+                            audio.AudioFormat,
+                            cancellationToken,
+                            speaking.SetMouthOpen,
+                            cacheStream);
+                    }
+                    finally
+                    {
+                        _ambientActivityState.SetSpeechActive(false);
+                    }
                 }
 
                 if (SaveCachedAudio(cacheStream, audioFileName, botMessageId))

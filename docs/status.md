@@ -86,6 +86,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Screen Context settings can open a manual recent-observations view. Background observation does not speak yet.
 - The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and long-running activity.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
+- Ambient policy is local-first and rejects paused, disabled, stale, changed, busy, recently typed, full-screen, do-not-disturb, cooldown, hourly-limit, and duplicate candidates before generation.
+- Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits; nothing generates or speaks ambient comments yet.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

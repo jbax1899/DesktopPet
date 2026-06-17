@@ -36,6 +36,8 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IWindowCaptureService _windowCaptureService;
     private readonly IVisualContextAnalyzer _visualContextAnalyzer;
     private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly IAmbientActivityState _ambientActivityState;
+    private readonly IAmbientCommentPolicy _ambientCommentPolicy;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -71,6 +73,10 @@ public sealed class DesktopPetApplication : IDisposable
             _foregroundWindowCollector,
             _observationPermissionService,
             _uiAutomationContextCollector);
+        _ambientActivityState = new AmbientActivityState();
+        _ambientCommentPolicy = new AmbientCommentPolicy(
+            _observationPermissionService,
+            _ambientActivityState);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -96,7 +102,8 @@ public sealed class DesktopPetApplication : IDisposable
             _overlayWindow,
             _errorMessageStore,
             _memoryStore,
-            _desktopContextProvider);
+            _desktopContextProvider,
+            _ambientActivityState);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,

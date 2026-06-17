@@ -54,6 +54,8 @@ public partial class ConversationOverlayWindow : Window
 
     public event EventHandler<string>? MessageSubmitted;
 
+    public event EventHandler? UserInputActivity;
+
     public void ShowAndFocusInput()
     {
         _lastPetBounds = _petBoundsProvider();
@@ -213,6 +215,11 @@ public partial class ConversationOverlayWindow : Window
 
     private void OnInputTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
+        if (InputTextBox.IsKeyboardFocused)
+        {
+            UserInputActivity?.Invoke(this, EventArgs.Empty);
+        }
+
         ResizeInputForText();
         ArrangeOverlay();
     }

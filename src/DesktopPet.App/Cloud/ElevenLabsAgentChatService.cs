@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DesktopPet.App.Errors;
+using DesktopPet.App.Observation;
 
 namespace DesktopPet.App.Cloud;
 
@@ -214,6 +215,12 @@ public sealed class ElevenLabsAgentChatService : IChatService
         if (!string.IsNullOrWhiteSpace(request.MemoriesContext))
         {
             dynamicVariables["memories_context"] = request.MemoriesContext;
+        }
+
+        var desktopContext = DesktopContextFormatter.Format(request.DesktopContext);
+        if (!string.IsNullOrWhiteSpace(desktopContext))
+        {
+            dynamicVariables["desktop_context"] = desktopContext;
         }
 
         var profile = request.ProfileSettings;

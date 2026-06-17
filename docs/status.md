@@ -61,6 +61,8 @@ Example prompt fragment:
 - Playback, interruption, mouth movement, and character behavior stay local. TTS streams as MP3 into local playback and cache.
 - Keep the existing chat and voice interfaces unless they get in the way; `IVoiceSynthesisService` should stay small.
 - Keep desktop observation separate from durable memories and add it to chat as distinct optional per-turn context.
+- Only `DesktopContextFormatter` converts reduced context into provider text; it enforces field and total-length limits.
+- Desktop context must not be added to chat-history, memory, audio-cache, settings, error, or diagnostic models.
 - `DesktopPetApplication` should construct and dispose future observation services.
 - `ConversationController` should request already permission-filtered, reduced desktop context when building a turn.
 - Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.

@@ -11,6 +11,8 @@ public sealed class WpfInochiPuppetView : Canvas
     private readonly Dictionary<string, FrameworkElement> _parts = [];
     private readonly Dictionary<string, TranslateTransform> _partOffsets = [];
     private readonly Dictionary<string, Rect> _partBounds = [];
+    private readonly ScaleTransform _rootScale = new(1, 1);
+    private readonly TranslateTransform _rootOffset = new();
 
     public void Load(InochiPuppet puppet)
     {
@@ -21,6 +23,15 @@ public sealed class WpfInochiPuppetView : Canvas
 
         Width = puppet.Width;
         Height = puppet.Height;
+        RenderTransformOrigin = new System.Windows.Point(0.5, 0.88);
+        RenderTransform = new TransformGroup
+        {
+            Children =
+            {
+                _rootScale,
+                _rootOffset
+            }
+        };
 
         foreach (var part in puppet.Parts)
         {
@@ -45,6 +56,13 @@ public sealed class WpfInochiPuppetView : Canvas
             _partBounds[part.Name] = part.Bounds;
             Children.Add(image);
         }
+    }
+
+    public void SetRootPose(double offsetY, double scaleX, double scaleY)
+    {
+        _rootOffset.Y = offsetY;
+        _rootScale.ScaleX = scaleX;
+        _rootScale.ScaleY = scaleY;
     }
 
     public void SetPartVisible(string partName, bool isVisible)

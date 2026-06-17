@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -20,6 +21,9 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private const double GazeSmoothing = 0.28;
     private const double AssumedMonitorWidthCentimeters = 60;
     private const double ViewerDistanceFromScreenCentimeters = 90;
+    private const double IdleBreathPeriodSeconds = 4.0;
+    private const double IdleBobPixels = 2.0;
+    private const double IdleSquashAmount = 0.018;
     private static readonly TimeSpan MouthFrameInterval = TimeSpan.FromMilliseconds(140);
     private static readonly TimeSpan GazeUpdateInterval = TimeSpan.FromMilliseconds(33);
     private const string MouthA = "Mouth A";
@@ -32,6 +36,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private readonly WpfInochiPuppetView _puppetView = new();
     private readonly DispatcherTimer _mouthTimer;
     private readonly DispatcherTimer _gazeTimer;
+    private readonly Stopwatch _idleClock = Stopwatch.StartNew();
     private bool _isClickThrough;
     private bool _isSpeaking;
     private bool _showMouthB;
@@ -158,11 +163,26 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     private void OnGazeTimerTick(object? sender, EventArgs e)
     {
+        UpdateIdlePose();
+
         var (leftOffset, rightOffset) = _isSpeaking
             ? GetViewerGazeOffsets()
             : GetMouseGazeOffsets();
 
         SetEyeOffset(leftOffset, rightOffset);
+    }
+
+    private void UpdateIdlePose()
+    {
+        var phase = _idleClock.Elapsed.TotalSeconds / IdleBreathPeriodSeconds * Math.Tau;
+        var breath = Math.Sin(phase);
+        var liftedBreath = (breath + 1) / 2;
+        var speakingLift = _isSpeaking ? -1.5 : 0;
+
+        _puppetView.SetRootPose(
+            offsetY: speakingLift - liftedBreath * IdleBobPixels,
+            scaleX: 1 + liftedBreath * IdleSquashAmount * 0.6,
+            scaleY: 1 + liftedBreath * IdleSquashAmount);
     }
 
     private (Vector Left, Vector Right) GetMouseGazeOffsets()

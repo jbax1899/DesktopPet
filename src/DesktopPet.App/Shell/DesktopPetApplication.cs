@@ -29,6 +29,8 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly ChatAudioStore _chatAudioStore;
     private readonly StreamingMp3AudioPlayer _audioPlayer;
     private readonly IDesktopContextProvider _desktopContextProvider;
+    private readonly ObservationSettingsStore _observationSettingsStore;
+    private readonly IObservationPermissionService _observationPermissionService;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -53,6 +55,8 @@ public sealed class DesktopPetApplication : IDisposable
         _chatHistoryStore = new LocalChatHistoryStore();
         _chatAudioStore = new ChatAudioStore();
         _audioPlayer = new StreamingMp3AudioPlayer();
+        _observationSettingsStore = new ObservationSettingsStore();
+        _observationPermissionService = new ObservationPermissionService(_observationSettingsStore);
         _desktopContextProvider = new NoDesktopContextProvider();
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(

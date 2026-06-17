@@ -68,6 +68,8 @@ Example prompt fragment:
 - Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.
 - Use separate models for local raw Windows observations and compact model-facing context. Do not send window handles, process IDs, or exact bounds without a concrete need.
 - Default observation permission to denied. Keep structural inspection and visual capture permissions separate, and prefer session-only grants for early prototypes.
+- Observation permissions now use a separate `%LOCALAPPDATA%\DesktopPet\observation-settings.json` store. They default to globally paused with no application rules.
+- Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

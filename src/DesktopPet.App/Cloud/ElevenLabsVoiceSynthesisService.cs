@@ -6,11 +6,8 @@ namespace DesktopPet.App.Cloud;
 
 public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
 {
-    private const string OutputFormat = "pcm_24000";
-    private const string AudioFormat = "pcm_s16le";
-    private const int SampleRate = 24000;
-    private const int BitsPerSample = 16;
-    private const int Channels = 1;
+    private const string OutputFormat = "mp3_44100_128";
+    private const string AudioFormat = "mp3";
     private const string ModelId = "eleven_v3";
 
     private readonly HttpClient _httpClient;
@@ -68,7 +65,7 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
         try
         {
             var audioStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return new VoiceSynthesisResult(audioStream, AudioFormat, SampleRate, BitsPerSample, Channels, response);
+            return new VoiceSynthesisResult(audioStream, AudioFormat, response);
         }
         catch
         {

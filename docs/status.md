@@ -27,13 +27,15 @@ prototype-grade.
 - The loader reads the INP container, embedded TGA atlas, and node tree, then draws cropped WPF image layers.
 - Mesh deformation, real rig parameters, real expressions, and native renderer integration are not implemented.
 - Mouth movement is driven from decoded speech amplitude using the two existing mouth frames; breathing remains a simple WPF-layer animation.
-- Audio playback uses temporary MP3 files and NAudio for playback plus local amplitude analysis.
+- Audio playback streams MP3 frames through NAudio while caching completed bot replies for replay.
 - Plain JSON credential storage is temporary and should not be treated as secure.
+- Memory window has a Chat History tab plus the existing Memories tab.
+- Chat history stores user attempts and Agent replies in local JSON, with bot audio cached as local MP3 files when playback completes.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
-- `IChatService`, `IVoiceSynthesisService`, and `StreamingPcmAudioPlayer` are good enough for smoke testing.
+- `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
 - The old separate `ChatWindow` has been removed; chat now stays in the top-level conversation overlay.
 - The global chat shortcut uses Win32 hotkey registration and may be unavailable if another app owns the same shortcut.
-- Automatic chat memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
+- Automatic memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
 
 ## Current Decisions
 
@@ -42,10 +44,10 @@ prototype-grade.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
 - Replies use ElevenLabs Agent Chat Mode; speech uses standalone ElevenLabs TTS with hard-coded `eleven_v3`.
 - Pet profile values are passed to ElevenLabs Agent Chat Mode as dynamic variables, not as text prepended to the user's message.
-- Playback, interruption, mouth movement, and character behavior stay local. Stream TTS into local playback when practical.
+- Playback, interruption, mouth movement, and character behavior stay local. TTS streams as MP3 into local playback and cache.
 - Keep the existing chat and voice interfaces unless they get in the way; `IVoiceSynthesisService` should stay small.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
-- Store completed text exchanges in memory, not generated audio, and keep memory behavior independent from TTS behavior.
+- Keep chat history, cached replay audio, and durable memories as separate concepts.
 - Ship a small localhost-only Mem0 Docker Compose stack with authentication, persistent storage, and no committed secrets.
 - Ask before enabling memory, never silently install Docker, and show one clear setup or repair message if startup fails.
 - Do not make the Mem0 dashboard part of the normal user flow.
@@ -97,7 +99,6 @@ Build the smaller conversation-and-memory loop:
 
 ## Near-Term Work
 
-- Replace temp-file-only playback with streaming playback.
 - Keep a simple stop/interruption path so speech can be cancelled.
 - Add a more polished transcript timing path if full-text-at-once feels too abrupt.
 - Keep the TTS request path small and fixed to `eleven_v3`.
@@ -145,6 +146,5 @@ compatibility UI, and import/export can wait.
 ## Open Questions
 
 - Is the current WPF-layered puppet good enough for the memory/chat prototype, or should the renderer boundary be cleaned up first?
-- What is the simplest streaming playback option that works well in WPF?
 - Which Mem0 image, REST routes, and local configuration shape should the Compose stack use?
 - What shape should the pronunciation dictionary use in settings?

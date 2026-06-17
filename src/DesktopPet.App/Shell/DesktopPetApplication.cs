@@ -24,7 +24,9 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly IMemoryStore _memoryStore;
-    private readonly StreamingPcmAudioPlayer _audioPlayer;
+    private readonly IChatHistoryStore _chatHistoryStore;
+    private readonly ChatAudioStore _chatAudioStore;
+    private readonly StreamingMp3AudioPlayer _audioPlayer;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -46,7 +48,9 @@ public sealed class DesktopPetApplication : IDisposable
         _chatService = new ElevenLabsAgentChatService(_httpClient, _elevenLabsSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
         _memoryStore = new LocalMemoryStore();
-        _audioPlayer = new StreamingPcmAudioPlayer();
+        _chatHistoryStore = new LocalChatHistoryStore();
+        _chatAudioStore = new ChatAudioStore();
+        _audioPlayer = new StreamingMp3AudioPlayer();
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,
@@ -59,6 +63,8 @@ public sealed class DesktopPetApplication : IDisposable
             _conversationOverlayWindow,
             _chatService,
             _voiceSynthesisService,
+            _chatHistoryStore,
+            _chatAudioStore,
             _profileSettingsStore.Load,
             _audioPlayer,
             _overlayWindow,
@@ -114,7 +120,11 @@ public sealed class DesktopPetApplication : IDisposable
     {
         if (_memoryWindow is null)
         {
-            _memoryWindow = new MemoryWindow(_memoryStore);
+            _memoryWindow = new MemoryWindow(
+                _memoryStore,
+                _chatHistoryStore,
+                _chatAudioStore,
+                _conversationController.ReplayCachedSpeechAsync);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 

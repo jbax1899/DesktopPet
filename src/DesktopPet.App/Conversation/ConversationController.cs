@@ -1,9 +1,11 @@
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Errors;
+using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Voice;
 using System.Diagnostics;
+using System.IO;
 
 namespace DesktopPet.App.Conversation;
 
@@ -15,8 +17,10 @@ public sealed class ConversationController : IDisposable
     private readonly ConversationOverlayWindow _overlayWindow;
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
+    private readonly IChatHistoryStore _chatHistoryStore;
+    private readonly ChatAudioStore _chatAudioStore;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
-    private readonly StreamingPcmAudioPlayer _audioPlayer;
+    private readonly StreamingMp3AudioPlayer _audioPlayer;
     private readonly ICharacterStateController _characterStateController;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
@@ -31,20 +35,50 @@ public sealed class ConversationController : IDisposable
         ConversationOverlayWindow overlayWindow,
         IChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
+        IChatHistoryStore chatHistoryStore,
+        ChatAudioStore chatAudioStore,
         Func<ProfileSettings> profileSettingsProvider,
-        StreamingPcmAudioPlayer audioPlayer,
+        StreamingMp3AudioPlayer audioPlayer,
         ICharacterStateController characterStateController,
         CharacterErrorMessageStore errorMessageStore)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
         _voiceSynthesisService = voiceSynthesisService;
+        _chatHistoryStore = chatHistoryStore;
+        _chatAudioStore = chatAudioStore;
         _profileSettingsProvider = profileSettingsProvider;
         _audioPlayer = audioPlayer;
         _characterStateController = characterStateController;
         _errorMessageStore = errorMessageStore;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
+    }
+
+    public async Task ReplayCachedSpeechAsync(ChatHistoryMessage message)
+    {
+        if (message.Role != ChatHistoryRole.Bot
+            || string.IsNullOrWhiteSpace(message.AudioFileName)
+            || !_chatAudioStore.Exists(message.AudioFileName))
+        {
+            return;
+        }
+
+        var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
+        try
+        {
+            var audio = new VoiceSynthesisResult(
+                _chatAudioStore.OpenRead(message.AudioFileName),
+                ChatAudioStore.AudioFormat);
+
+            await ReplaceCurrentSpeechAsync(turnId, message.Text, audio, botMessageId: null);
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex, PetErrorCode.PlaybackFailed);
+            _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+            throw;
+        }
     }
 
     public void Dispose()
@@ -69,6 +103,7 @@ public sealed class ConversationController : IDisposable
     private async Task SubmitAsync(string message)
     {
         var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
+        TryAddHistoryMessage(ChatHistoryRole.User, message);
         _overlayWindow.SetRequestPending(isPending: true);
 
         using var thinking = _characterStateController.BeginMood(PetMood.Thinking);
@@ -80,6 +115,7 @@ public sealed class ConversationController : IDisposable
                 var reply = await _chatService.ReplyAsync(
                     new ChatRequest(message, _profileSettingsProvider()),
                     CancellationToken.None);
+                var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
                 audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
 
                 if (turnId != Volatile.Read(ref _newestSubmittedTurnId))
@@ -87,7 +123,7 @@ public sealed class ConversationController : IDisposable
                     return;
                 }
 
-                await ReplaceCurrentSpeechAsync(turnId, reply.Text, audio);
+                await ReplaceCurrentSpeechAsync(turnId, reply.Text, audio, botMessage?.Id);
                 audio = null;
             }
             finally
@@ -112,7 +148,7 @@ public sealed class ConversationController : IDisposable
         }
     }
 
-    private async Task ReplaceCurrentSpeechAsync(int turnId, string transcript, VoiceSynthesisResult audio)
+    private async Task ReplaceCurrentSpeechAsync(int turnId, string transcript, VoiceSynthesisResult audio, string? botMessageId)
     {
         await _playbackGate.WaitAsync();
         var playbackStarted = false;
@@ -137,7 +173,7 @@ public sealed class ConversationController : IDisposable
 
             _currentPlaybackCancellation?.Dispose();
             _currentPlaybackCancellation = new CancellationTokenSource();
-            _currentPlaybackTask = PlaySpeechAsync(turnId, audio, _currentPlaybackCancellation.Token);
+            _currentPlaybackTask = PlaySpeechAsync(turnId, audio, botMessageId, _currentPlaybackCancellation.Token);
             playbackStarted = true;
         }
         finally
@@ -151,22 +187,49 @@ public sealed class ConversationController : IDisposable
         }
     }
 
-    private async Task PlaySpeechAsync(int turnId, VoiceSynthesisResult audio, CancellationToken cancellationToken)
+    private async Task PlaySpeechAsync(
+        int turnId,
+        VoiceSynthesisResult audio,
+        string? botMessageId,
+        CancellationToken cancellationToken)
     {
+        FileStream? cacheStream = null;
+        string? audioFileName = null;
+        var audioCacheSaved = false;
+
         await using (audio)
         {
             try
             {
+                var playbackStream = audio.AudioStream;
+                if (!string.IsNullOrWhiteSpace(botMessageId))
+                {
+                    try
+                    {
+                        audioFileName = _chatAudioStore.CreateAudioFileName(botMessageId);
+                        cacheStream = _chatAudioStore.CreateAudioFile(audioFileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"DesktopPet audio cache error: {ex.Message}");
+                        audioFileName = null;
+                    }
+                }
+
                 using (var speaking = _characterStateController.BeginSpeaking())
                 {
                     await _audioPlayer.PlayAsync(
-                        audio.AudioStream,
+                        playbackStream,
                         audio.AudioFormat,
-                        audio.SampleRate,
-                        audio.BitsPerSample,
-                        audio.Channels,
                         cancellationToken,
-                        speaking.SetMouthOpen);
+                        speaking.SetMouthOpen,
+                        cacheStream);
+                }
+
+                if (SaveCachedAudio(cacheStream, audioFileName, botMessageId))
+                {
+                    cacheStream = null;
+                    audioCacheSaved = true;
                 }
 
                 await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
@@ -186,6 +249,52 @@ public sealed class ConversationController : IDisposable
                     _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
                 }
             }
+            finally
+            {
+                cacheStream?.Dispose();
+                if (!audioCacheSaved)
+                {
+                    _chatAudioStore.Delete(audioFileName);
+                }
+            }
+        }
+    }
+
+    private ChatHistoryMessage? TryAddHistoryMessage(ChatHistoryRole role, string text)
+    {
+        try
+        {
+            return _chatHistoryStore.Add(role, text);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DesktopPet chat history error: {ex.Message}");
+            return null;
+        }
+    }
+
+    private bool SaveCachedAudio(
+        FileStream? cacheStream,
+        string? audioFileName,
+        string? botMessageId)
+    {
+        if (cacheStream is null
+            || string.IsNullOrWhiteSpace(audioFileName)
+            || string.IsNullOrWhiteSpace(botMessageId))
+        {
+            return false;
+        }
+
+        try
+        {
+            cacheStream.Dispose();
+            _chatHistoryStore.SetAudioFileName(botMessageId, audioFileName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DesktopPet audio cache finalize error: {ex.Message}");
+            return false;
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using DesktopPet.App.Errors;
 
 namespace DesktopPet.App.Cloud;
 
@@ -22,17 +23,17 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
         var settings = _settingsProvider();
         if (string.IsNullOrWhiteSpace(settings.ElevenLabsApiKey))
         {
-            throw new InvalidOperationException("ElevenLabs API key is missing. Add it in Settings first.");
+            throw new PetErrorException(PetErrorCode.MissingApiKey, "ElevenLabs API key is missing. Add it in Settings first.");
         }
 
         if (string.IsNullOrWhiteSpace(settings.ElevenLabsVoiceId))
         {
-            throw new InvalidOperationException("ElevenLabs voice ID is missing. Add it in Settings first.");
+            throw new PetErrorException(PetErrorCode.MissingVoiceId, "ElevenLabs voice ID is missing. Add it in Settings first.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            throw new InvalidOperationException("There is no reply to speak yet.");
+            throw new PetErrorException(PetErrorCode.TtsFailed, "There is no reply to speak yet.");
         }
 
         var escapedVoiceId = Uri.EscapeDataString(settings.ElevenLabsVoiceId);
@@ -53,7 +54,7 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"ElevenLabs request failed: {(int)response.StatusCode} {response.ReasonPhrase}.");
+            throw new PetErrorException(PetErrorCode.TtsFailed, $"ElevenLabs request failed: {(int)response.StatusCode} {response.ReasonPhrase}.");
         }
 
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);

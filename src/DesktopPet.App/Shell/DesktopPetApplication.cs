@@ -1,5 +1,6 @@
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Conversation;
+using DesktopPet.App.Errors;
 using DesktopPet.App.Input;
 using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
@@ -18,6 +19,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
+    private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly HttpClient _httpClient;
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
@@ -39,6 +41,7 @@ public sealed class DesktopPetApplication : IDisposable
         _elevenLabsSettingsStore = new ElevenLabsSettingsStore();
         _uiSettingsStore = new UiSettingsStore();
         _profileSettingsStore = new ProfileSettingsStore();
+        _errorMessageStore = new CharacterErrorMessageStore();
         _httpClient = new HttpClient();
         _chatService = new ElevenLabsAgentChatService(_httpClient, _elevenLabsSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
@@ -58,7 +61,8 @@ public sealed class DesktopPetApplication : IDisposable
             _voiceSynthesisService,
             _profileSettingsStore.Load,
             _audioPlayer,
-            _overlayWindow);
+            _overlayWindow,
+            _errorMessageStore);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
@@ -96,6 +100,7 @@ public sealed class DesktopPetApplication : IDisposable
                 _elevenLabsSettingsStore,
                 _uiSettingsStore,
                 _profileSettingsStore,
+                _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
@@ -127,7 +132,7 @@ public sealed class DesktopPetApplication : IDisposable
         // Voice input is intentionally a visible stub until the microphone path exists.
     }
 
-    private string? ApplyUiSettings(UiSettings settings)
+    private PetError? ApplyUiSettings(UiSettings settings)
     {
         return _chatHotkeyService?.Register(settings.ChatShortcut);
     }
@@ -142,7 +147,7 @@ public sealed class DesktopPetApplication : IDisposable
         _uiSettingsStore.Save(settings);
     }
 
-    private string? GetHotkeyWarning()
+    private PetError? GetHotkeyWarning()
     {
         return _chatHotkeyService?.CurrentRegistrationError;
     }

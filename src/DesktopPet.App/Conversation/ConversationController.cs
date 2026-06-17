@@ -1,7 +1,9 @@
 using DesktopPet.App.Cloud;
+using DesktopPet.App.Errors;
 using DesktopPet.App.Overlay;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Voice;
+using System.Diagnostics;
 
 namespace DesktopPet.App.Conversation;
 
@@ -16,6 +18,7 @@ public sealed class ConversationController : IDisposable
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly TempFileAudioPlayer _audioPlayer;
     private readonly ICharacterStateController _characterStateController;
+    private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -30,7 +33,8 @@ public sealed class ConversationController : IDisposable
         IVoiceSynthesisService voiceSynthesisService,
         Func<ProfileSettings> profileSettingsProvider,
         TempFileAudioPlayer audioPlayer,
-        ICharacterStateController characterStateController)
+        ICharacterStateController characterStateController,
+        CharacterErrorMessageStore errorMessageStore)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -38,6 +42,7 @@ public sealed class ConversationController : IDisposable
         _profileSettingsProvider = profileSettingsProvider;
         _audioPlayer = audioPlayer;
         _characterStateController = characterStateController;
+        _errorMessageStore = errorMessageStore;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
     }
@@ -85,7 +90,7 @@ public sealed class ConversationController : IDisposable
         {
             if (turnId == Volatile.Read(ref _newestSubmittedTurnId))
             {
-                _overlayWindow.ShowError($"Chat failed: {ex.Message}");
+                ShowError(ex, PetErrorCode.ChatFailed);
                 _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
@@ -153,10 +158,17 @@ public sealed class ConversationController : IDisposable
         {
             if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
             {
-                _overlayWindow.ShowError($"Playback failed: {ex.Message}");
+                ShowError(ex, PetErrorCode.PlaybackFailed);
                 _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             }
         }
+    }
+
+    private void ShowError(Exception exception, PetErrorCode fallbackCode)
+    {
+        var error = PetError.FromException(exception, fallbackCode);
+        Debug.WriteLine($"DesktopPet error ({error.Code}): {error.TechnicalMessage}");
+        _overlayWindow.ShowError(_errorMessageStore.GetMessage(error.Code));
     }
 
     private static async Task IgnoreCancellationAsync(Task task)

@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DesktopPet.App.Errors;
 
 namespace DesktopPet.App.Cloud;
 
@@ -29,17 +30,17 @@ public sealed class ElevenLabsAgentChatService : IChatService
         var settings = _settingsProvider();
         if (string.IsNullOrWhiteSpace(settings.ElevenLabsApiKey))
         {
-            throw new InvalidOperationException("ElevenLabs API key is missing. Add it in Settings first.");
+            throw new PetErrorException(PetErrorCode.MissingApiKey, "ElevenLabs API key is missing. Add it in Settings first.");
         }
 
         if (string.IsNullOrWhiteSpace(settings.ElevenLabsAgentId))
         {
-            throw new InvalidOperationException("ElevenLabs Agent ID is missing. Add it in Settings first.");
+            throw new PetErrorException(PetErrorCode.MissingAgentId, "ElevenLabs Agent ID is missing. Add it in Settings first.");
         }
 
         if (string.IsNullOrWhiteSpace(request.UserMessage))
         {
-            throw new InvalidOperationException("Type a message before sending.");
+            throw new PetErrorException(PetErrorCode.ChatFailed, "Type a message before sending.");
         }
 
         using var timeout = new CancellationTokenSource(ReplyTimeout);
@@ -53,7 +54,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException("ElevenLabs Agent did not finish replying within 60 seconds.");
+            throw new PetErrorException(PetErrorCode.ChatTimeout, "ElevenLabs Agent did not finish replying within 60 seconds.");
         }
     }
 
@@ -71,13 +72,13 @@ public sealed class ElevenLabsAgentChatService : IChatService
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"ElevenLabs Agent request failed: {(int)response.StatusCode} {response.ReasonPhrase}.");
+            throw new PetErrorException(PetErrorCode.ChatFailed, $"ElevenLabs Agent request failed: {(int)response.StatusCode} {response.ReasonPhrase}.");
         }
 
         var signedUrlResponse = await response.Content.ReadFromJsonAsync<SignedUrlResponse>(JsonOptions, cancellationToken);
         if (string.IsNullOrWhiteSpace(signedUrlResponse?.SignedUrl))
         {
-            throw new InvalidOperationException("ElevenLabs did not return a signed Agent URL.");
+            throw new PetErrorException(PetErrorCode.ChatFailed, "ElevenLabs did not return a signed Agent URL.");
         }
 
         return signedUrlResponse.SignedUrl;
@@ -181,7 +182,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
                 case "agent_response_complete":
                     if (string.IsNullOrWhiteSpace(latestResponse))
                     {
-                        throw new InvalidOperationException("ElevenLabs Agent returned an empty reply.");
+                        throw new PetErrorException(PetErrorCode.ChatFailed, "ElevenLabs Agent returned an empty reply.");
                     }
 
                     await CloseAsync(webSocket, cancellationToken);
@@ -189,7 +190,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
             }
         }
 
-        throw new InvalidOperationException("ElevenLabs Agent disconnected before returning a reply.");
+        throw new PetErrorException(PetErrorCode.ChatFailed, "ElevenLabs Agent disconnected before returning a reply.");
     }
 
     private static TimeSpan? GetRemainingIdleTime(DateTimeOffset? lastAgentResponseAt)

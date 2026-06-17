@@ -1,5 +1,7 @@
+using DesktopPet.App.Errors;
 using DesktopPet.App.Settings;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -16,6 +18,7 @@ public sealed class GlobalHotkeyService : IDisposable
     private const uint ModifierShift = 0x0004;
     private const uint ModifierWindows = 0x0008;
     private const uint ModifierNoRepeat = 0x4000;
+    private const int ErrorHotkeyAlreadyRegistered = 1409;
 
     private readonly Window _messageWindow;
     private readonly Action _onHotkeyPressed;
@@ -30,43 +33,49 @@ public sealed class GlobalHotkeyService : IDisposable
         _onHotkeyPressed = onHotkeyPressed;
     }
 
-    public string? CurrentRegistrationError { get; private set; }
+    public PetError? CurrentRegistrationError { get; private set; }
 
-    public string? Register(KeyboardShortcut shortcut)
+    public PetError? Register(KeyboardShortcut shortcut)
     {
         Unregister();
         CurrentRegistrationError = null;
 
         if (!shortcut.IsValid() || !shortcut.TryGetWpfKey(out var key))
         {
-            CurrentRegistrationError = "Shortcut must include at least one modifier and one non-modifier key.";
-            return CurrentRegistrationError;
+            return SetRegistrationError(PetErrorCode.HotkeyInvalid, "Shortcut must include at least one modifier and one non-modifier key.");
         }
 
         EnsureHook();
         if (_handle == nint.Zero)
         {
-            CurrentRegistrationError = "The app window is not ready for hotkey registration.";
-            return CurrentRegistrationError;
+            return SetRegistrationError(PetErrorCode.HotkeyInvalid, "The app window is not ready for hotkey registration.");
         }
 
         var modifiers = BuildModifiers(shortcut);
         var virtualKey = KeyInterop.VirtualKeyFromKey(key);
         if (virtualKey <= 0)
         {
-            CurrentRegistrationError = $"The key {shortcut.Key} cannot be registered as a global hotkey.";
-            return CurrentRegistrationError;
+            return SetRegistrationError(PetErrorCode.HotkeyInvalid, $"The key {shortcut.Key} cannot be registered as a global hotkey.");
         }
 
         if (!RegisterHotKey(_handle, HotkeyId, modifiers, (uint)virtualKey))
         {
             var error = new Win32Exception(Marshal.GetLastWin32Error());
-            CurrentRegistrationError = $"Could not register {shortcut.DisplayText}: {error.Message}";
-            return CurrentRegistrationError;
+            var code = error.NativeErrorCode == ErrorHotkeyAlreadyRegistered
+                ? PetErrorCode.HotkeyConflict
+                : PetErrorCode.HotkeyInvalid;
+            return SetRegistrationError(code, $"Could not register {shortcut.DisplayText}: {error.Message}");
         }
 
         _isRegistered = true;
         return null;
+    }
+
+    private PetError SetRegistrationError(PetErrorCode code, string technicalMessage)
+    {
+        CurrentRegistrationError = new PetError(code, technicalMessage);
+        Debug.WriteLine($"DesktopPet hotkey error ({code}): {technicalMessage}");
+        return CurrentRegistrationError;
     }
 
     public void Dispose()

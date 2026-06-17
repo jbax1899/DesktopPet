@@ -1,4 +1,5 @@
 using DesktopPet.App.Cloud;
+using DesktopPet.App.Errors;
 using System.Windows;
 using System.Windows.Input;
 
@@ -9,8 +10,9 @@ public partial class SettingsWindow : Window
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
-    private readonly Func<UiSettings, string?> _applyUiSettings;
-    private readonly Func<string?> _getHotkeyWarning;
+    private readonly CharacterErrorMessageStore _errorMessageStore;
+    private readonly Func<UiSettings, PetError?> _applyUiSettings;
+    private readonly Func<PetError?> _getHotkeyWarning;
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
 
@@ -18,12 +20,14 @@ public partial class SettingsWindow : Window
         ElevenLabsSettingsStore elevenLabsSettingsStore,
         UiSettingsStore uiSettingsStore,
         ProfileSettingsStore profileSettingsStore,
-        Func<UiSettings, string?> applyUiSettings,
-        Func<string?> getHotkeyWarning)
+        CharacterErrorMessageStore errorMessageStore,
+        Func<UiSettings, PetError?> applyUiSettings,
+        Func<PetError?> getHotkeyWarning)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _uiSettingsStore = uiSettingsStore;
         _profileSettingsStore = profileSettingsStore;
+        _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
 
@@ -55,7 +59,7 @@ public partial class SettingsWindow : Window
             var hotkeyWarning = _applyUiSettings(uiSettings);
             StatusTextBlock.Text = hotkeyWarning is null
                 ? "Saved."
-                : $"Saved, but {hotkeyWarning}";
+                : $"Saved, but {_errorMessageStore.GetMessage(hotkeyWarning.Code)}";
         }
         catch (Exception ex)
         {
@@ -79,9 +83,9 @@ public partial class SettingsWindow : Window
         UpdateShortcutButton();
 
         var hotkeyWarning = _getHotkeyWarning();
-        if (!string.IsNullOrWhiteSpace(hotkeyWarning))
+        if (hotkeyWarning is not null)
         {
-            StatusTextBlock.Text = hotkeyWarning;
+            StatusTextBlock.Text = _errorMessageStore.GetMessage(hotkeyWarning.Code);
         }
     }
 

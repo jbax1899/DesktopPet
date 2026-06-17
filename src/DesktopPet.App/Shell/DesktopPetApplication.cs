@@ -33,6 +33,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IObservationPermissionService _observationPermissionService;
     private readonly IForegroundWindowCollector _foregroundWindowCollector;
     private readonly IUiAutomationContextCollector _uiAutomationContextCollector;
+    private readonly IWindowCaptureService _windowCaptureService;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -62,6 +63,7 @@ public sealed class DesktopPetApplication : IDisposable
         _observationPermissionService = new ObservationPermissionService(_observationSettingsStore);
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
+        _windowCaptureService = new WindowCaptureService(_observationPermissionService);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,

@@ -11,7 +11,7 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
     private static readonly TimeSpan AmplitudeFrameDuration = TimeSpan.FromMilliseconds(33);
     private static readonly TimeSpan BufferDuration = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan OutputDeviceDrainPadding = TimeSpan.FromMilliseconds(250);
-    private const double NoiseGate = 0.08;
+    private const double NoiseGate = 0.03;
     private const double Attack = 0.75;
     private const double Release = 0.35;
 

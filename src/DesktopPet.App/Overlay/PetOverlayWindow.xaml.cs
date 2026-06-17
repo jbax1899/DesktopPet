@@ -26,9 +26,9 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     private const double IdleBobPixels = 2.0;
     private const double IdleSquashAmount = 0.018;
     private const double ActionPadMaximumCursorDistance = 320;
-    private const double MouthOpenThreshold = 0.28;
+    private const double MouthOpenThreshold = 0.16;
     private static readonly TimeSpan IdleMoodDelay = TimeSpan.FromSeconds(45);
-    private const double MouthCloseThreshold = 0.16;
+    private const double MouthCloseThreshold = 0.12;
     private const int LeftMouseButtonVirtualKey = 0x01; // VK_LBUTTON
     private const int RightMouseButtonVirtualKey = 0x02; // VK_RBUTTON
     private static readonly TimeSpan GazeUpdateInterval = TimeSpan.FromMilliseconds(33);

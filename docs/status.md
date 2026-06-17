@@ -72,6 +72,7 @@ Example prompt fragment:
 - Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
 - Settings now opens a Screen Context Privacy window that merges saved rules with visible running applications and explains each access level.
 - A Win32 foreground-window collector can now return permitted metadata while keeping handles, process IDs, paths, and exact bounds inside the observation layer.
+- Opening typed chat prepares the permitted foreground application; submission reduces it to application name, bounded title activity, visibility, and approximate active duration.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

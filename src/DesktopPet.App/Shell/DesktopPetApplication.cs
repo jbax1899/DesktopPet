@@ -28,7 +28,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
     private readonly StreamingMp3AudioPlayer _audioPlayer;
-    private readonly IDesktopContextProvider _desktopContextProvider;
+    private readonly ForegroundDesktopContextProvider _desktopContextProvider;
     private readonly ObservationSettingsStore _observationSettingsStore;
     private readonly IObservationPermissionService _observationPermissionService;
     private readonly IForegroundWindowCollector _foregroundWindowCollector;
@@ -60,7 +60,9 @@ public sealed class DesktopPetApplication : IDisposable
         _observationSettingsStore = new ObservationSettingsStore();
         _observationPermissionService = new ObservationPermissionService(_observationSettingsStore);
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
-        _desktopContextProvider = new NoDesktopContextProvider();
+        _desktopContextProvider = new ForegroundDesktopContextProvider(
+            _foregroundWindowCollector,
+            _observationPermissionService);
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,
@@ -161,6 +163,7 @@ public sealed class DesktopPetApplication : IDisposable
 
     private void ShowChat()
     {
+        _desktopContextProvider.PrepareCurrentContext();
         _conversationOverlayWindow.ToggleInput();
     }
 

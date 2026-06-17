@@ -1,3 +1,4 @@
+using DesktopPet.App.Settings;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -40,6 +41,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
     private readonly WpfInochiPuppetView _puppetView = new();
     private readonly PetOverlayCommands _commands;
+    private readonly Action<Rect> _positionChanged;
     private readonly DispatcherTimer _mouthTimer;
     private readonly DispatcherTimer _gazeTimer;
     private readonly DispatcherTimer _actionPadTimer;
@@ -53,10 +55,12 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
     private DateTime _lastActionPadMouseOverAt;
     private Vector _currentLeftEyeOffset = LeftEyeNeutralOffset;
     private Vector _currentRightEyeOffset = RightEyeNeutralOffset;
+    private OverlayPosition? _initialPosition;
 
-    public PetOverlayWindow(PetOverlayCommands commands)
+    public PetOverlayWindow(PetOverlayCommands commands, Action<Rect> positionChanged)
     {
         _commands = commands;
+        _positionChanged = positionChanged;
 
         InitializeComponent();
 
@@ -84,7 +88,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         };
         _actionPadTimer.Tick += OnActionPadTimerTick;
 
-        Loaded += (_, _) => MoveNearBottomRight();
+        Loaded += (_, _) => ApplyInitialPosition();
         Loaded += (_, _) => _gazeTimer.Start();
         Closed += (_, _) =>
         {
@@ -143,6 +147,16 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         return new Rect(Left, Top, GetWindowWidth(), GetWindowHeight());
     }
 
+    public void SetInitialPosition(OverlayPosition? position)
+    {
+        _initialPosition = position;
+
+        if (IsLoaded)
+        {
+            ApplyInitialPosition();
+        }
+    }
+
     private void OnOverlayMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (_isClickThrough || e.ButtonState != MouseButtonState.Pressed)
@@ -162,6 +176,7 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
 
         DragMove();
         KeepInsideWorkArea();
+        _positionChanged(GetScreenBounds());
     }
 
     private void OnOverlayPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -299,6 +314,20 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         var workArea = SystemParameters.WorkArea;
         Left = workArea.Right - Width - EdgeMargin;
         Top = workArea.Bottom - Height - EdgeMargin;
+    }
+
+    private void ApplyInitialPosition()
+    {
+        if (_initialPosition is null)
+        {
+            MoveNearBottomRight();
+        }
+        else
+        {
+            Left = _initialPosition.Left;
+            Top = _initialPosition.Top;
+            KeepInsideWorkArea();
+        }
     }
 
     private void KeepInsideWorkArea()

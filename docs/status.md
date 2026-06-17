@@ -11,7 +11,7 @@ prototype-grade.
 
 ## Current State
 
-- Transparent always-on-top WPF overlay with draggable, clamped character placement.
+- Transparent always-on-top WPF overlay with draggable, clamped, saved character placement.
 - Notification-area icon exposes Show, Hide, Click through, Settings, and Exit.
 - Right-click action pad exposes Chat, Speak, and Settings. Speak is still a microphone-input stub.
 - Conversation overlay handles typed input, submitted-message state, transcript display, and basic dismissal behavior.
@@ -105,7 +105,6 @@ compatibility UI, and import/export can wait.
 - Desktop information in memory, but only after it has been reduced and approved.
 - Optional microphone input after typed chat works, not a live voice session.
 - Better credential storage than plain JSON.
-- Saved overlay position.
 - Blinking.
 - More natural idle animation.
 - Cleaner renderer/performance boundary.

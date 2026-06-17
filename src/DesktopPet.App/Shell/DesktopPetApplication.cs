@@ -42,7 +42,8 @@ public sealed class DesktopPetApplication : IDisposable
         _overlayWindow = new PetOverlayWindow(new PetOverlayCommands(
             ShowChat,
             ShowSettings,
-            StartSpeak));
+            StartSpeak),
+            SaveOverlayPosition);
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
         _conversationController = new PetConversationController(
             _conversationOverlayWindow,
@@ -61,9 +62,11 @@ public sealed class DesktopPetApplication : IDisposable
 
     public void Start()
     {
+        var uiSettings = _uiSettingsStore.Load();
+        _overlayWindow.SetInitialPosition(uiSettings.OverlayPosition);
         _overlayWindow.Show();
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
-        ApplyUiSettings(_uiSettingsStore.Load());
+        ApplyUiSettings(uiSettings);
     }
 
     public void Dispose()
@@ -106,6 +109,16 @@ public sealed class DesktopPetApplication : IDisposable
     private string? ApplyUiSettings(UiSettings settings)
     {
         return _chatHotkeyService?.Register(settings.ChatShortcut);
+    }
+
+    private void SaveOverlayPosition(Rect bounds)
+    {
+        var settings = _uiSettingsStore.Load() with
+        {
+            OverlayPosition = new OverlayPosition(bounds.Left, bounds.Top)
+        };
+
+        _uiSettingsStore.Save(settings);
     }
 
     private string? GetHotkeyWarning()

@@ -37,7 +37,11 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
 
-            var uiSettings = new UiSettings(_selectedChatShortcut);
+            var currentUiSettings = _uiSettingsStore.Load();
+            var uiSettings = currentUiSettings with
+            {
+                ChatShortcut = _selectedChatShortcut
+            };
             _uiSettingsStore.Save(uiSettings);
 
             var hotkeyWarning = _applyUiSettings(uiSettings);

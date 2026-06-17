@@ -14,7 +14,7 @@ prototype-grade.
 - Transparent always-on-top WPF overlay with draggable, clamped, saved character placement.
 - Notification-area icon exposes Show, Hide, Click through, Settings, and Exit.
 - Right-click action pad exposes Chat, Speak, and Settings. Speak is still a microphone-input stub.
-- Conversation overlay handles typed input, submitted-message state, transcript display, and basic dismissal behavior.
+- Conversation overlay handles typed input, submitted-message state, transcript display, content-sized chat bubbles, and basic dismissal behavior.
 - Global chat shortcut is configurable and defaults to Ctrl+Space.
 - Click-through uses Win32 extended window styles.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.

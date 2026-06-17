@@ -13,10 +13,12 @@ public partial class ConversationOverlayWindow : Window
     private const int WindowNoClientHitTestMessage = 0x0084; // WM_NCHITTEST
     private const int TransparentHitTest = -1; // HTTRANSPARENT
     private const int ClientHitTest = 1; // HTCLIENT
-    private const double InputMinimumWidth = 420;
+    private const double InputMinimumWidth = 260;
     private const double InputMaximumWidthFallback = 1120;
+    private const double TranscriptMinimumWidth = 220;
     private const double MaximumWidthScreenRatio = 0.75;
     private const double InputHorizontalPadding = 96;
+    private const double TranscriptHorizontalPadding = 56;
     private const double HorizontalScreenMargin = 96;
     private const double BottomMargin = 88;
     private const double TranscriptGap = 12;
@@ -245,23 +247,17 @@ public partial class ConversationOverlayWindow : Window
 
     private void ResizeInputForText()
     {
-        var text = string.IsNullOrEmpty(InputTextBox.Text) ? " " : InputTextBox.Text;
-        var longestLine = text.ReplaceLineEndings("\n")
-            .Split('\n')
-            .DefaultIfEmpty(" ")
-            .MaxBy(line => line.Length) ?? " ";
-
-        var formattedText = new FormattedText(
-            longestLine,
-            CultureInfo.CurrentCulture,
-            System.Windows.FlowDirection.LeftToRight,
-            new Typeface(InputTextBox.FontFamily, InputTextBox.FontStyle, InputTextBox.FontWeight, InputTextBox.FontStretch),
-            InputTextBox.FontSize,
-            InputTextBox.Foreground,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip);
-
         var availableMaximumWidth = GetAvailableInputWidth();
-        InputShell.Width = Clamp(formattedText.WidthIncludingTrailingWhitespace + InputHorizontalPadding, InputMinimumWidth, availableMaximumWidth);
+        var textWidth = MeasureLongestLineWidth(
+            InputTextBox.Text,
+            InputTextBox.FontFamily,
+            InputTextBox.FontStyle,
+            InputTextBox.FontWeight,
+            InputTextBox.FontStretch,
+            InputTextBox.FontSize,
+            InputTextBox.Foreground);
+
+        InputShell.Width = Clamp(textWidth + InputHorizontalPadding, InputMinimumWidth, availableMaximumWidth);
     }
 
     private void ArrangeOverlay()
@@ -291,7 +287,9 @@ public partial class ConversationOverlayWindow : Window
             return;
         }
 
-        TranscriptShell.Width = Math.Max(InputShell.ActualWidth, GetAvailableInputWidth());
+        var transcriptMaximumWidth = GetAvailableInputWidth();
+        TranscriptShell.MaxWidth = transcriptMaximumWidth;
+        TranscriptShell.Width = GetTranscriptWidth(transcriptMaximumWidth);
         TranscriptShell.Measure(new System.Windows.Size(TranscriptShell.Width, TranscriptShell.MaxHeight));
         var inputTop = InputShell.Visibility == Visibility.Visible
             ? System.Windows.Controls.Canvas.GetTop(InputShell)
@@ -360,6 +358,47 @@ public partial class ConversationOverlayWindow : Window
         var ratioWidth = ActualWidth * MaximumWidthScreenRatio;
         var marginWidth = ActualWidth - HorizontalScreenMargin * 2;
         return Math.Max(InputMinimumWidth, Math.Min(ratioWidth, marginWidth));
+    }
+
+    private double GetTranscriptWidth(double availableMaximumWidth)
+    {
+        var textWidth = MeasureLongestLineWidth(
+            TranscriptTextBlock.Text,
+            TranscriptTextBlock.FontFamily,
+            TranscriptTextBlock.FontStyle,
+            TranscriptTextBlock.FontWeight,
+            TranscriptTextBlock.FontStretch,
+            TranscriptTextBlock.FontSize,
+            TranscriptTextBlock.Foreground);
+
+        return Clamp(textWidth + TranscriptHorizontalPadding, TranscriptMinimumWidth, availableMaximumWidth);
+    }
+
+    private double MeasureLongestLineWidth(
+        string text,
+        System.Windows.Media.FontFamily fontFamily,
+        System.Windows.FontStyle fontStyle,
+        FontWeight fontWeight,
+        FontStretch fontStretch,
+        double fontSize,
+        System.Windows.Media.Brush foreground)
+    {
+        var longestLine = (string.IsNullOrEmpty(text) ? " " : text)
+            .ReplaceLineEndings("\n")
+            .Split('\n')
+            .DefaultIfEmpty(" ")
+            .MaxBy(line => line.Length) ?? " ";
+
+        var formattedText = new FormattedText(
+            longestLine,
+            CultureInfo.CurrentCulture,
+            System.Windows.FlowDirection.LeftToRight,
+            new Typeface(fontFamily, fontStyle, fontWeight, fontStretch),
+            fontSize,
+            foreground,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+        return formattedText.WidthIncludingTrailingWhitespace;
     }
 
     private void ShowSubmittedMessage(string message)

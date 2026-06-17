@@ -16,7 +16,8 @@
     <Canvas x:Name="OverlayCanvas"
             Background="Transparent">
         <Border x:Name="TranscriptShell"
-                Width="900"
+                MinWidth="220"
+                MaxWidth="1120"
                 MaxHeight="220"
                 Padding="22,12"
                 BorderThickness="0"
@@ -69,7 +70,7 @@
         </Border>
 
         <Border x:Name="InputShell"
-                MinWidth="420"
+                MinWidth="260"
                 MaxWidth="1120"
                 MaxHeight="144"
                 Padding="18,10"
@@ -104,7 +105,7 @@
 
                 <TextBox x:Name="InputTextBox"
                          Grid.Column="0"
-                         MinWidth="350"
+                         MinWidth="160"
                          MaxHeight="112"
                          AcceptsReturn="True"
                          Background="Transparent"

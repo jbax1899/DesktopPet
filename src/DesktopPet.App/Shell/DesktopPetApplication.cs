@@ -24,7 +24,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly IMemoryStore _memoryStore;
-    private readonly TempFileAudioPlayer _audioPlayer;
+    private readonly StreamingPcmAudioPlayer _audioPlayer;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -46,7 +46,7 @@ public sealed class DesktopPetApplication : IDisposable
         _chatService = new ElevenLabsAgentChatService(_httpClient, _elevenLabsSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
         _memoryStore = new LocalMemoryStore();
-        _audioPlayer = new TempFileAudioPlayer();
+        _audioPlayer = new StreamingPcmAudioPlayer();
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,

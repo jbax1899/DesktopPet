@@ -6,8 +6,12 @@ namespace DesktopPet.App.Cloud;
 
 public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
 {
-    private const string OutputFormat = "mp3_44100_128";
-    private const string ModelId = "eleven_multilingual_v2";
+    private const string OutputFormat = "pcm_24000";
+    private const string AudioFormat = "pcm_s16le";
+    private const int SampleRate = 24000;
+    private const int BitsPerSample = 16;
+    private const int Channels = 1;
+    private const string ModelId = "eleven_v3";
 
     private readonly HttpClient _httpClient;
     private readonly Func<ElevenLabsSettings> _settingsProvider;
@@ -39,7 +43,7 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
         var escapedVoiceId = Uri.EscapeDataString(settings.ElevenLabsVoiceId);
         using var httpRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            $"https://api.elevenlabs.io/v1/text-to-speech/{escapedVoiceId}?output_format={OutputFormat}")
+            $"https://api.elevenlabs.io/v1/text-to-speech/{escapedVoiceId}/stream?output_format={OutputFormat}")
         {
             Content = JsonContent.Create(new
             {
@@ -51,13 +55,25 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
         // ElevenLabs uses this header instead of Authorization.
         httpRequest.Headers.Add("xi-api-key", settings.ElevenLabsApiKey);
 
-        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var response = await _httpClient.SendAsync(
+            httpRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            response.Dispose();
             throw new PetErrorException(PetErrorCode.TtsFailed, $"ElevenLabs request failed: {(int)response.StatusCode} {response.ReasonPhrase}.");
         }
 
-        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-        return new VoiceSynthesisResult(bytes, "mp3");
+        try
+        {
+            var audioStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            return new VoiceSynthesisResult(audioStream, AudioFormat, SampleRate, BitsPerSample, Channels, response);
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
     }
 }

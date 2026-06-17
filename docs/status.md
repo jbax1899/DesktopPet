@@ -30,7 +30,7 @@ prototype-grade.
 - Audio playback uses temporary MP3 files and NAudio for playback plus local amplitude analysis.
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
-- `IChatService`, `IVoiceSynthesisService`, and `TempFileAudioPlayer` are good enough for smoke testing.
+- `IChatService`, `IVoiceSynthesisService`, and `StreamingPcmAudioPlayer` are good enough for smoke testing.
 - The old separate `ChatWindow` has been removed; chat now stays in the top-level conversation overlay.
 - The global chat shortcut uses Win32 hotkey registration and may be unavailable if another app owns the same shortcut.
 - Automatic chat memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.

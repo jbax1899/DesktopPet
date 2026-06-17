@@ -16,7 +16,7 @@ public sealed class ConversationController : IDisposable
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
-    private readonly TempFileAudioPlayer _audioPlayer;
+    private readonly StreamingPcmAudioPlayer _audioPlayer;
     private readonly ICharacterStateController _characterStateController;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
@@ -32,7 +32,7 @@ public sealed class ConversationController : IDisposable
         IChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
         Func<ProfileSettings> profileSettingsProvider,
-        TempFileAudioPlayer audioPlayer,
+        StreamingPcmAudioPlayer audioPlayer,
         ICharacterStateController characterStateController,
         CharacterErrorMessageStore errorMessageStore)
     {
@@ -74,17 +74,29 @@ public sealed class ConversationController : IDisposable
         using var thinking = _characterStateController.BeginMood(PetMood.Thinking);
         try
         {
-            var reply = await _chatService.ReplyAsync(
-                new ChatRequest(message, _profileSettingsProvider()),
-                CancellationToken.None);
-            var audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
-
-            if (turnId != Volatile.Read(ref _newestSubmittedTurnId))
+            VoiceSynthesisResult? audio = null;
+            try
             {
-                return;
-            }
+                var reply = await _chatService.ReplyAsync(
+                    new ChatRequest(message, _profileSettingsProvider()),
+                    CancellationToken.None);
+                audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
 
-            await ReplaceCurrentSpeechAsync(turnId, reply.Text, audio);
+                if (turnId != Volatile.Read(ref _newestSubmittedTurnId))
+                {
+                    return;
+                }
+
+                await ReplaceCurrentSpeechAsync(turnId, reply.Text, audio);
+                audio = null;
+            }
+            finally
+            {
+                if (audio is not null)
+                {
+                    await audio.DisposeAsync();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -103,6 +115,7 @@ public sealed class ConversationController : IDisposable
     private async Task ReplaceCurrentSpeechAsync(int turnId, string transcript, VoiceSynthesisResult audio)
     {
         await _playbackGate.WaitAsync();
+        var playbackStarted = false;
 
         try
         {
@@ -125,41 +138,53 @@ public sealed class ConversationController : IDisposable
             _currentPlaybackCancellation?.Dispose();
             _currentPlaybackCancellation = new CancellationTokenSource();
             _currentPlaybackTask = PlaySpeechAsync(turnId, audio, _currentPlaybackCancellation.Token);
+            playbackStarted = true;
         }
         finally
         {
+            if (!playbackStarted)
+            {
+                await audio.DisposeAsync();
+            }
+
             _playbackGate.Release();
         }
     }
 
     private async Task PlaySpeechAsync(int turnId, VoiceSynthesisResult audio, CancellationToken cancellationToken)
     {
-        try
+        await using (audio)
         {
-            using (var speaking = _characterStateController.BeginSpeaking())
+            try
             {
-                await _audioPlayer.PlayAsync(
-                    audio.AudioBytes,
-                    audio.AudioFormat,
-                    cancellationToken,
-                    speaking.SetMouthOpen);
-            }
+                using (var speaking = _characterStateController.BeginSpeaking())
+                {
+                    await _audioPlayer.PlayAsync(
+                        audio.AudioStream,
+                        audio.AudioFormat,
+                        audio.SampleRate,
+                        audio.BitsPerSample,
+                        audio.Channels,
+                        cancellationToken,
+                        speaking.SetMouthOpen);
+                }
 
-            await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
-            if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
-            {
-                _overlayWindow.HideTranscript();
+                await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
+                if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
+                {
+                    _overlayWindow.HideTranscript();
+                }
             }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
+            catch (OperationCanceledException)
             {
-                ShowError(ex, PetErrorCode.PlaybackFailed);
-                _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+            }
+            catch (Exception ex)
+            {
+                if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
+                {
+                    ShowError(ex, PetErrorCode.PlaybackFailed);
+                    _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+                }
             }
         }
     }

@@ -36,6 +36,7 @@ public partial class ConversationOverlayWindow : Window
     private int _visibleTranscriptCharacters;
     private double _transcriptCharacterBudget;
     private bool _isShowingSubmittedMessage;
+    private bool _isSubmitting;
 
     public ConversationOverlayWindow(Func<Rect> petBoundsProvider)
     {
@@ -48,6 +49,7 @@ public partial class ConversationOverlayWindow : Window
             Interval = TranscriptFrameInterval
         };
         _transcriptTimer.Tick += OnTranscriptTimerTick;
+        InputTextBox.LostFocus += OnInputLostFocus;
     }
 
     public event EventHandler<string>? MessageSubmitted;
@@ -199,6 +201,17 @@ public partial class ConversationOverlayWindow : Window
         ArrangeOverlay();
     }
 
+    private void OnInputLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_isSubmitting)
+        {
+            return;
+        }
+
+        ClearSubmittedMessage();
+        HideInput();
+    }
+
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
         ArrangeOverlay();
@@ -241,7 +254,9 @@ public partial class ConversationOverlayWindow : Window
         ShowSubmittedMessage(message);
         ErrorShell.Visibility = Visibility.Collapsed;
         MessageSubmitted?.Invoke(this, message);
+        _isSubmitting = true;
         Keyboard.ClearFocus();
+        _isSubmitting = false;
     }
 
     private void ResizeInputForText()

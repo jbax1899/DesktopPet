@@ -74,7 +74,7 @@ public sealed class DesktopPetApplication : IDisposable
     {
         if (_chatWindow is null)
         {
-            _chatWindow = new ChatWindow(_chatService, _voiceSynthesisService, _audioPlayer);
+            _chatWindow = new ChatWindow(_chatService, _voiceSynthesisService, _audioPlayer, _overlayWindow);
             _chatWindow.Closed += (_, _) => _chatWindow = null;
         }
 

@@ -1,4 +1,5 @@
 using DesktopPet.App.Cloud;
+using DesktopPet.App.Overlay;
 using DesktopPet.App.Voice;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,17 +11,20 @@ public partial class ChatWindow : Window
     private readonly IPetChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
     private readonly TempFileAudioPlayer _audioPlayer;
+    private readonly IPetPerformanceController _performanceController;
 
     private bool _isBusy;
 
     public ChatWindow(
         IPetChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
-        TempFileAudioPlayer audioPlayer)
+        TempFileAudioPlayer audioPlayer,
+        IPetPerformanceController performanceController)
     {
         _chatService = chatService;
         _voiceSynthesisService = voiceSynthesisService;
         _audioPlayer = audioPlayer;
+        _performanceController = performanceController;
 
         InitializeComponent();
         UpdateButtonState();
@@ -57,6 +61,7 @@ public partial class ChatWindow : Window
                 new VoiceSynthesisRequest(ReplyTextBox.Text),
                 cancellationToken);
 
+            using var speaking = _performanceController.BeginSpeaking();
             await _audioPlayer.PlayAsync(audio.AudioBytes, audio.AudioFormat, cancellationToken);
             StatusTextBlock.Text = "Done.";
         });

@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="$(MSBuildProjectDirectory)\Assets\bug.png" Link="Assets\bug.png" />
+    <Content Include="$(MSBuildProjectDirectory)\..\..\bug.inp" Link="Assets\bug.inp" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

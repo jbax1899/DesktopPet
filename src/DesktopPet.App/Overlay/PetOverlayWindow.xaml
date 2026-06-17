@@ -15,8 +15,7 @@
         WindowStartupLocation="Manual"
         WindowStyle="None">
     <Grid MouseLeftButtonDown="OnOverlayMouseLeftButtonDown">
-        <Image Source="/Assets/bug.png"
-               Stretch="Uniform"
-               RenderOptions.BitmapScalingMode="HighQuality" />
+        <Viewbox x:Name="PuppetHost"
+                 Stretch="Uniform" />
     </Grid>
 </Window>

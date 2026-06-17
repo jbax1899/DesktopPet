@@ -7,6 +7,8 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
     private readonly IForegroundWindowCollector _collector;
     private readonly IObservationPermissionService _permissionService;
     private readonly IUiAutomationContextCollector _uiAutomationCollector;
+    private readonly IWindowCaptureService _windowCaptureService;
+    private readonly IVisualContextAnalyzer _visualAnalyzer;
     private readonly object _sync = new();
 
     private ForegroundWindowSnapshot? _preparedSnapshot;
@@ -16,11 +18,15 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
     public ForegroundDesktopContextProvider(
         IForegroundWindowCollector collector,
         IObservationPermissionService permissionService,
-        IUiAutomationContextCollector uiAutomationCollector)
+        IUiAutomationContextCollector uiAutomationCollector,
+        IWindowCaptureService windowCaptureService,
+        IVisualContextAnalyzer visualAnalyzer)
     {
         _collector = collector;
         _permissionService = permissionService;
         _uiAutomationCollector = uiAutomationCollector;
+        _windowCaptureService = windowCaptureService;
+        _visualAnalyzer = visualAnalyzer;
     }
 
     public void PrepareCurrentContext()
@@ -89,6 +95,7 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
 
         var capabilities = DesktopContextCapabilities.Metadata;
         string? structuralDescription = null;
+        string? visualDescription = null;
         var structuralResult = await _uiAutomationCollector.CollectAsync(snapshot, cancellationToken);
         if (structuralResult.Status == DesktopContextCollectionStatus.Available
             && structuralResult.Snapshot is not null)
@@ -100,12 +107,40 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
             }
         }
 
+        if (_visualAnalyzer.IsAvailable
+            && _permissionService.IsAllowed(snapshot.ExecutablePath, DesktopContextCapabilities.Visual))
+        {
+            var capture = await _windowCaptureService.CaptureAsync(
+                snapshot.WindowHandle,
+                snapshot.ExecutablePath,
+                snapshot.IsVisible,
+                snapshot.IsMinimized,
+                cancellationToken);
+            using (capture.Image)
+            {
+                if (capture.Status == DesktopContextCollectionStatus.Available && capture.Image is not null)
+                {
+                    var analysis = await _visualAnalyzer.AnalyzeAsync(
+                        capture.Image,
+                        new VisualAnalysisRequest(applicationName, activity),
+                        cancellationToken);
+                    if (analysis.Status == DesktopContextCollectionStatus.Available
+                        && !string.IsNullOrWhiteSpace(analysis.Description))
+                    {
+                        visualDescription = analysis.Description;
+                        capabilities |= DesktopContextCapabilities.Visual;
+                    }
+                }
+            }
+        }
+
         var context = new DesktopTurnContext(
             applicationName,
             string.IsNullOrWhiteSpace(activity) ? visibility : $"{activity} ({visibility})",
             snapshot.ObservedAt - activeSince,
             capabilities,
-            structuralDescription);
+            structuralDescription,
+            visualDescription);
 
         return DesktopContextResult.Available(context);
     }

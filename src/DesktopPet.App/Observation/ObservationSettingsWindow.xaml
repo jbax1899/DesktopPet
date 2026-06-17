@@ -17,6 +17,10 @@
                        Foreground="#FF475569"
                        Text="Window metadata knows which window is open. Interface labels read visible accessibility text. Visual capture sees the permitted window."
                        TextWrapping="Wrap" />
+            <TextBlock Margin="0,4,0,0"
+                       Foreground="#FF9A3412"
+                       Text="Visual analysis provider unavailable: visual permission can be saved, but no image will be captured or analyzed."
+                       TextWrapping="Wrap" />
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Bottom"

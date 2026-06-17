@@ -34,6 +34,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IForegroundWindowCollector _foregroundWindowCollector;
     private readonly IUiAutomationContextCollector _uiAutomationContextCollector;
     private readonly IWindowCaptureService _windowCaptureService;
+    private readonly IVisualContextAnalyzer _visualContextAnalyzer;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -64,10 +65,13 @@ public sealed class DesktopPetApplication : IDisposable
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _windowCaptureService = new WindowCaptureService(_observationPermissionService);
+        _visualContextAnalyzer = new UnavailableVisualContextAnalyzer();
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
-            _uiAutomationContextCollector);
+            _uiAutomationContextCollector,
+            _windowCaptureService,
+            _visualContextAnalyzer);
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,

@@ -2,6 +2,7 @@ using DesktopPet.App.Cloud;
 using DesktopPet.App.Errors;
 using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
+using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Voice;
 using System.Diagnostics;
@@ -24,6 +25,7 @@ public sealed class ConversationController : IDisposable
     private readonly ICharacterStateController _characterStateController;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly IMemoryStore _memoryStore;
+    private readonly IDesktopContextProvider _desktopContextProvider;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -42,7 +44,8 @@ public sealed class ConversationController : IDisposable
         StreamingMp3AudioPlayer audioPlayer,
         ICharacterStateController characterStateController,
         CharacterErrorMessageStore errorMessageStore,
-        IMemoryStore memoryStore)
+        IMemoryStore memoryStore,
+        IDesktopContextProvider desktopContextProvider)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -54,6 +57,7 @@ public sealed class ConversationController : IDisposable
         _characterStateController = characterStateController;
         _errorMessageStore = errorMessageStore;
         _memoryStore = memoryStore;
+        _desktopContextProvider = desktopContextProvider;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
     }
@@ -115,8 +119,13 @@ public sealed class ConversationController : IDisposable
             VoiceSynthesisResult? audio = null;
             try
             {
+                var desktopContext = await _desktopContextProvider.GetCurrentContextAsync(CancellationToken.None);
                 var reply = await _chatService.ReplyAsync(
-                    new ChatRequest(message, _profileSettingsProvider(), BuildMemoriesContext()),
+                    new ChatRequest(
+                        message,
+                        _profileSettingsProvider(),
+                        BuildMemoriesContext(),
+                        desktopContext.Context),
                     CancellationToken.None);
                 var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
                 audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);

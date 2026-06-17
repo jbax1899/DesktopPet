@@ -4,6 +4,7 @@ using DesktopPet.App.Errors;
 using DesktopPet.App.Input;
 using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
+using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Tray;
 using DesktopPet.App.Voice;
@@ -27,6 +28,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
     private readonly StreamingMp3AudioPlayer _audioPlayer;
+    private readonly IDesktopContextProvider _desktopContextProvider;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -51,6 +53,7 @@ public sealed class DesktopPetApplication : IDisposable
         _chatHistoryStore = new LocalChatHistoryStore();
         _chatAudioStore = new ChatAudioStore();
         _audioPlayer = new StreamingMp3AudioPlayer();
+        _desktopContextProvider = new NoDesktopContextProvider();
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,
@@ -69,7 +72,8 @@ public sealed class DesktopPetApplication : IDisposable
             _audioPlayer,
             _overlayWindow,
             _errorMessageStore,
-            _memoryStore);
+            _memoryStore,
+            _desktopContextProvider);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,

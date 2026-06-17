@@ -50,7 +50,8 @@ Example prompt fragment:
 - Automatic memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
 - Foreground-window tracking, process inspection, UI Automation, screenshots, user-idle tracking, and global Windows event hooks are not implemented.
 - Existing Windows integration is limited to click-through window styles, mouse-button polling, global hotkeys, cursor position, display bounds, and WPF window-message hooks.
-- The current `ChatRequest` carries user text, profile settings, and memory context only.
+- `ChatRequest` now has a separate optional desktop-context field and `ConversationController` uses a provider-neutral context boundary.
+- The current desktop-context provider returns no context; no Windows desktop data is collected yet.
 - ElevenLabs diagnostics report safe event and variable names without logging provider values, Agent IDs, replies, or full exceptions.
 
 ## Decisions

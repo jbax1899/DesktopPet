@@ -64,7 +64,8 @@ public sealed class DesktopPetApplication : IDisposable
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
-            _observationPermissionService);
+            _observationPermissionService,
+            _uiAutomationContextCollector);
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,

@@ -6,6 +6,7 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
 
     private readonly IForegroundWindowCollector _collector;
     private readonly IObservationPermissionService _permissionService;
+    private readonly IUiAutomationContextCollector _uiAutomationCollector;
     private readonly object _sync = new();
 
     private ForegroundWindowSnapshot? _preparedSnapshot;
@@ -14,10 +15,12 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
 
     public ForegroundDesktopContextProvider(
         IForegroundWindowCollector collector,
-        IObservationPermissionService permissionService)
+        IObservationPermissionService permissionService,
+        IUiAutomationContextCollector uiAutomationCollector)
     {
         _collector = collector;
         _permissionService = permissionService;
+        _uiAutomationCollector = uiAutomationCollector;
     }
 
     public void PrepareCurrentContext()
@@ -39,7 +42,7 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
         }
     }
 
-    public Task<DesktopContextResult> GetCurrentContextAsync(CancellationToken cancellationToken)
+    public async Task<DesktopContextResult> GetCurrentContextAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -54,17 +57,17 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
 
         if (!_permissionService.Current.ObservationEnabled)
         {
-            return Task.FromResult(DesktopContextResult.NoContext(DesktopContextCollectionStatus.Disabled));
+            return DesktopContextResult.NoContext(DesktopContextCollectionStatus.Disabled);
         }
 
         if (snapshot is null)
         {
-            return Task.FromResult(DesktopContextResult.NoContext(DesktopContextCollectionStatus.Empty));
+            return DesktopContextResult.NoContext(DesktopContextCollectionStatus.Empty);
         }
 
         if (!_permissionService.IsAllowed(snapshot.ExecutablePath, DesktopContextCapabilities.Metadata))
         {
-            return Task.FromResult(DesktopContextResult.NoContext(DesktopContextCollectionStatus.NotPermitted));
+            return DesktopContextResult.NoContext(DesktopContextCollectionStatus.NotPermitted);
         }
 
         var rule = _permissionService.FindRule(snapshot.ExecutablePath);
@@ -84,12 +87,47 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
             ? "Minimized"
             : snapshot.IsVisible ? "Visible" : "Not visible";
 
+        var capabilities = DesktopContextCapabilities.Metadata;
+        string? structuralDescription = null;
+        var structuralResult = await _uiAutomationCollector.CollectAsync(snapshot, cancellationToken);
+        if (structuralResult.Status == DesktopContextCollectionStatus.Available
+            && structuralResult.Snapshot is not null)
+        {
+            structuralDescription = ReduceStructure(structuralResult.Snapshot);
+            if (!string.IsNullOrWhiteSpace(structuralDescription))
+            {
+                capabilities |= DesktopContextCapabilities.Structure;
+            }
+        }
+
         var context = new DesktopTurnContext(
             applicationName,
             string.IsNullOrWhiteSpace(activity) ? visibility : $"{activity} ({visibility})",
             snapshot.ObservedAt - activeSince,
-            DesktopContextCapabilities.Metadata);
+            capabilities,
+            structuralDescription);
 
-        return Task.FromResult(DesktopContextResult.Available(context));
+        return DesktopContextResult.Available(context);
+    }
+
+    private static string? ReduceStructure(UiAutomationSnapshot snapshot)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(snapshot.FocusedControlType)
+            || !string.IsNullOrWhiteSpace(snapshot.FocusedControlName))
+        {
+            parts.Add($"Focused: {string.Join(" — ", new[] { snapshot.FocusedControlType, snapshot.FocusedControlName }.Where(value => !string.IsNullOrWhiteSpace(value)))}");
+        }
+
+        var labels = snapshot.VisibleLabels
+            .Where(label => !string.Equals(label, snapshot.FocusedControlName, StringComparison.OrdinalIgnoreCase))
+            .Take(6)
+            .ToArray();
+        if (labels.Length > 0)
+        {
+            parts.Add($"Visible: {string.Join("; ", labels)}");
+        }
+
+        return parts.Count == 0 ? null : string.Join(". ", parts);
     }
 }

@@ -71,6 +71,7 @@ Example prompt fragment:
 - Observation permissions now use a separate `%LOCALAPPDATA%\DesktopPet\observation-settings.json` store. They default to globally paused with no application rules.
 - Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
 - Settings now opens a Screen Context Privacy window that merges saved rules with visible running applications and explains each access level.
+- A Win32 foreground-window collector can now return permitted metadata while keeping handles, process IDs, paths, and exact bounds inside the observation layer.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

@@ -17,6 +17,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly WpfApplication _application;
     private readonly CloudAiSettingsStore _cloudSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
+    private readonly PetProfileSettingsStore _profileSettingsStore;
     private readonly HttpClient _httpClient;
     private readonly IPetChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
@@ -37,6 +38,7 @@ public sealed class DesktopPetApplication : IDisposable
 
         _cloudSettingsStore = new CloudAiSettingsStore();
         _uiSettingsStore = new UiSettingsStore();
+        _profileSettingsStore = new PetProfileSettingsStore();
         _httpClient = new HttpClient();
         _chatService = new ElevenLabsAgentChatService(_httpClient, _cloudSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _cloudSettingsStore.Load);
@@ -54,6 +56,7 @@ public sealed class DesktopPetApplication : IDisposable
             _conversationOverlayWindow,
             _chatService,
             _voiceSynthesisService,
+            _profileSettingsStore.Load,
             _audioPlayer,
             _overlayWindow);
         _trayController = new PetTrayController(
@@ -93,6 +96,7 @@ public sealed class DesktopPetApplication : IDisposable
             _settingsWindow = new SettingsWindow(
                 _cloudSettingsStore,
                 _uiSettingsStore,
+                _profileSettingsStore,
                 ApplyUiSettings,
                 GetHotkeyWarning);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;

@@ -1,5 +1,6 @@
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Overlay;
+using DesktopPet.App.Settings;
 using DesktopPet.App.Voice;
 
 namespace DesktopPet.App.Conversation;
@@ -12,6 +13,7 @@ public sealed class PetConversationController : IDisposable
     private readonly ConversationOverlayWindow _overlayWindow;
     private readonly IPetChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
+    private readonly Func<PetProfileSettings> _profileSettingsProvider;
     private readonly TempFileAudioPlayer _audioPlayer;
     private readonly IPetPerformanceController _performanceController;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
@@ -26,12 +28,14 @@ public sealed class PetConversationController : IDisposable
         ConversationOverlayWindow overlayWindow,
         IPetChatService chatService,
         IVoiceSynthesisService voiceSynthesisService,
+        Func<PetProfileSettings> profileSettingsProvider,
         TempFileAudioPlayer audioPlayer,
         IPetPerformanceController performanceController)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
         _voiceSynthesisService = voiceSynthesisService;
+        _profileSettingsProvider = profileSettingsProvider;
         _audioPlayer = audioPlayer;
         _performanceController = performanceController;
 
@@ -65,7 +69,9 @@ public sealed class PetConversationController : IDisposable
         using var thinking = _performanceController.BeginMood(PetMood.Thinking);
         try
         {
-            var reply = await _chatService.ReplyAsync(new PetChatRequest(message), CancellationToken.None);
+            var reply = await _chatService.ReplyAsync(
+                new PetChatRequest(message, _profileSettingsProvider()),
+                CancellationToken.None);
             var audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
 
             if (turnId != Volatile.Read(ref _newestSubmittedTurnId))

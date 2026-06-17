@@ -48,7 +48,7 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
         try
         {
             var signedUrl = await GetSignedUrlAsync(settings, linkedCancellation.Token);
-            var replyText = await SendMessageAsync(signedUrl, request.UserMessage, linkedCancellation.Token);
+            var replyText = await SendMessageAsync(signedUrl, BuildUserMessage(request), linkedCancellation.Token);
             return new PetChatReply(replyText);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -193,6 +193,55 @@ public sealed class ElevenLabsAgentChatService : IPetChatService
 
         var elapsed = DateTimeOffset.UtcNow - lastAgentResponseAt.Value;
         return AgentResponseIdleTimeout - elapsed;
+    }
+
+    private static string BuildUserMessage(PetChatRequest request)
+    {
+        var profileContext = BuildProfileContext(request);
+        if (string.IsNullOrWhiteSpace(profileContext))
+        {
+            return request.UserMessage;
+        }
+
+        return string.Join(
+            Environment.NewLine,
+            profileContext,
+            string.Empty,
+            "User message:",
+            request.UserMessage);
+    }
+
+    private static string? BuildProfileContext(PetChatRequest request)
+    {
+        var profile = request.ProfileSettings;
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var lines = new List<string>();
+        var userName = profile.UserName?.Trim();
+        var petNickname = profile.PetNickname?.Trim();
+        var tone = profile.PersonalityTone?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            lines.Add($"The user's name is {userName}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(petNickname))
+        {
+            lines.Add($"The pet's nickname is {petNickname}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(tone))
+        {
+            lines.Add($"Use a {tone.ToLowerInvariant()} tone.");
+        }
+
+        return lines.Count == 0
+            ? null
+            : string.Join(Environment.NewLine, lines);
     }
 
     private static void TraceIncomingWebSocketMessage(JsonElement root, string rawMessage)

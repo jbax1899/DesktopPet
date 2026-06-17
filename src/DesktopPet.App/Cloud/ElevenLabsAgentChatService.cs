@@ -48,7 +48,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         try
         {
             var signedUrl = await GetSignedUrlAsync(settings, linkedCancellation.Token);
-            var replyText = await SendMessageAsync(signedUrl, BuildUserMessage(request), linkedCancellation.Token);
+            var replyText = await SendMessageAsync(signedUrl, request, linkedCancellation.Token);
             return new ChatReply(replyText);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -83,27 +83,35 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return signedUrlResponse.SignedUrl;
     }
 
-    private static async Task<string> SendMessageAsync(string signedUrl, string userMessage, CancellationToken cancellationToken)
+    private static async Task<string> SendMessageAsync(string signedUrl, ChatRequest request, CancellationToken cancellationToken)
     {
         using var webSocket = new ClientWebSocket();
         await webSocket.ConnectAsync(new Uri(signedUrl), cancellationToken);
 
-        await SendJsonAsync(webSocket, new
+        var initiationData = new Dictionary<string, object?>
         {
-            type = "conversation_initiation_client_data",
-            conversation_config_override = new
+            ["type"] = "conversation_initiation_client_data",
+            ["conversation_config_override"] = new
             {
                 conversation = new
                 {
                     text_only = true
                 }
             }
-        }, cancellationToken);
+        };
+
+        var dynamicVariables = BuildDynamicVariables(request);
+        if (dynamicVariables.Count > 0)
+        {
+            initiationData["dynamic_variables"] = dynamicVariables;
+        }
+
+        await SendJsonAsync(webSocket, initiationData, cancellationToken);
 
         await SendJsonAsync(webSocket, new
         {
             type = "user_message",
-            text = userMessage
+            text = request.UserMessage
         }, cancellationToken);
 
         var latestResponse = string.Empty;
@@ -195,53 +203,35 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return AgentResponseIdleTimeout - elapsed;
     }
 
-    private static string BuildUserMessage(ChatRequest request)
+    private static Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
     {
-        var profileContext = BuildProfileContext(request);
-        if (string.IsNullOrWhiteSpace(profileContext))
-        {
-            return request.UserMessage;
-        }
-
-        return string.Join(
-            Environment.NewLine,
-            profileContext,
-            string.Empty,
-            "User message:",
-            request.UserMessage);
-    }
-
-    private static string? BuildProfileContext(ChatRequest request)
-    {
+        var dynamicVariables = new Dictionary<string, string>();
         var profile = request.ProfileSettings;
         if (profile is null)
         {
-            return null;
+            return dynamicVariables;
         }
 
-        var lines = new List<string>();
         var userName = profile.UserName?.Trim();
-        var nickname = profile.Nickname?.Trim();
+        var petName = profile.Nickname?.Trim();
         var tone = profile.PersonalityTone?.Trim();
 
         if (!string.IsNullOrWhiteSpace(userName))
         {
-            lines.Add($"The user's name is {userName}.");
+            dynamicVariables["user_name"] = userName;
         }
 
-        if (!string.IsNullOrWhiteSpace(nickname))
+        if (!string.IsNullOrWhiteSpace(petName))
         {
-            lines.Add($"The pet's nickname is {nickname}.");
+            dynamicVariables["pet_name"] = petName;
         }
 
         if (!string.IsNullOrWhiteSpace(tone))
         {
-            lines.Add($"Use a {tone.ToLowerInvariant()} tone.");
+            dynamicVariables["personality_tone"] = tone;
         }
 
-        return lines.Count == 0
-            ? null
-            : string.Join(Environment.NewLine, lines);
+        return dynamicVariables;
     }
 
     private static void TraceIncomingWebSocketMessage(JsonElement root, string rawMessage)

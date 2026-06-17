@@ -19,7 +19,7 @@ prototype-grade.
 - Click-through uses Win32 extended window styles.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.
 - Character behavior includes basic gaze, amplitude-driven mouth movement during playback, and subtle idle breathing/bob animation.
-- Settings window stores ElevenLabs API key, Agent ID, and voice ID in local JSON under the user's local app data folder.
+- Settings window stores ElevenLabs API key, Agent ID, voice ID, and pet profile fields in local JSON under the user's local app data folder.
 - ElevenLabs Agent text interaction and ElevenLabs TTS/local MP3 playback have both been smoke-tested.
 - Provider calls are behind small interfaces instead of being called directly from XAML.
 - The current `bug.inp` renderer is not a full native Inochi2D runtime.
@@ -41,6 +41,7 @@ prototype-grade.
 - Keep chat in the top-level conversation overlay, with input usable while previous replies display or speak.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
 - Replies use ElevenLabs Agent Chat Mode; speech uses standalone ElevenLabs TTS with hard-coded `eleven_v3`.
+- Pet profile values are passed to ElevenLabs Agent Chat Mode as dynamic variables, not as text prepended to the user's message.
 - Playback, interruption, mouth movement, and character behavior stay local. Stream TTS into local playback when practical.
 - Keep the existing chat and voice interfaces unless they get in the way; `IVoiceSynthesisService` should stay small.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
@@ -64,6 +65,25 @@ Context7 docs checked:
 - ElevenLabs Chat Mode supports text-only Agent responses, and ElevenLabs TTS can stream audio from text.
 - ElevenLabs TTS accepts a `model_id`; this prototype should hard-code `eleven_v3` in the ElevenLabs implementation.
 - Mem0 exposes memory operations such as add, search, list/get, update, and delete through SDKs and a REST API server.
+
+ElevenLabs docs checked:
+
+- Conversational AI dynamic variables can be used in system prompts, first messages, and tools.
+- The WebSocket `conversation_initiation_client_data` payload accepts a `dynamic_variables` object alongside `conversation_config_override`.
+
+## ElevenLabs Agent Prompt Setup
+
+The Agent prompt should reference these DesktopPet dynamic variables:
+
+- `{{user_name}}`
+- `{{pet_name}}`
+- `{{personality_tone}}`
+
+Example prompt fragment:
+
+`You are a desktop pet named {{pet_name}}. The user's name is {{user_name}}. Use a {{personality_tone}} tone.`
+
+Configure fallback placeholder values in ElevenLabs if any profile field is blank.
 
 ## Next Prototype Target
 

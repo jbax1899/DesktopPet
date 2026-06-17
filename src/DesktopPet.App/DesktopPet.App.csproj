@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="$(MSBuildProjectDirectory)\..\..\bug.inp" Link="Assets\bug.inp" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\bug.inp" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -69,7 +69,8 @@ public sealed class DesktopPetApplication : IDisposable
         _visualContextAnalyzer = new UnavailableVisualContextAnalyzer();
         _observationCoordinator = new DesktopObservationCoordinator(
             _foregroundWindowCollector,
-            _observationPermissionService);
+            _observationPermissionService,
+            _uiAutomationContextCollector);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,

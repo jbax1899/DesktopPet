@@ -13,6 +13,21 @@
             <CheckBox x:Name="ObservationEnabledCheckBox"
                       FontWeight="SemiBold"
                       Content="Enable screen context observation" />
+            <StackPanel Margin="0,6,0,0"
+                        Orientation="Horizontal">
+                <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
+                          VerticalAlignment="Center"
+                          Content="Allow ambient comments" />
+                <CheckBox x:Name="DoNotDisturbCheckBox"
+                          Margin="18,0,0,0"
+                          VerticalAlignment="Center"
+                          Content="Do not disturb" />
+                <TextBlock Margin="18,0,6,0"
+                           VerticalAlignment="Center"
+                           Text="Commentary:" />
+                <ComboBox x:Name="CommentaryLevelComboBox"
+                          Width="120" />
+            </StackPanel>
             <TextBlock Margin="0,6,0,0"
                        Foreground="#FF475569"
                        Text="Window metadata knows which window is open. Interface labels read visible accessibility text. Visual capture sees the permitted window."
@@ -37,6 +52,10 @@
                     Padding="12,5"
                     Click="OnRecentObservationsClicked"
                     Content="Recent observations..." />
+            <Button Margin="8,0,0,0"
+                    Padding="12,5"
+                    Click="OnRecentDecisionsClicked"
+                    Content="Comment decisions..." />
             <Button Margin="8,0,0,0"
                     Padding="12,5"
                     Click="OnSaveClicked"

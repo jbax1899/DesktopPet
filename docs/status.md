@@ -90,6 +90,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits; nothing generates or speaks ambient comments yet.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
 - Ambient work has separate turn cancellation, is checked again before speech, and is cancelled when a user request starts.
+- Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from Settings.
+- Screen Context settings now controls ambient enablement, do-not-disturb, and Quiet/Balanced/Talkative behavior independently from application permissions.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

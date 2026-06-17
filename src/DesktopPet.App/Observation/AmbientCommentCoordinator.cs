@@ -16,6 +16,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private readonly ConversationOverlayWindow _overlayWindow;
     private readonly ICharacterStateController _characterStateController;
     private readonly IAmbientActivityState _activityState;
+    private readonly AmbientDecisionStore _decisionStore;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private CancellationTokenSource? _currentCancellation;
@@ -31,7 +32,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         StreamingMp3AudioPlayer audioPlayer,
         ConversationOverlayWindow overlayWindow,
         ICharacterStateController characterStateController,
-        IAmbientActivityState activityState)
+        IAmbientActivityState activityState,
+        AmbientDecisionStore decisionStore)
     {
         _observationCoordinator = observationCoordinator;
         _permissionService = permissionService;
@@ -42,6 +44,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         _overlayWindow = overlayWindow;
         _characterStateController = characterStateController;
         _activityState = activityState;
+        _decisionStore = decisionStore;
 
         _observationCoordinator.ChangeDetected += OnChangeDetected;
         _activityState.UserRequestStarted += OnUserRequestStarted;
@@ -72,6 +75,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         }
         catch (Exception ex)
         {
+            _decisionStore.Add(change, spoke: false, AmbientDecisionReason.GenerationFailed);
             System.Diagnostics.Debug.WriteLine($"Ambient comment failed ({ex.GetType().Name}).");
         }
     }
@@ -86,8 +90,10 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     {
         var turnId = Interlocked.Increment(ref _turnId);
         var candidate = CreateCandidate(change);
-        if (!_policy.Evaluate(candidate, DateTimeOffset.UtcNow).MaySpeak)
+        var initialDecision = _policy.Evaluate(candidate, DateTimeOffset.UtcNow);
+        if (!initialDecision.MaySpeak)
         {
+            _decisionStore.Add(change, spoke: false, initialDecision.Reason);
             return;
         }
 
@@ -102,12 +108,18 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             var comment = await _generator.GenerateAsync(change, cancellationToken);
             if (string.IsNullOrWhiteSpace(comment) || turnId != Volatile.Read(ref _turnId))
             {
+                if (turnId == Volatile.Read(ref _turnId))
+                {
+                    _decisionStore.Add(change, spoke: false, AmbientDecisionReason.GeneratorChoseSilence);
+                }
                 return;
             }
 
             candidate = CreateCandidate(change);
-            if (!_policy.Evaluate(candidate, DateTimeOffset.UtcNow).MaySpeak)
+            var finalDecision = _policy.Evaluate(candidate, DateTimeOffset.UtcNow);
+            if (!finalDecision.MaySpeak)
             {
+                _decisionStore.Add(change, spoke: false, finalDecision.Reason);
                 return;
             }
 
@@ -136,6 +148,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             }
 
             _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
+            _decisionStore.Add(change, spoke: true, AmbientDecisionReason.Eligible);
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
             _overlayWindow.HideTranscript();
         }

@@ -18,7 +18,9 @@ public enum AmbientDecisionReason
     DoNotDisturb,
     CooldownActive,
     HourlyLimitReached,
-    DuplicateTopic
+    DuplicateTopic,
+    GeneratorChoseSilence,
+    GenerationFailed
 }
 
 public sealed record AmbientCommentCandidate(

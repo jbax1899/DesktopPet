@@ -11,15 +11,19 @@ public partial class ObservationSettingsWindow : Window
 {
     private readonly IObservationPermissionService _permissionService;
     private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly AmbientDecisionStore _decisionStore;
     private readonly ObservableCollection<ApplicationRuleRow> _rows = [];
 
     public ObservationSettingsWindow(
         IObservationPermissionService permissionService,
-        IDesktopObservationCoordinator observationCoordinator)
+        IDesktopObservationCoordinator observationCoordinator,
+        AmbientDecisionStore decisionStore)
     {
         _permissionService = permissionService;
         _observationCoordinator = observationCoordinator;
+        _decisionStore = decisionStore;
         InitializeComponent();
+        CommentaryLevelComboBox.ItemsSource = Enum.GetValues<CommentaryLevel>();
         ApplicationsGrid.ItemsSource = _rows;
         LoadSettings();
     }
@@ -33,10 +37,22 @@ public partial class ObservationSettingsWindow : Window
         window.Show();
     }
 
+    private void OnRecentDecisionsClicked(object sender, RoutedEventArgs e)
+    {
+        var window = new AmbientDecisionsWindow(_decisionStore)
+        {
+            Owner = this
+        };
+        window.Show();
+    }
+
     private void LoadSettings()
     {
         var settings = _permissionService.Current;
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
+        AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
+        DoNotDisturbCheckBox.IsChecked = settings.DoNotDisturb;
+        CommentaryLevelComboBox.SelectedItem = settings.CommentaryLevel;
 
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
@@ -71,6 +87,11 @@ public partial class ObservationSettingsWindow : Window
         _permissionService.Save(current with
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
+            AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
+            DoNotDisturb = DoNotDisturbCheckBox.IsChecked == true,
+            CommentaryLevel = CommentaryLevelComboBox.SelectedItem is CommentaryLevel level
+                ? level
+                : CommentaryLevel.Balanced,
             ApplicationRules = rules
         });
 

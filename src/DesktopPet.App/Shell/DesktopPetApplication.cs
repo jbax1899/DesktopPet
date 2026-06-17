@@ -39,6 +39,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IAmbientActivityState _ambientActivityState;
     private readonly IAmbientCommentPolicy _ambientCommentPolicy;
     private readonly IAmbientCommentGenerator _ambientCommentGenerator;
+    private readonly AmbientDecisionStore _ambientDecisionStore;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -80,6 +81,7 @@ public sealed class DesktopPetApplication : IDisposable
             _observationPermissionService,
             _ambientActivityState);
         _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(_chatService);
+        _ambientDecisionStore = new AmbientDecisionStore();
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -116,7 +118,8 @@ public sealed class DesktopPetApplication : IDisposable
             _audioPlayer,
             _conversationOverlayWindow,
             _overlayWindow,
-            _ambientActivityState);
+            _ambientActivityState,
+            _ambientDecisionStore);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
@@ -175,7 +178,8 @@ public sealed class DesktopPetApplication : IDisposable
         {
             _observationSettingsWindow = new ObservationSettingsWindow(
                 _observationPermissionService,
-                _observationCoordinator);
+                _observationCoordinator,
+                _ambientDecisionStore);
             _observationSettingsWindow.Closed += (_, _) => _observationSettingsWindow = null;
         }
 

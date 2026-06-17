@@ -34,11 +34,11 @@
             </StackPanel>
             <TextBlock Margin="0,6,0,0"
                        Foreground="#FF475569"
-                       Text="Window metadata knows which window is open. Interface labels read visible accessibility text. Visual capture sees the permitted window."
+                       Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."
                        TextWrapping="Wrap" />
             <TextBlock Margin="0,4,0,0"
                        Foreground="#FF9A3412"
-                       Text="Visual analysis provider unavailable: visual permission can be saved, but no image will be captured or analyzed."
+                       Text="Vision analysis provider unavailable: vision permission can be saved, but no image will be captured or analyzed."
                        TextWrapping="Wrap" />
         </StackPanel>
 
@@ -99,48 +99,33 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Width="90"
+                <DataGridTemplateColumn Width="100"
                                         CanUserSort="False">
                     <DataGridTemplateColumn.Header>
-                        <TextBlock Text="Window"
-                                   ToolTip="Allow application name, window title, visibility, and active duration." />
+                        <TextBlock Text="Metadata"
+                                   ToolTip="Allow window details, visible accessibility labels, and focused controls." />
                     </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <CheckBox HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
-                                      IsChecked="{Binding AllowMetadata, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      ToolTip="Allow application name, window title, visibility, and active duration." />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Width="95"
-                                        CanUserSort="False">
-                    <DataGridTemplateColumn.Header>
-                        <TextBlock Text="Labels"
-                                   ToolTip="Allow visible accessibility labels and focused controls. Also enables Window." />
-                    </DataGridTemplateColumn.Header>
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <CheckBox HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      IsChecked="{Binding AllowStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      ToolTip="Allow visible accessibility labels and focused controls. Also enables Window." />
+                                      IsChecked="{Binding AllowMetadataAndStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="Allow window details, visible accessibility labels, and focused controls." />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTemplateColumn Width="90"
                                         CanUserSort="False">
                     <DataGridTemplateColumn.Header>
-                        <TextBlock Text="Visual"
-                                   ToolTip="Allow in-memory window capture when visual analysis is available. Also enables Window." />
+                        <TextBlock Text="Vision"
+                                   ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
                     </DataGridTemplateColumn.Header>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <CheckBox HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      ToolTip="Allow in-memory window capture when visual analysis is available. Also enables Window." />
+                                      ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

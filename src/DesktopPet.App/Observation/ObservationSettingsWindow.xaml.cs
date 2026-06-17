@@ -146,6 +146,8 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
             {
                 IsDenied = false;
             }
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowMetadataAndStructure)));
         }
     }
 
@@ -159,6 +161,19 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
                 IsDenied = false;
                 AllowMetadata = true;
             }
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowMetadataAndStructure)));
+        }
+    }
+
+    public bool AllowMetadataAndStructure
+    {
+        get => AllowMetadata && AllowStructure;
+        set
+        {
+            AllowMetadata = value;
+            AllowStructure = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowMetadataAndStructure)));
         }
     }
 
@@ -170,7 +185,7 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
             if (SetField(ref _allowVisual, value) && value)
             {
                 IsDenied = false;
-                AllowMetadata = true;
+                AllowMetadataAndStructure = true;
             }
         }
     }
@@ -181,13 +196,14 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
 
     public static ApplicationRuleRow FromRule(ApplicationObservationRule rule)
     {
+        var allowCombinedMetadata = rule.AllowMetadata && rule.AllowStructure;
         return new ApplicationRuleRow
         {
             ExecutablePath = rule.ExecutablePath,
             DisplayName = rule.DisplayName,
             _isDenied = rule.IsDenied,
-            _allowMetadata = rule.AllowMetadata,
-            _allowStructure = rule.AllowStructure,
+            _allowMetadata = allowCombinedMetadata,
+            _allowStructure = allowCombinedMetadata,
             _allowVisual = rule.AllowVisual
         };
     }

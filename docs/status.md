@@ -71,9 +71,9 @@ Configure `desktop_context` with a harmless fallback such as
 - `ConversationController` should request already permission-filtered, reduced desktop context when building a turn.
 - Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.
 - Use separate models for local raw Windows observations and compact model-facing context. Do not send window handles, process IDs, or exact bounds without a concrete need.
-- Default observation permission to denied and keep metadata, structural inspection, and visual capture permissions separate.
+- Default observation permission to denied. The settings UI combines window details and structural labels as Metadata, while Vision remains a separate capture permission.
 - Observation permissions now use a separate `%LOCALAPPDATA%\DesktopPet\observation-settings.json` store. They default to globally paused with no application rules.
-- Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
+- Application rules retain backward-compatible metadata and structural fields, but the UI saves them together through one Metadata choice; Vision remains separately configurable.
 - Settings opens a Screen Context Privacy window that merges saved rules with visible running applications, explains each access level, and uses direct one-click permission checkboxes.
 - A Win32 foreground-window collector can now return permitted metadata while keeping handles, process IDs, paths, and exact bounds inside the observation layer.
 - Opening typed chat prepares the permitted foreground application; submission reduces it to application name, bounded title activity, visibility, and approximate active duration.

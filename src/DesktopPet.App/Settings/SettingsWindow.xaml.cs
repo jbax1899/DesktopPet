@@ -2,7 +2,6 @@ using DesktopPet.App.Cloud;
 using DesktopPet.App.Errors;
 using System.Windows;
 using System.Windows.Input;
-using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace DesktopPet.App.Settings;
 
@@ -48,13 +47,10 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            var pronunciationDictionaries = BuildPronunciationDictionaries();
-
             _elevenLabsSettingsStore.Save(new ElevenLabsSettings(
                 ToNullIfWhiteSpace(ElevenLabsApiKeyTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
-                ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text),
-                pronunciationDictionaries));
+                ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
 
             _profileSettingsStore.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
@@ -84,7 +80,6 @@ public partial class SettingsWindow : Window
         ElevenLabsApiKeyTextBox.Text = settings.ElevenLabsApiKey ?? string.Empty;
         ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
         ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
-        LoadPronunciationDictionaries(settings.PronunciationDictionaries);
 
         var profileSettings = _profileSettingsStore.Load();
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
@@ -103,70 +98,6 @@ public partial class SettingsWindow : Window
     private static string? ToNullIfWhiteSpace(string value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
-    private IReadOnlyList<ElevenLabsPronunciationDictionaryLocator> BuildPronunciationDictionaries()
-    {
-        var rows = new[]
-        {
-            ReadPronunciationDictionaryRow(1, PronunciationName1TextBox, PronunciationDictionaryId1TextBox, PronunciationVersionId1TextBox),
-            ReadPronunciationDictionaryRow(2, PronunciationName2TextBox, PronunciationDictionaryId2TextBox, PronunciationVersionId2TextBox),
-            ReadPronunciationDictionaryRow(3, PronunciationName3TextBox, PronunciationDictionaryId3TextBox, PronunciationVersionId3TextBox)
-        };
-
-        return rows
-            .Where(row => row is not null)
-            .Cast<ElevenLabsPronunciationDictionaryLocator>()
-            .ToArray();
-    }
-
-    private static ElevenLabsPronunciationDictionaryLocator? ReadPronunciationDictionaryRow(
-        int rowNumber,
-        WpfTextBox nameTextBox,
-        WpfTextBox dictionaryIdTextBox,
-        WpfTextBox versionIdTextBox)
-    {
-        var displayName = ToNullIfWhiteSpace(nameTextBox.Text);
-        var dictionaryId = ToNullIfWhiteSpace(dictionaryIdTextBox.Text);
-        var versionId = ToNullIfWhiteSpace(versionIdTextBox.Text);
-
-        if (dictionaryId is null && versionId is null)
-        {
-            if (displayName is not null)
-            {
-                throw new InvalidOperationException($"Dictionary {rowNumber} needs a dictionary ID and version ID.");
-            }
-
-            return null;
-        }
-
-        if (dictionaryId is null || versionId is null)
-        {
-            throw new InvalidOperationException($"Dictionary {rowNumber} needs both dictionary ID and version ID.");
-        }
-
-        return new ElevenLabsPronunciationDictionaryLocator(displayName, dictionaryId, versionId);
-    }
-
-    private void LoadPronunciationDictionaries(
-        IReadOnlyList<ElevenLabsPronunciationDictionaryLocator>? pronunciationDictionaries)
-    {
-        var dictionaries = pronunciationDictionaries ?? [];
-
-        LoadPronunciationDictionaryRow(dictionaries.ElementAtOrDefault(0), PronunciationName1TextBox, PronunciationDictionaryId1TextBox, PronunciationVersionId1TextBox);
-        LoadPronunciationDictionaryRow(dictionaries.ElementAtOrDefault(1), PronunciationName2TextBox, PronunciationDictionaryId2TextBox, PronunciationVersionId2TextBox);
-        LoadPronunciationDictionaryRow(dictionaries.ElementAtOrDefault(2), PronunciationName3TextBox, PronunciationDictionaryId3TextBox, PronunciationVersionId3TextBox);
-    }
-
-    private static void LoadPronunciationDictionaryRow(
-        ElevenLabsPronunciationDictionaryLocator? locator,
-        WpfTextBox nameTextBox,
-        WpfTextBox dictionaryIdTextBox,
-        WpfTextBox versionIdTextBox)
-    {
-        nameTextBox.Text = locator?.DisplayName ?? string.Empty;
-        dictionaryIdTextBox.Text = locator?.PronunciationDictionaryId ?? string.Empty;
-        versionIdTextBox.Text = locator?.VersionId ?? string.Empty;
     }
 
     private void OnRecordShortcutClicked(object sender, RoutedEventArgs e)

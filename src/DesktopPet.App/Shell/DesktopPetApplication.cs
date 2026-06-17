@@ -176,11 +176,7 @@ public sealed class DesktopPetApplication : IDisposable
     {
         if (_observationSettingsWindow is null)
         {
-            _observationSettingsWindow = new ObservationSettingsWindow(
-                _observationPermissionService,
-                _observationCoordinator,
-                _ambientDecisionStore,
-                _memoryStore);
+            _observationSettingsWindow = new ObservationSettingsWindow(_observationPermissionService);
             _observationSettingsWindow.Closed += (_, _) => _observationSettingsWindow = null;
         }
 
@@ -197,7 +193,9 @@ public sealed class DesktopPetApplication : IDisposable
                 _memoryStore,
                 _chatHistoryStore,
                 _chatAudioStore,
-                _conversationController.ReplayCachedSpeechAsync);
+                _conversationController.ReplayCachedSpeechAsync,
+                _observationCoordinator,
+                _ambientDecisionStore);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 

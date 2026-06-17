@@ -55,7 +55,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Permitted typed chat can include reduced foreground metadata and bounded UI Automation summaries with exact user-visible disclosure.
 - Background observation keeps short-lived reduced state, detects meaningful changes, and can produce sparse ambient comments when enabled.
 - Window capture is implemented in memory, but the unavailable visual analyzer prevents capture until a provider is selected.
-- Recent observations and ambient decisions can create editable memory proposals; nothing is saved without explicit confirmation.
+- Desktop Pet Memories has an Observations tab for recent reduced activity and persisted ambient-comment decisions.
 - ElevenLabs diagnostics report safe event and variable names without logging provider values, Agent IDs, replies, or full exceptions.
 
 ## Decisions
@@ -74,7 +74,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Default observation permission to denied and keep metadata, structural inspection, and visual capture permissions separate.
 - Observation permissions now use a separate `%LOCALAPPDATA%\DesktopPet\observation-settings.json` store. They default to globally paused with no application rules.
 - Application rules persist explicit deny, metadata, structural, and visual choices by normalized executable path.
-- Settings now opens a Screen Context Privacy window that merges saved rules with visible running applications and explains each access level.
+- Settings opens a Screen Context Privacy window that merges saved rules with visible running applications, explains each access level, and uses direct one-click permission checkboxes.
 - A Win32 foreground-window collector can now return permitted metadata while keeping handles, process IDs, paths, and exact bounds inside the observation layer.
 - Opening typed chat prepares the permitted foreground application; submission reduces it to application name, bounded title activity, visibility, and approximate active duration.
 - Reduced context is sent as `desktop_context` and the conversation overlay exposes the exact same text through a temporary clickable disclosure.
@@ -83,16 +83,16 @@ Configure `desktop_context` with a harmless fallback such as
 - A permission-rechecking window-capture service can produce a downscaled in-memory bitmap for a visible, non-minimized foreground window; images are never written to disk.
 - Visual analysis is behind `IVisualContextAnalyzer`; the current unavailable implementation prevents capture until a provider is deliberately selected.
 - A cancellable background coordinator polls permitted metadata every two seconds off the UI thread and retains only the latest 50 reduced observations for at most 30 minutes.
-- Screen Context settings can open a manual recent-observations view.
+- Recent activity and comment decisions are consolidated in the Memories window instead of separate Screen Context windows.
 - The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and long-running activity.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
 - Ambient policy is local-first and rejects paused, disabled, stale, changed, busy, recently typed, full-screen, do-not-disturb, cooldown, hourly-limit, and duplicate candidates before generation.
 - Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
 - Ambient work has separate turn cancellation, is checked again before speech, and is cancelled when a user request starts.
-- Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from Settings.
+- Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from the Observations tab.
 - Screen Context settings now controls ambient enablement, do-not-disturb, and Quiet/Balanced/Talkative behavior independently from application permissions.
-- Reduced observations and decisions can propose editable memories, but only an explicit Add memory action writes through the existing memory store.
+- Durable memory remains manually managed through the existing Memories tab; observation history does not create memory proposals.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.

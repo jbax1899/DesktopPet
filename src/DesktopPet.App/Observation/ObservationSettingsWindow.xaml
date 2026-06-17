@@ -12,21 +12,25 @@
                     Margin="0,0,0,12">
             <CheckBox x:Name="ObservationEnabledCheckBox"
                       FontWeight="SemiBold"
-                      Content="Enable screen context observation" />
+                      Content="Enable screen context observation"
+                      ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
             <StackPanel Margin="0,6,0,0"
                         Orientation="Horizontal">
                 <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
                           VerticalAlignment="Center"
-                          Content="Allow ambient comments" />
+                          Content="Allow ambient comments"
+                          ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
                 <CheckBox x:Name="DoNotDisturbCheckBox"
                           Margin="18,0,0,0"
                           VerticalAlignment="Center"
-                          Content="Do not disturb" />
+                          Content="Do not disturb"
+                          ToolTip="Keep observing, but suppress ambient comments." />
                 <TextBlock Margin="18,0,6,0"
                            VerticalAlignment="Center"
                            Text="Commentary:" />
                 <ComboBox x:Name="CommentaryLevelComboBox"
-                          Width="120" />
+                          Width="120"
+                          ToolTip="Controls ambient-comment cooldown and hourly limits." />
             </StackPanel>
             <TextBlock Margin="0,6,0,0"
                        Foreground="#FF475569"
@@ -47,19 +51,13 @@
                        VerticalAlignment="Center" />
             <Button Padding="12,5"
                     Click="OnRefreshClicked"
-                    Content="Refresh apps" />
-            <Button Margin="8,0,0,0"
-                    Padding="12,5"
-                    Click="OnRecentObservationsClicked"
-                    Content="Recent observations..." />
-            <Button Margin="8,0,0,0"
-                    Padding="12,5"
-                    Click="OnRecentDecisionsClicked"
-                    Content="Comment decisions..." />
+                    Content="Refresh"
+                    ToolTip="Reload saved permissions and rescan visible applications. Unsaved changes are discarded." />
             <Button Margin="8,0,0,0"
                     Padding="12,5"
                     Click="OnSaveClicked"
-                    Content="Save" />
+                    Content="Save"
+                    ToolTip="Save screen-context controls and application permissions." />
         </StackPanel>
 
         <DataGrid x:Name="ApplicationsGrid"
@@ -72,24 +70,80 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Width="2*"
                                     Binding="{Binding DisplayName}"
-                                    Header="Application"
-                                    IsReadOnly="True" />
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.Header>
+                        <TextBlock Text="Application"
+                                   ToolTip="Running or previously configured application." />
+                    </DataGridTextColumn.Header>
+                </DataGridTextColumn>
                 <DataGridTextColumn Width="3*"
                                     Binding="{Binding ExecutablePath}"
-                                    Header="Executable"
-                                    IsReadOnly="True" />
-                <DataGridCheckBoxColumn Width="75"
-                                        Binding="{Binding IsDenied}"
-                                        Header="Deny" />
-                <DataGridCheckBoxColumn Width="90"
-                                        Binding="{Binding AllowMetadata}"
-                                        Header="Window" />
-                <DataGridCheckBoxColumn Width="95"
-                                        Binding="{Binding AllowStructure}"
-                                        Header="Labels" />
-                <DataGridCheckBoxColumn Width="90"
-                                        Binding="{Binding AllowVisual}"
-                                        Header="Visual" />
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.Header>
+                        <TextBlock Text="Executable"
+                                   ToolTip="Executable path used to identify the application." />
+                    </DataGridTextColumn.Header>
+                </DataGridTextColumn>
+                <DataGridTemplateColumn Width="75"
+                                        CanUserSort="False">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Deny"
+                                   ToolTip="Block all screen context for this application." />
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding IsDenied, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="Block all screen context for this application." />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Width="90"
+                                        CanUserSort="False">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Window"
+                                   ToolTip="Allow application name, window title, visibility, and active duration." />
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding AllowMetadata, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="Allow application name, window title, visibility, and active duration." />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Width="95"
+                                        CanUserSort="False">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Labels"
+                                   ToolTip="Allow visible accessibility labels and focused controls. Also enables Window." />
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding AllowStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="Allow visible accessibility labels and focused controls. Also enables Window." />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Width="90"
+                                        CanUserSort="False">
+                    <DataGridTemplateColumn.Header>
+                        <TextBlock Text="Visual"
+                                   ToolTip="Allow in-memory window capture when visual analysis is available. Also enables Window." />
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="Allow in-memory window capture when visual analysis is available. Also enables Window." />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

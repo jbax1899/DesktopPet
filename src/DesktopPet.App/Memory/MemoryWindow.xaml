@@ -212,6 +212,90 @@
                     </Grid>
                 </Grid>
             </TabItem>
+
+            <TabItem Header="Observations">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <GroupBox Grid.Row="0"
+                              Header="Recent activity">
+                        <ListBox x:Name="RecentObservationsListBox"
+                                 BorderThickness="0"
+                                 HorizontalContentAlignment="Stretch">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="8,5">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Text="{Binding ApplicationName}" />
+                                        <TextBlock Foreground="#FF475569"
+                                                   Text="{Binding ActivityDescription}"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock FontSize="11"
+                                                   Foreground="#FF64748B"
+                                                   Text="{Binding ObservedAt}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+
+                    <GroupBox Grid.Row="1"
+                              Margin="0,12,0,0"
+                              Header="Comment decisions">
+                        <ListBox x:Name="CommentDecisionsListBox"
+                                 BorderThickness="0"
+                                 HorizontalContentAlignment="Stretch">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="8,5">
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Text="{Binding Observation}"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Foreground="#FF475569">
+                                            <Run Text="{Binding Reason}" />
+                                            <Run Text=" — " />
+                                            <Run Text="{Binding Spoke, StringFormat=Spoke: {0}}" />
+                                        </TextBlock>
+                                        <TextBlock FontSize="11"
+                                                   Foreground="#FF64748B"
+                                                   Text="{Binding CreatedAt}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+
+                    <Grid Grid.Row="2"
+                          Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ObservationsStatusTextBlock"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="#374151"
+                                   TextWrapping="Wrap" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal">
+                            <Button Padding="10,4"
+                                    Click="OnRefreshObservationsClicked"
+                                    Content="Refresh"
+                                    ToolTip="Refresh recent activity and comment decisions." />
+                            <Button Margin="8,0,0,0"
+                                    Padding="10,4"
+                                    Click="OnClearDecisionsClicked"
+                                    Content="Clear decisions"
+                                    ToolTip="Clear saved comment-decision history. Recent activity is not affected." />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

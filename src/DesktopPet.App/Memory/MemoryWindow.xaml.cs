@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using DesktopPet.App.Observation;
 
 namespace DesktopPet.App.Memory;
 
@@ -9,6 +10,8 @@ public partial class MemoryWindow : Window
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
     private readonly Func<ChatHistoryMessage, Task> _playCachedAudio;
+    private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly AmbientDecisionStore _ambientDecisionStore;
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
 
@@ -16,16 +19,21 @@ public partial class MemoryWindow : Window
         IMemoryStore memoryStore,
         IChatHistoryStore chatHistoryStore,
         ChatAudioStore chatAudioStore,
-        Func<ChatHistoryMessage, Task> playCachedAudio)
+        Func<ChatHistoryMessage, Task> playCachedAudio,
+        IDesktopObservationCoordinator observationCoordinator,
+        AmbientDecisionStore ambientDecisionStore)
     {
         _memoryStore = memoryStore;
         _chatHistoryStore = chatHistoryStore;
         _chatAudioStore = chatAudioStore;
         _playCachedAudio = playCachedAudio;
+        _observationCoordinator = observationCoordinator;
+        _ambientDecisionStore = ambientDecisionStore;
 
         InitializeComponent();
         RefreshChatHistory("Chat history loaded.");
         RefreshMemories("Memories loaded.");
+        RefreshObservations();
     }
 
     private async void OnPlayAudioClicked(object sender, RoutedEventArgs e)
@@ -138,6 +146,37 @@ public partial class MemoryWindow : Window
         DeleteMemoryButton.IsEnabled = MemoryListBox.SelectedItem is MemoryEntry;
     }
 
+    private void OnRefreshObservationsClicked(object sender, RoutedEventArgs e)
+    {
+        RefreshObservations();
+    }
+
+    private void OnClearDecisionsClicked(object sender, RoutedEventArgs e)
+    {
+        var result = System.Windows.MessageBox.Show(
+            this,
+            "Clear saved comment decisions? Recent activity will not be affected.",
+            "Desktop Pet Observations",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            _ambientDecisionStore.Clear();
+            RefreshObservations();
+            ObservationsStatusTextBlock.Text = "Comment decisions cleared.";
+        }
+        catch (Exception ex)
+        {
+            ObservationsStatusTextBlock.Text = $"Clear failed: {ex.Message}";
+        }
+    }
+
     private void RefreshChatHistory(string successMessage)
     {
         try
@@ -176,6 +215,27 @@ public partial class MemoryWindow : Window
         catch (Exception ex)
         {
             MemoryStatusTextBlock.Text = $"Load failed: {ex.Message}";
+        }
+    }
+
+    private void RefreshObservations()
+    {
+        try
+        {
+            var observations = _observationCoordinator.RecentObservations
+                .OrderByDescending(item => item.ObservedAt)
+                .ToArray();
+            var decisions = _ambientDecisionStore.List();
+
+            RecentObservationsListBox.ItemsSource = observations;
+            CommentDecisionsListBox.ItemsSource = decisions;
+            ObservationsStatusTextBlock.Text = observations.Length == 0 && decisions.Count == 0
+                ? "No observations yet."
+                : string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ObservationsStatusTextBlock.Text = $"Refresh failed: {ex.Message}";
         }
     }
 

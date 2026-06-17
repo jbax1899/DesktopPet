@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
     private readonly Func<PetError?> _getHotkeyWarning;
+    private readonly Action _showObservationSettings;
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
 
@@ -23,7 +24,8 @@ public partial class SettingsWindow : Window
         ProfileSettingsStore profileSettingsStore,
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
-        Func<PetError?> getHotkeyWarning)
+        Func<PetError?> getHotkeyWarning,
+        Action showObservationSettings)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _uiSettingsStore = uiSettingsStore;
@@ -31,9 +33,15 @@ public partial class SettingsWindow : Window
         _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
+        _showObservationSettings = showObservationSettings;
 
         InitializeComponent();
         LoadSettings();
+    }
+
+    private void OnScreenContextClicked(object sender, RoutedEventArgs e)
+    {
+        _showObservationSettings();
     }
 
     private void OnSaveClicked(object sender, RoutedEventArgs e)

@@ -21,6 +21,10 @@
                     Padding="10,4"
                     Click="OnSaveClicked"
                     Content="Save" />
+            <Button Margin="8,0,0,0"
+                    Padding="10,4"
+                    Click="OnScreenContextClicked"
+                    Content="Screen context..." />
         </StackPanel>
 
         <ScrollViewer Margin="0,0,0,16"

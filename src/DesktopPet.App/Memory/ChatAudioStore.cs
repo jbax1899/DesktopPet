@@ -5,6 +5,7 @@ namespace DesktopPet.App.Memory;
 public sealed class ChatAudioStore
 {
     public const string AudioFormat = "mp3";
+    private const int FileBufferSize = 64 * 1024;
 
     private readonly string _audioDirectory;
 
@@ -24,12 +25,22 @@ public sealed class ChatAudioStore
     public FileStream CreateAudioFile(string audioFileName)
     {
         Directory.CreateDirectory(_audioDirectory);
-        return new FileStream(ResolvePath(audioFileName), FileMode.Create, FileAccess.Write, FileShare.Read);
+        return new FileStream(
+            ResolvePath(audioFileName),
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.Read,
+            FileBufferSize);
     }
 
     public FileStream OpenRead(string audioFileName)
     {
-        return new FileStream(ResolvePath(audioFileName), FileMode.Open, FileAccess.Read, FileShare.Read);
+        return new FileStream(
+            ResolvePath(audioFileName),
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            FileBufferSize);
     }
 
     public bool Exists(string? audioFileName)

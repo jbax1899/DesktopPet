@@ -7,7 +7,7 @@ namespace DesktopPet.App.Voice;
 
 public sealed class StreamingMp3AudioPlayer : IDisposable
 {
-    private static readonly TimeSpan PlaybackStartBufferDuration = TimeSpan.FromMilliseconds(160);
+    private static readonly TimeSpan PlaybackStartBufferDuration = TimeSpan.FromMilliseconds(650);
     private static readonly TimeSpan AmplitudeFrameDuration = TimeSpan.FromMilliseconds(33);
     private static readonly TimeSpan BufferDuration = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan OutputDeviceDrainPadding = TimeSpan.FromMilliseconds(250);

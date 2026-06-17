@@ -281,6 +281,13 @@ public partial class PetOverlayWindow : Window, IPetPerformanceController
         _commands.ShowSettings();
     }
 
+    private void OnMemoriesActionClicked(object sender, RoutedEventArgs e)
+    {
+        MarkActivity();
+        HideActionPad();
+        _commands.ShowMemories();
+    }
+
     private void ToggleActionPad()
     {
         if (ActionPad.Visibility == Visibility.Visible)

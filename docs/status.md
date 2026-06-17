@@ -29,10 +29,11 @@ prototype-grade.
 - Mouth movement is driven from decoded speech amplitude using the two existing mouth frames; breathing remains a simple WPF-layer animation.
 - Audio playback uses temporary MP3 files and NAudio for playback plus local amplitude analysis.
 - Plain JSON credential storage is temporary and should not be treated as secure.
+- Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - `IPetChatService`, `IVoiceSynthesisService`, and `TempFileAudioPlayer` are good enough for smoke testing.
 - The old separate `ChatWindow` is deprecated and no longer used by the normal runtime path.
 - The global chat shortcut uses Win32 hotkey registration and may be unavailable if another app owns the same shortcut.
-- Long-term memory, Mem0 startup, memory storage, and the memory UI are not implemented yet.
+- Automatic chat memory capture, retrieval, Mem0 startup, and Mem0 storage are not implemented yet.
 
 ## Current Decisions
 
@@ -72,7 +73,7 @@ Build the smaller conversation-and-memory loop:
 2. Get ElevenLabs Agent text replies.
 3. Generate accepted speech with standalone ElevenLabs TTS using `eleven_v3`.
 4. Play speech locally while showing the transcript and simple character behavior.
-5. Store completed exchanges in Mem0 and expose memory management UI.
+5. Store completed exchanges in Mem0 and surface them through the memory management UI.
 
 ## Near-Term Work
 
@@ -85,7 +86,7 @@ Build the smaller conversation-and-memory loop:
 - Start the local Mem0 stack from the app after memory is enabled.
 - Automatically add completed user and Agent chat exchanges.
 - Retrieve only a few relevant memories before sending a new typed message.
-- Add a memory screen with list, refresh, delete one, and clear all.
+- Connect the memory screen to automatic chat memories and later Mem0 storage.
 - Add a small pronunciation dictionary screen with list, add, edit, preview, and delete entries.
 - Let each pronunciation entry choose either alias text or a supported phoneme pronunciation.
 

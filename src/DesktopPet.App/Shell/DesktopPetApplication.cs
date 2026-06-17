@@ -1,6 +1,7 @@
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Conversation;
 using DesktopPet.App.Input;
+using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Tray;
@@ -19,6 +20,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly HttpClient _httpClient;
     private readonly IPetChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
+    private readonly IPetMemoryStore _memoryStore;
     private readonly TempFileAudioPlayer _audioPlayer;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
@@ -26,6 +28,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly PetTrayController _trayController;
 
     private SettingsWindow? _settingsWindow;
+    private MemoryWindow? _memoryWindow;
     private GlobalHotkeyService? _chatHotkeyService;
 
     public DesktopPetApplication(WpfApplication application)
@@ -37,11 +40,13 @@ public sealed class DesktopPetApplication : IDisposable
         _httpClient = new HttpClient();
         _chatService = new ElevenLabsAgentChatService(_httpClient, _cloudSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _cloudSettingsStore.Load);
+        _memoryStore = new LocalPetMemoryStore();
         _audioPlayer = new TempFileAudioPlayer();
 
         _overlayWindow = new PetOverlayWindow(new PetOverlayCommands(
             ShowChat,
             ShowSettings,
+            ShowMemories,
             StartSpeak),
             SaveOverlayPosition);
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
@@ -72,6 +77,7 @@ public sealed class DesktopPetApplication : IDisposable
     public void Dispose()
     {
         _settingsWindow?.Close();
+        _memoryWindow?.Close();
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
         _chatHotkeyService?.Dispose();
@@ -94,6 +100,18 @@ public sealed class DesktopPetApplication : IDisposable
 
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    private void ShowMemories()
+    {
+        if (_memoryWindow is null)
+        {
+            _memoryWindow = new MemoryWindow(_memoryStore);
+            _memoryWindow.Closed += (_, _) => _memoryWindow = null;
+        }
+
+        _memoryWindow.Show();
+        _memoryWindow.Activate();
     }
 
     private void ShowChat()

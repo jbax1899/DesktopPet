@@ -310,8 +310,7 @@ public sealed class ConversationController : IDisposable
     private void ShowError(Exception exception, PetErrorCode fallbackCode)
     {
         var error = PetError.FromException(exception, fallbackCode);
-        Debug.WriteLine($"DesktopPet error ({error.Code}): {error.TechnicalMessage}");
-        Debug.WriteLine(exception.ToString());
+        Debug.WriteLine($"DesktopPet error ({error.Code}, {exception.GetType().Name}).");
         _overlayWindow.ShowError(_errorMessageStore.GetMessage(error.Code));
     }
 

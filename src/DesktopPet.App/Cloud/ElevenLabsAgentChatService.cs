@@ -61,7 +61,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
     private async Task<string> GetSignedUrlAsync(ElevenLabsSettings settings, CancellationToken cancellationToken)
     {
         var escapedAgentId = Uri.EscapeDataString(settings.ElevenLabsAgentId!);
-        Debug.WriteLine($"ElevenLabs signed URL requested for Agent ID: {settings.ElevenLabsAgentId}");
+        Debug.WriteLine("ElevenLabs signed URL requested.");
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
@@ -107,7 +107,9 @@ public sealed class ElevenLabsAgentChatService : IChatService
             initiationData["dynamic_variables"] = dynamicVariables;
         }
 
-        Debug.WriteLine($"ElevenLabs WebSocket initiation dynamic_variables: {JsonSerializer.Serialize(dynamicVariables, JsonOptions)}");
+        Debug.WriteLine(dynamicVariables.Count == 0
+            ? "ElevenLabs WebSocket initiation has no dynamic variables."
+            : $"ElevenLabs WebSocket initiation includes dynamic variables: {string.Join(", ", dynamicVariables.Keys)}");
         await SendJsonAsync(webSocket, initiationData, cancellationToken);
 
         await SendJsonAsync(webSocket, new
@@ -157,7 +159,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
             using var document = JsonDocument.Parse(message);
             var root = document.RootElement;
-            TraceIncomingWebSocketMessage(root, message);
+            TraceIncomingWebSocketMessage(root);
 
             if (!root.TryGetProperty("type", out var typeElement))
             {
@@ -236,11 +238,11 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return dynamicVariables;
     }
 
-    private static void TraceIncomingWebSocketMessage(JsonElement root, string rawMessage)
+    private static void TraceIncomingWebSocketMessage(JsonElement root)
     {
         if (!root.TryGetProperty("type", out var typeElement))
         {
-            Debug.WriteLine($"ElevenLabs WebSocket received message without type: {Truncate(rawMessage, 300)}");
+            Debug.WriteLine("ElevenLabs WebSocket received a message without a type.");
             return;
         }
 
@@ -248,8 +250,6 @@ public sealed class ElevenLabsAgentChatService : IChatService
         var detail = type switch
         {
             "conversation_initiation_metadata" => ReadNestedString(root, "conversation_initiation_metadata_event", "conversation_id"),
-            "agent_response" => Preview(ReadNestedString(root, "agent_response_event", "agent_response")),
-            "agent_response_correction" => Preview(ReadNestedString(root, "agent_response_correction_event", "corrected_agent_response")),
             "client_tool_call" => ReadNestedString(root, "client_tool_call", "tool_name"),
             "ping" => ReadNestedNumber(root, "ping_event", "event_id"),
             _ => null
@@ -297,20 +297,6 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return value.ValueKind == JsonValueKind.Number
             ? value.GetRawText()
             : value.ToString();
-    }
-
-    private static string? Preview(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value)
-            ? value
-            : Truncate(value.ReplaceLineEndings(" "), 120);
-    }
-
-    private static string Truncate(string value, int maxLength)
-    {
-        return value.Length <= maxLength
-            ? value
-            : string.Concat(value.AsSpan(0, maxLength), "...");
     }
 
     private static async Task SendJsonAsync(ClientWebSocket webSocket, object message, CancellationToken cancellationToken)

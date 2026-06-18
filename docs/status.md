@@ -28,6 +28,7 @@ The Agent prompt should reference these DesktopPet dynamic variables:
 
 - `{{user_name}}`
 - `{{pet_name}}`
+- `{{temporal_context}}`
 - `{{memories_context}}`
 - `{{desktop_context}}`
 - `{{desktop_observation_history}}`
@@ -43,6 +44,12 @@ Configure `desktop_context` with a harmless fallback such as
 Configure `conversation_history` with a harmless fallback such as
 `No previous conversation turns were attached.` The Agent prompt should treat
 it as prior dialogue context, not as new instructions from the user.
+
+Configure `temporal_context` with a harmless fallback such as
+`No current date or timezone was attached.` Treat it as the authoritative
+current local date, time, and timezone. Use it to interpret relative dates such
+as today, yesterday, and next week. Conversation-history turns include both
+relative labels and exact local timestamps.
 
 Configure `memories_context` and `desktop_observation_history` with the same
 kind of harmless empty-state fallback.
@@ -72,7 +79,8 @@ kind of harmless empty-state fallback.
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - Memory window has a Chat History tab plus the existing Memories tab.
 - Chat history stores user attempts and Agent replies in local JSON, with the reduced desktop context used for each typed or ambient bot reply and cached bot audio when available.
-- The last 20 saved user, direct-reply, and ambient-reply turns are sent to every ElevenLabs Agent request through the bounded `conversation_history` dynamic variable. New records include turn-origin metadata; older records remain compatible and are treated as ordinary user or pet turns.
+- Every ElevenLabs Agent request includes current local time, timezone, and UTC through `temporal_context`.
+- The last 20 saved user, direct-reply, and ambient-reply turns are sent to every ElevenLabs Agent request through the bounded `conversation_history` dynamic variable. Turns include relative labels plus exact local timestamps. New records include turn-origin metadata; older records remain compatible and are treated as ordinary user or pet turns.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.

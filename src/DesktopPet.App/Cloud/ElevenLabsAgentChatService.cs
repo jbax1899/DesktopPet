@@ -211,7 +211,12 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
     private static Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
     {
-        var dynamicVariables = new Dictionary<string, string>();
+        var now = DateTimeOffset.UtcNow;
+        var localTimeZone = TimeZoneInfo.Local;
+        var dynamicVariables = new Dictionary<string, string>
+        {
+            ["temporal_context"] = TemporalContextFormatter.Format(now, localTimeZone)
+        };
 
         if (!string.IsNullOrWhiteSpace(request.MemoriesContext))
         {
@@ -230,7 +235,10 @@ public sealed class ElevenLabsAgentChatService : IChatService
             dynamicVariables["desktop_observation_history"] = observationHistory;
         }
 
-        var conversationHistory = ConversationHistoryFormatter.Format(request.ConversationHistory);
+        var conversationHistory = ConversationHistoryFormatter.Format(
+            request.ConversationHistory,
+            now,
+            localTimeZone);
         if (!string.IsNullOrWhiteSpace(conversationHistory))
         {
             dynamicVariables["conversation_history"] = conversationHistory;

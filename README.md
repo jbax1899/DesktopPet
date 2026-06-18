@@ -42,12 +42,16 @@ The ElevenLabs Agent prompt can use these dynamic variables:
 
 - `user_name`
 - `pet_name`
+- `temporal_context`
 - `memories_context`
 - `conversation_history`
 - `desktop_context`
 - `desktop_observation_history`
 
 Each variable should have a harmless fallback in the Agent configuration.
+The Agent prompt should treat `temporal_context` as the authoritative current
+date, time, and timezone when interpreting relative dates in conversation
+history.
 
 ## Run
 

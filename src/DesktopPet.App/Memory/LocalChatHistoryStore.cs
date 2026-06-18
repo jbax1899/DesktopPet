@@ -28,7 +28,10 @@ public sealed class LocalChatHistoryStore : IChatHistoryStore
             .ToList();
     }
 
-    public ChatHistoryMessage Add(ChatHistoryRole role, string text)
+    public ChatHistoryMessage Add(
+        ChatHistoryRole role,
+        string text,
+        ChatHistoryOrigin? origin = null)
     {
         var trimmedText = text.Trim();
         if (string.IsNullOrWhiteSpace(trimmedText))
@@ -40,7 +43,8 @@ public sealed class LocalChatHistoryStore : IChatHistoryStore
             Guid.NewGuid().ToString("N"),
             role,
             trimmedText,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            Origin: origin);
         var messages = LoadAll();
         messages.Add(message);
         SaveAll(messages);

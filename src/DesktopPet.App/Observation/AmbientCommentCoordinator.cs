@@ -419,7 +419,10 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     {
         try
         {
-            return _chatHistoryStore.Add(ChatHistoryRole.Bot, text);
+            return _chatHistoryStore.Add(
+                ChatHistoryRole.Bot,
+                text,
+                ChatHistoryOrigin.AmbientReply);
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 using DesktopPet.App.Settings;
 using DesktopPet.App.Observation;
+using DesktopPet.App.Memory;
 
 namespace DesktopPet.App.Cloud;
 
@@ -8,6 +9,7 @@ public sealed record ChatRequest(
     ProfileSettings? ProfileSettings = null,
     string? MemoriesContext = null,
     DesktopTurnContext? DesktopContext = null,
-    IReadOnlyList<ObservationRecord>? ObservationHistory = null);
+    IReadOnlyList<ObservationRecord>? ObservationHistory = null,
+    IReadOnlyList<ChatHistoryMessage>? ConversationHistory = null);
 
 public sealed record ChatReply(string Text);

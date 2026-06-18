@@ -126,7 +126,10 @@ public sealed class ConversationController : IDisposable
     {
         _ambientActivityState.SetUserRequestActive(true);
         var turnId = Interlocked.Increment(ref _newestSubmittedTurnId);
-        TryAddHistoryMessage(ChatHistoryRole.User, message);
+        var userHistoryMessage = TryAddHistoryMessage(
+            ChatHistoryRole.User,
+            message,
+            ChatHistoryOrigin.User);
         _overlayWindow.SetRequestPending(isPending: true);
 
         using var thinking = _characterStateController.BeginMood(PetMood.Thinking);
@@ -143,9 +146,13 @@ public sealed class ConversationController : IDisposable
                         _profileSettingsProvider(),
                         BuildMemoriesContext(),
                         desktopContext.Context,
-                        GetRecentObservations()),
+                        GetRecentObservations(),
+                        GetConversationHistory(userHistoryMessage?.Id)),
                     CancellationToken.None);
-                var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
+                var botMessage = TryAddHistoryMessage(
+                    ChatHistoryRole.Bot,
+                    reply.Text,
+                    ChatHistoryOrigin.DirectReply);
                 if (botMessage is not null && formattedContext is not null)
                 {
                     _chatHistoryStore.SetDesktopContext(botMessage.Id, formattedContext);
@@ -321,11 +328,14 @@ public sealed class ConversationController : IDisposable
         }
     }
 
-    private ChatHistoryMessage? TryAddHistoryMessage(ChatHistoryRole role, string text)
+    private ChatHistoryMessage? TryAddHistoryMessage(
+        ChatHistoryRole role,
+        string text,
+        ChatHistoryOrigin origin)
     {
         try
         {
-            return _chatHistoryStore.Add(role, text);
+            return _chatHistoryStore.Add(role, text, origin);
         }
         catch (Exception ex)
         {
@@ -408,6 +418,21 @@ public sealed class ConversationController : IDisposable
         catch (Exception ex)
         {
             Debug.WriteLine($"DesktopPet observation history load error: {ex.Message}");
+            return [];
+        }
+    }
+
+    private IReadOnlyList<ChatHistoryMessage> GetConversationHistory(string? excludedMessageId)
+    {
+        try
+        {
+            return _chatHistoryStore.List()
+                .Where(message => message.Id != excludedMessageId)
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DesktopPet conversation history load error: {ex.Message}");
             return [];
         }
     }

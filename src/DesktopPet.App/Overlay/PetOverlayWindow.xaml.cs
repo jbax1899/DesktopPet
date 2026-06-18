@@ -601,6 +601,12 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
 
     private void StopSpeaking()
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(StopSpeaking);
+            return;
+        }
+
         _isSpeaking = false;
         _showMouthB = false;
         SetMouthFrame(showMouthB: false);

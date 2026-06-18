@@ -87,7 +87,12 @@ public sealed class DesktopPetApplication : IDisposable
         _ambientCommentPolicy = new AmbientCommentPolicy(
             _observationPermissionService,
             _ambientActivityState);
-        _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(_chatService, _observationStore);
+        _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(
+            _chatService,
+            _observationStore,
+            _chatHistoryStore,
+            _memoryStore,
+            _profileSettingsStore.Load);
         _ambientDecisionStore = new AmbientDecisionStore();
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,

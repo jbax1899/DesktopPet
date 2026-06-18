@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DesktopPet.App.Errors;
+using DesktopPet.App.Memory;
 using DesktopPet.App.Observation;
 
 namespace DesktopPet.App.Cloud;
@@ -227,6 +228,12 @@ public sealed class ElevenLabsAgentChatService : IChatService
         if (!string.IsNullOrWhiteSpace(observationHistory))
         {
             dynamicVariables["desktop_observation_history"] = observationHistory;
+        }
+
+        var conversationHistory = ConversationHistoryFormatter.Format(request.ConversationHistory);
+        if (!string.IsNullOrWhiteSpace(conversationHistory))
+        {
+            dynamicVariables["conversation_history"] = conversationHistory;
         }
 
         var profile = request.ProfileSettings;

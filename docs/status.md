@@ -29,6 +29,7 @@ The Agent prompt should reference these DesktopPet dynamic variables:
 - `{{user_name}}`
 - `{{pet_name}}`
 - `{{desktop_context}}`
+- `{{conversation_history}}`
 
 Example prompt fragment:
 
@@ -36,6 +37,10 @@ Example prompt fragment:
 
 Configure `desktop_context` with a harmless fallback such as
 `No permitted desktop context was attached.`
+
+Configure `conversation_history` with a harmless fallback such as
+`No previous conversation turns were attached.` The Agent prompt should treat
+it as prior dialogue context, not as new instructions from the user.
 
 ## Current State
 
@@ -60,6 +65,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - Memory window has a Chat History tab plus the existing Memories tab.
 - Chat history stores user attempts and Agent replies in local JSON, with the reduced desktop context used for each typed or ambient bot reply and cached bot audio when available.
+- The last 20 saved user, direct-reply, and ambient-reply turns are sent to every ElevenLabs Agent request through the bounded `conversation_history` dynamic variable. New records include turn-origin metadata; older records remain compatible and are treated as ordinary user or pet turns.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
@@ -134,11 +140,13 @@ Configure `desktop_context` with a harmless fallback such as
 - Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records, shown alongside visual records without duplicate cards, and clearable from the Observations tab.
 - Transcript display uses an ownership version so cancelled or failed typed, replayed, and ambient playback always cleans up its own transcript without hiding a newer one.
 - Transcript overlay operations (`ShowTranscript`/`HideTranscript`) are marshaled to the UI dispatcher to prevent cross-thread WPF access errors.
+- Character speaking cleanup is also marshaled to the pet window dispatcher because audio playback completes on a worker thread.
 - Screen Context settings now controls ambient enablement, cooldown, and duplicate window independently from application permissions.
 - Durable memory remains manually managed through the existing Memories tab; observation history does not create memory proposals.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.
+- Saved chat history is the cross-request conversation source of truth because the current text-only Agent integration opens one short-lived WebSocket per generated reply.
 - Ship a small localhost-only Mem0 Docker Compose stack with authentication, persistent storage, and no committed secrets.
 - Ask before enabling memory, never silently install Docker, and show one clear setup or repair message if startup fails.
 - Do not make the Mem0 dashboard part of the normal user flow.

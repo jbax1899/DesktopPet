@@ -1,4 +1,6 @@
 using DesktopPet.App.Cloud;
+using DesktopPet.App.Memory;
+using DesktopPet.App.Settings;
 
 namespace DesktopPet.App.Observation;
 
@@ -18,11 +20,22 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
 
     private readonly IChatService _chatService;
     private readonly ObservationStore _observationStore;
+    private readonly IChatHistoryStore _chatHistoryStore;
+    private readonly IMemoryStore _memoryStore;
+    private readonly Func<ProfileSettings> _profileSettingsProvider;
 
-    public ElevenLabsAmbientCommentGenerator(IChatService chatService, ObservationStore observationStore)
+    public ElevenLabsAmbientCommentGenerator(
+        IChatService chatService,
+        ObservationStore observationStore,
+        IChatHistoryStore chatHistoryStore,
+        IMemoryStore memoryStore,
+        Func<ProfileSettings> profileSettingsProvider)
     {
         _chatService = chatService;
         _observationStore = observationStore;
+        _chatHistoryStore = chatHistoryStore;
+        _memoryStore = memoryStore;
+        _profileSettingsProvider = profileSettingsProvider;
     }
 
     public async Task<AmbientCommentResult?> GenerateAsync(
@@ -39,8 +52,11 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         var reply = await _chatService.ReplyAsync(
             new ChatRequest(
                 prompt,
+                _profileSettingsProvider(),
+                BuildMemoriesContext(),
                 DesktopContext: context,
-                ObservationHistory: history),
+                ObservationHistory: history,
+                ConversationHistory: GetConversationHistory()),
             cancellationToken);
 
         var text = reply.Text.Trim();
@@ -73,6 +89,35 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to load observation history ({ex.GetType().Name}): {ex.Message}");
+            return [];
+        }
+    }
+
+    private string? BuildMemoriesContext()
+    {
+        try
+        {
+            var memories = _memoryStore.List();
+            return memories.Count == 0
+                ? null
+                : string.Join("\n", memories.Select(memory => memory.Text));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load memories for ambient comment ({ex.GetType().Name}): {ex.Message}");
+            return null;
+        }
+    }
+
+    private IReadOnlyList<ChatHistoryMessage> GetConversationHistory()
+    {
+        try
+        {
+            return _chatHistoryStore.List();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load conversation history for ambient comment ({ex.GetType().Name}): {ex.Message}");
             return [];
         }
     }

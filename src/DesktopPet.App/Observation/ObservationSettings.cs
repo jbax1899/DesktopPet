@@ -7,6 +7,13 @@ public enum CommentaryLevel
     Talkative
 }
 
+public enum VisionSensitivity
+{
+    Low,
+    Medium,
+    High
+}
+
 public sealed record ApplicationObservationRule(
     string ExecutablePath,
     string DisplayName,
@@ -18,14 +25,18 @@ public sealed record ApplicationObservationRule(
 public sealed record ObservationSettings(
     bool ObservationEnabled,
     bool AmbientCommentsEnabled,
-    bool DoNotDisturb,
     CommentaryLevel CommentaryLevel,
+    VisionSensitivity VisionSensitivity,
+    int MinimumDwellTimeSeconds,
+    int VisionAnalysisCooldownSeconds,
     IReadOnlyList<ApplicationObservationRule> ApplicationRules)
 {
     public static ObservationSettings Default { get; } = new(
         ObservationEnabled: false,
         AmbientCommentsEnabled: false,
-        DoNotDisturb: false,
         CommentaryLevel.Balanced,
+        VisionSensitivity.Medium,
+        MinimumDwellTimeSeconds: 15,
+        VisionAnalysisCooldownSeconds: 30,
         []);
 }

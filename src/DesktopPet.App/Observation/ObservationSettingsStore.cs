@@ -69,6 +69,14 @@ public sealed class ObservationSettingsStore
             .OrderBy(rule => rule.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ToArray();
 
-        return settings with { ApplicationRules = rules };
+        var minimumDwell = settings.MinimumDwellTimeSeconds < 5 ? 15 : settings.MinimumDwellTimeSeconds;
+        var visionCooldown = settings.VisionAnalysisCooldownSeconds < 5 ? 30 : settings.VisionAnalysisCooldownSeconds;
+
+        return settings with
+        {
+            ApplicationRules = rules,
+            MinimumDwellTimeSeconds = minimumDwell,
+            VisionAnalysisCooldownSeconds = visionCooldown
+        };
     }
 }

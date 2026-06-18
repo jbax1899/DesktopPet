@@ -12,6 +12,7 @@ public partial class MemoryWindow : Window
     private readonly Func<ChatHistoryMessage, Task> _playCachedAudio;
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
+    private readonly ObservationStore _observationStore;
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
 
@@ -21,7 +22,8 @@ public partial class MemoryWindow : Window
         ChatAudioStore chatAudioStore,
         Func<ChatHistoryMessage, Task> playCachedAudio,
         IDesktopObservationCoordinator observationCoordinator,
-        AmbientDecisionStore ambientDecisionStore)
+        AmbientDecisionStore ambientDecisionStore,
+        ObservationStore observationStore)
     {
         _memoryStore = memoryStore;
         _chatHistoryStore = chatHistoryStore;
@@ -29,6 +31,7 @@ public partial class MemoryWindow : Window
         _playCachedAudio = playCachedAudio;
         _observationCoordinator = observationCoordinator;
         _ambientDecisionStore = ambientDecisionStore;
+        _observationStore = observationStore;
 
         InitializeComponent();
         RefreshChatHistory("Chat history loaded.");
@@ -151,11 +154,46 @@ public partial class MemoryWindow : Window
         RefreshObservations();
     }
 
-    private void OnClearDecisionsClicked(object sender, RoutedEventArgs e)
+    private void OnTabChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.Source is not System.Windows.Controls.TabControl)
+        {
+            return;
+        }
+
+        ScrollActiveTabToBottom();
+    }
+
+    private void ScrollActiveTabToBottom()
+    {
+        var selectedIndex = MainTabControl.SelectedIndex;
+
+        if (selectedIndex == 0 && _chatMessages.Count > 0)
+        {
+            ChatHistoryListBox.UpdateLayout();
+            ChatHistoryListBox.ScrollIntoView(_chatMessages[^1]);
+        }
+        else if (selectedIndex == 1 && _memories.Count > 0)
+        {
+            MemoryListBox.UpdateLayout();
+            MemoryListBox.ScrollIntoView(_memories[^1]);
+        }
+        else if (selectedIndex == 2)
+        {
+            var observations = ObservationsListBox.ItemsSource as IReadOnlyList<ObservationRecord>;
+            if (observations is { Count: > 0 })
+            {
+                ObservationsListBox.UpdateLayout();
+                ObservationsListBox.ScrollIntoView(observations[^1]);
+            }
+        }
+    }
+
+    private void OnClearObservationsClicked(object sender, RoutedEventArgs e)
     {
         var result = System.Windows.MessageBox.Show(
             this,
-            "Clear saved comment decisions? Recent activity will not be affected.",
+            "Clear all observation records?",
             "Desktop Pet Observations",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -167,9 +205,10 @@ public partial class MemoryWindow : Window
 
         try
         {
+            _observationStore.Clear();
             _ambientDecisionStore.Clear();
             RefreshObservations();
-            ObservationsStatusTextBlock.Text = "Comment decisions cleared.";
+            ObservationsStatusTextBlock.Text = "Observations cleared.";
         }
         catch (Exception ex)
         {
@@ -191,6 +230,7 @@ public partial class MemoryWindow : Window
 
             if (_chatMessages.Count > 0)
             {
+                ChatHistoryListBox.UpdateLayout();
                 ChatHistoryListBox.ScrollIntoView(_chatMessages[^1]);
             }
         }
@@ -211,6 +251,12 @@ public partial class MemoryWindow : Window
             MemoryStatusTextBlock.Text = _memories.Count == 0
                 ? "No memories yet."
                 : successMessage;
+
+            if (_memories.Count > 0)
+            {
+                MemoryListBox.UpdateLayout();
+                MemoryListBox.ScrollIntoView(_memories[^1]);
+            }
         }
         catch (Exception ex)
         {
@@ -222,16 +268,17 @@ public partial class MemoryWindow : Window
     {
         try
         {
-            var observations = _observationCoordinator.RecentObservations
-                .OrderByDescending(item => item.ObservedAt)
-                .ToArray();
-            var decisions = _ambientDecisionStore.List();
-
-            RecentObservationsListBox.ItemsSource = observations;
-            CommentDecisionsListBox.ItemsSource = decisions;
-            ObservationsStatusTextBlock.Text = observations.Length == 0 && decisions.Count == 0
+            var observations = _observationStore.List();
+            ObservationsListBox.ItemsSource = observations;
+            ObservationsStatusTextBlock.Text = observations.Count == 0
                 ? "No observations yet."
-                : string.Empty;
+                : $"{observations.Count} observation(s) recorded.";
+
+            if (observations.Count > 0)
+            {
+                ObservationsListBox.UpdateLayout();
+                ObservationsListBox.ScrollIntoView(observations[^1]);
+            }
         }
         catch (Exception ex)
         {

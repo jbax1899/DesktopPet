@@ -14,37 +14,48 @@ namespace DesktopPet.App.Settings;
 public partial class SettingsWindow : Window
 {
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
+    private readonly OpenRouterSettingsStore _openRouterSettingsStore;
+    private readonly OpenRouterModelsService _openRouterModelsService;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
     private readonly Func<PetError?> _getHotkeyWarning;
     private readonly IObservationPermissionService _permissionService;
+    private readonly Func<Task> _testVisionAsync;
     private readonly ObservableCollection<ApplicationRuleRow> _observationRows = [];
+    private readonly ObservableCollection<OpenRouterModelInfo> _visionModels = [];
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
 
     public SettingsWindow(
         ElevenLabsSettingsStore elevenLabsSettingsStore,
+        OpenRouterSettingsStore openRouterSettingsStore,
+        OpenRouterModelsService openRouterModelsService,
         UiSettingsStore uiSettingsStore,
         ProfileSettingsStore profileSettingsStore,
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
         Func<PetError?> getHotkeyWarning,
-        IObservationPermissionService permissionService)
+        IObservationPermissionService permissionService,
+        Func<Task>? testVisionAsync = null)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
+        _openRouterSettingsStore = openRouterSettingsStore;
+        _openRouterModelsService = openRouterModelsService;
         _uiSettingsStore = uiSettingsStore;
         _profileSettingsStore = profileSettingsStore;
         _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
         _permissionService = permissionService;
+        _testVisionAsync = testVisionAsync ?? (() => Task.CompletedTask);
 
         InitializeComponent();
-        CommentaryLevelComboBox.ItemsSource = Enum.GetValues<CommentaryLevel>();
         ApplicationsGrid.ItemsSource = _observationRows;
+        OpenRouterVisionModelComboBox.ItemsSource = _visionModels;
         LoadSettings();
+        _ = LoadVisionModelsAsync();
     }
 
     private void OnSaveClicked(object sender, RoutedEventArgs e)
@@ -55,6 +66,12 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password),
                 ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
+
+            var selectedModel = OpenRouterVisionModelComboBox.SelectedItem as OpenRouterModelInfo;
+            _openRouterSettingsStore.Save(new OpenRouterSettings(
+                ToNullIfWhiteSpace(OpenRouterApiKeyPasswordBox.Password),
+                ToNullIfWhiteSpace(selectedModel?.Id),
+                OpenRouterRequireZdrCheckBox.IsChecked == true));
 
             _profileSettingsStore.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
@@ -87,6 +104,10 @@ public partial class SettingsWindow : Window
         ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
         ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
 
+        var openRouterSettings = _openRouterSettingsStore.Load();
+        OpenRouterApiKeyPasswordBox.Password = openRouterSettings.ApiKey ?? string.Empty;
+        OpenRouterRequireZdrCheckBox.IsChecked = openRouterSettings.RequireZeroRetention;
+
         var profileSettings = _profileSettingsStore.Load();
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
         NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
@@ -108,8 +129,32 @@ public partial class SettingsWindow : Window
         var settings = _permissionService.Current;
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
-        DoNotDisturbCheckBox.IsChecked = settings.DoNotDisturb;
-        CommentaryLevelComboBox.SelectedItem = settings.CommentaryLevel;
+
+        switch (settings.CommentaryLevel)
+        {
+            case CommentaryLevel.Quiet:
+                CommentaryQuietRadioButton.IsChecked = true;
+                break;
+            case CommentaryLevel.Talkative:
+                CommentaryTalkativeRadioButton.IsChecked = true;
+                break;
+            default:
+                CommentaryBalancedRadioButton.IsChecked = true;
+                break;
+        }
+
+        switch (settings.VisionSensitivity)
+        {
+            case VisionSensitivity.Low:
+                VisionLowRadioButton.IsChecked = true;
+                break;
+            case VisionSensitivity.High:
+                VisionHighRadioButton.IsChecked = true;
+                break;
+            default:
+                VisionMediumRadioButton.IsChecked = true;
+                break;
+        }
 
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
@@ -139,12 +184,50 @@ public partial class SettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            DoNotDisturb = DoNotDisturbCheckBox.IsChecked == true,
-            CommentaryLevel = CommentaryLevelComboBox.SelectedItem is CommentaryLevel level
-                ? level
-                : CommentaryLevel.Balanced,
+            CommentaryLevel = CommentaryTalkativeRadioButton.IsChecked == true
+                ? CommentaryLevel.Talkative
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? CommentaryLevel.Quiet
+                    : CommentaryLevel.Balanced,
+            VisionSensitivity = VisionHighRadioButton.IsChecked == true
+                ? VisionSensitivity.High
+                : VisionLowRadioButton.IsChecked == true
+                    ? VisionSensitivity.Low
+                    : VisionSensitivity.Medium,
+            MinimumDwellTimeSeconds = current.MinimumDwellTimeSeconds,
+            VisionAnalysisCooldownSeconds = current.VisionAnalysisCooldownSeconds,
             ApplicationRules = rules
         });
+    }
+
+    private static int ClampInt(string text, int min, int max, int fallback)
+    {
+        if (int.TryParse(text, out var value))
+        {
+            return Math.Clamp(value, min, max);
+        }
+
+        return fallback;
+    }
+
+    private void OnCommentaryLevelChanged(object sender, RoutedEventArgs e)
+    {
+        if (CommentaryLegendTextBlock is null) return;
+        CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
+            ? "Rare comments, long silence between remarks."
+            : CommentaryTalkativeRadioButton.IsChecked == true
+                ? "Frequent comments, notices more small changes."
+                : "Moderate cadence, balanced between silence and speech.";
+    }
+
+    private void OnVisionSensitivityChanged(object sender, RoutedEventArgs e)
+    {
+        if (VisionSensitivityLegendTextBlock is null) return;
+        VisionSensitivityLegendTextBlock.Text = VisionLowRadioButton.IsChecked == true
+            ? "Only highly interesting changes trigger analysis."
+            : VisionHighRadioButton.IsChecked == true
+                ? "More things trigger analysis, including subtle changes."
+                : "Balanced interest threshold for most situations.";
     }
 
     private static IEnumerable<ApplicationRuleRow> ListRunningApplications()
@@ -185,9 +268,87 @@ public partial class SettingsWindow : Window
         return applications;
     }
 
-    private static string? ToNullIfWhiteSpace(string value)
+    private static string? ToNullIfWhiteSpace(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private async Task LoadVisionModelsAsync()
+    {
+        var openRouterSettings = _openRouterSettingsStore.Load();
+        if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey))
+        {
+            OpenRouterModelCapabilitiesText.Text = "Enter an API key to load available vision models.";
+            return;
+        }
+
+        OpenRouterModelCapabilitiesText.Text = "Loading vision models...";
+
+        try
+        {
+            var models = await _openRouterModelsService.GetVisionModelsAsync(CancellationToken.None);
+            _visionModels.Clear();
+            foreach (var model in models)
+            {
+                _visionModels.Add(model);
+            }
+
+            if (_visionModels.Count == 0)
+            {
+                OpenRouterModelCapabilitiesText.Text = "No vision-capable models found. Check your API key.";
+                return;
+            }
+
+            var selectedModel = _visionModels.FirstOrDefault(m =>
+                string.Equals(m.Id, openRouterSettings.VisionModelId, StringComparison.OrdinalIgnoreCase));
+
+            if (selectedModel is not null)
+            {
+                OpenRouterVisionModelComboBox.SelectedItem = selectedModel;
+                UpdateModelCapabilities(selectedModel);
+            }
+            else if (_visionModels.Count > 0)
+            {
+                OpenRouterVisionModelComboBox.SelectedIndex = 0;
+                UpdateModelCapabilities(_visionModels[0]);
+            }
+        }
+        catch (Exception)
+        {
+            OpenRouterModelCapabilitiesText.Text = "Failed to load vision models. Check your API key and connection.";
+        }
+    }
+
+    private void UpdateModelCapabilities(OpenRouterModelInfo model)
+    {
+        var capabilities = new List<string>();
+        capabilities.Add("Image input");
+        if (model.SupportsStructuredOutput)
+        {
+            capabilities.Add("Structured output");
+        }
+
+        OpenRouterModelCapabilitiesText.Text = $"Capabilities: {string.Join(", ", capabilities)}";
+    }
+
+    private async void OnTestVisionClicked(object sender, RoutedEventArgs e)
+    {
+        TestVisionStatusText.Text = "Testing...";
+        TestVisionButton.IsEnabled = false;
+
+        try
+        {
+            await _testVisionAsync();
+            TestVisionStatusText.Text = "Vision test passed.";
+        }
+        catch (Exception ex)
+        {
+            TestVisionStatusText.Text = $"Test failed: {ex.Message}";
+        }
+        finally
+        {
+            TestVisionButton.IsEnabled = true;
+        }
     }
 
     private void OnRecordShortcutClicked(object sender, RoutedEventArgs e)

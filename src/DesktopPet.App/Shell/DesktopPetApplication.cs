@@ -18,6 +18,7 @@ public sealed class DesktopPetApplication : IDisposable
 {
     private readonly WpfApplication _application;
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
+    private readonly OpenRouterSettingsStore _openRouterSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
@@ -40,6 +41,8 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IAmbientCommentPolicy _ambientCommentPolicy;
     private readonly IAmbientCommentGenerator _ambientCommentGenerator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
+    private readonly ObservationStore _observationStore;
+    private readonly OpenRouterModelsService _openRouterModelsService;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -55,6 +58,7 @@ public sealed class DesktopPetApplication : IDisposable
         _application = application;
 
         _elevenLabsSettingsStore = new ElevenLabsSettingsStore();
+        _openRouterSettingsStore = new OpenRouterSettingsStore();
         _uiSettingsStore = new UiSettingsStore();
         _profileSettingsStore = new ProfileSettingsStore();
         _errorMessageStore = new CharacterErrorMessageStore();
@@ -70,7 +74,9 @@ public sealed class DesktopPetApplication : IDisposable
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _windowCaptureService = new WindowCaptureService(_observationPermissionService);
-        _visualContextAnalyzer = new UnavailableVisualContextAnalyzer();
+        _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService);
+        _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
+        _observationStore = new ObservationStore();
         _observationCoordinator = new DesktopObservationCoordinator(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -118,7 +124,10 @@ public sealed class DesktopPetApplication : IDisposable
             _conversationOverlayWindow,
             _overlayWindow,
             _ambientActivityState,
-            _ambientDecisionStore);
+            _ambientDecisionStore,
+            _observationStore,
+            _windowCaptureService,
+            _visualContextAnalyzer);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
@@ -157,12 +166,15 @@ public sealed class DesktopPetApplication : IDisposable
         {
             _settingsWindow = new SettingsWindow(
                 _elevenLabsSettingsStore,
+                _openRouterSettingsStore,
+                _openRouterModelsService,
                 _uiSettingsStore,
                 _profileSettingsStore,
                 _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning,
-                _observationPermissionService);
+                _observationPermissionService,
+                TestVisionAsync);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 
@@ -180,7 +192,8 @@ public sealed class DesktopPetApplication : IDisposable
                 _chatAudioStore,
                 _conversationController.ReplayCachedSpeechAsync,
                 _observationCoordinator,
-                _ambientDecisionStore);
+                _ambientDecisionStore,
+                _observationStore);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 
@@ -217,5 +230,43 @@ public sealed class DesktopPetApplication : IDisposable
     private PetError? GetHotkeyWarning()
     {
         return _chatHotkeyService?.CurrentRegistrationError;
+    }
+
+    private async Task TestVisionAsync()
+    {
+        var openRouterSettings = _openRouterSettingsStore.Load();
+        if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey) || string.IsNullOrWhiteSpace(openRouterSettings.VisionModelId))
+        {
+            throw new PetErrorException(PetErrorCode.MissingOpenRouterKey, "OpenRouter API key and vision model are required.");
+        }
+
+        if (_visualContextAnalyzer is not OpenRouterVisionAnalyzer analyzer)
+        {
+            throw new PetErrorException(PetErrorCode.VisionAnalysisFailed, "Vision analyzer is not available.");
+        }
+
+        var testImage = CreateTestImage();
+        using (testImage)
+        {
+            var result = await analyzer.AnalyzeAsync(
+                testImage,
+                new VisualAnalysisRequest("Test", "Test vision analysis"),
+                CancellationToken.None);
+
+            if (result.Status != DesktopContextCollectionStatus.Available || string.IsNullOrWhiteSpace(result.Description))
+            {
+                throw new PetErrorException(PetErrorCode.VisionAnalysisFailed, "Vision analysis did not return a result. Check your model selection and API key.");
+            }
+        }
+    }
+
+    private static CapturedWindowImage CreateTestImage()
+    {
+        var bitmap = new System.Drawing.Bitmap(200, 100, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+        graphics.Clear(System.Drawing.Color.LightBlue);
+        using var font = new System.Drawing.Font("Arial", 12);
+        graphics.DrawString("Vision Test", font, System.Drawing.Brushes.DarkBlue, 30, 35);
+        return new CapturedWindowImage(bitmap);
     }
 }

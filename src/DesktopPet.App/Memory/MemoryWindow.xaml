@@ -9,7 +9,8 @@
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="16">
-        <TabControl>
+        <TabControl x:Name="MainTabControl"
+                    SelectionChanged="OnTabChanged">
             <TabItem Header="Chat History">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
@@ -217,59 +218,87 @@
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <GroupBox Grid.Row="0"
-                              Header="Recent activity">
-                        <ListBox x:Name="RecentObservationsListBox"
-                                 BorderThickness="0"
-                                 HorizontalContentAlignment="Stretch">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="8,5">
-                                        <TextBlock FontWeight="SemiBold"
-                                                   Text="{Binding ApplicationName}" />
-                                        <TextBlock Foreground="#FF475569"
-                                                   Text="{Binding ActivityDescription}"
-                                                   TextWrapping="Wrap" />
-                                        <TextBlock FontSize="11"
-                                                   Foreground="#FF64748B"
-                                                   Text="{Binding ObservedAt}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </GroupBox>
+                    <ListBox x:Name="ObservationsListBox"
+                             Grid.Row="0"
+                             BorderBrush="#CBD5E1"
+                             BorderThickness="1"
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment"
+                                        Value="Stretch" />
+                                <Setter Property="Padding"
+                                        Value="0" />
+                                <Setter Property="BorderThickness"
+                                        Value="0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="8,6"
+                                        Padding="12,10"
+                                        Background="#F8FAFC"
+                                        BorderBrush="#E2E8F0"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Left"
+                                                       FontWeight="SemiBold"
+                                                       Text="{Binding Application}" />
+                                            <TextBlock DockPanel.Dock="Right"
+                                                       FontSize="11"
+                                                       Foreground="#64748B"
+                                                       Text="{Binding WindowTitle}" />
+                                        </DockPanel>
 
-                    <GroupBox Grid.Row="1"
-                              Margin="0,12,0,0"
-                              Header="Comment decisions">
-                        <ListBox x:Name="CommentDecisionsListBox"
-                                 BorderThickness="0"
-                                 HorizontalContentAlignment="Stretch">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="8,5">
-                                        <TextBlock FontWeight="SemiBold"
-                                                   Text="{Binding Observation}"
+                                        <TextBlock Margin="0,4,0,0"
+                                                   Foreground="#334155"
+                                                   Text="{Binding Analysis.Summary}"
                                                    TextWrapping="Wrap" />
-                                        <TextBlock Foreground="#FF475569">
-                                            <Run Text="{Binding Reason}" />
-                                            <Run Text=" — " />
-                                            <Run Text="{Binding Spoke, StringFormat=Spoke: {0}}" />
-                                        </TextBlock>
-                                        <TextBlock FontSize="11"
-                                                   Foreground="#FF64748B"
-                                                   Text="{Binding CreatedAt}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </GroupBox>
 
-                    <Grid Grid.Row="2"
+                                        <StackPanel Margin="0,6,0,0"
+                                                    Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,12,0"
+                                                       FontSize="11"
+                                                       Foreground="#64748B">
+                                                <Run Text="Interest: " />
+                                                <Run Text="{Binding InterestScore, StringFormat={}{0:F0}}" />
+                                            </TextBlock>
+                                            <TextBlock FontSize="11"
+                                                       Foreground="#64748B">
+                                                <Run Text="Confidence: " />
+                                                <Run Text="{Binding Analysis.Confidence, StringFormat={}{0:F0}}" />
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <StackPanel Margin="0,4,0,0"
+                                                    Orientation="Horizontal">
+                                            <TextBlock FontSize="11"
+                                                       Foreground="#64748B">
+                                                <Run Text="Outcome: " />
+                                                <Run Text="{Binding Outcome}" />
+                                            </TextBlock>
+                                            <TextBlock x:Name="SpokenAtText"
+                                                       Margin="8,0,0,0"
+                                                       FontSize="11"
+                                                       Foreground="#64748B"
+                                                       Visibility="Collapsed">
+                                                <Run Text="Spoken: " />
+                                                <Run Text="{Binding SpokenAt, StringFormat={}{0:g}}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Grid Grid.Row="1"
                           Margin="0,12,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -286,12 +315,12 @@
                             <Button Padding="10,4"
                                     Click="OnRefreshObservationsClicked"
                                     Content="Refresh"
-                                    ToolTip="Refresh recent activity and comment decisions." />
+                                    ToolTip="Refresh observation history." />
                             <Button Margin="8,0,0,0"
                                     Padding="10,4"
-                                    Click="OnClearDecisionsClicked"
-                                    Content="Clear decisions"
-                                    ToolTip="Clear saved comment-decision history. Recent activity is not affected." />
+                                    Click="OnClearObservationsClicked"
+                                    Content="Clear all"
+                                    ToolTip="Clear all observation records." />
                         </StackPanel>
                     </Grid>
                 </Grid>

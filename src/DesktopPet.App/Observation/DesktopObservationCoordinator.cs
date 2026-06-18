@@ -14,6 +14,7 @@ public enum DesktopObservationChangeType
 }
 
 public sealed record ReducedDesktopObservation(
+    string ExecutablePath,
     string ApplicationName,
     string ActivityDescription,
     DateTimeOffset ObservedAt,
@@ -142,6 +143,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
             }
 
             var observation = new ReducedDesktopObservation(
+                snapshot.ExecutablePath,
                 applicationName,
                 activity,
                 now,
@@ -178,15 +180,27 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         string activity,
         DateTimeOffset observedAt)
     {
+        var minimumDwell = TimeSpan.FromSeconds(_permissionService.Current.MinimumDwellTimeSeconds);
+
         if (previous is null
             || !string.Equals(previous.ApplicationName, applicationName, StringComparison.OrdinalIgnoreCase))
         {
+            if (previous is not null && observedAt - _activityStartedAt < minimumDwell)
+            {
+                return null;
+            }
+
             _activityStartedAt = observedAt;
             return previous is null ? null : DesktopObservationChangeType.ForegroundApplicationChanged;
         }
 
         if (!string.Equals(previous.ActivityDescription, activity, StringComparison.Ordinal))
         {
+            if (observedAt - _activityStartedAt < minimumDwell)
+            {
+                return null;
+            }
+
             _activityStartedAt = observedAt;
             return DesktopObservationChangeType.WindowTitleChanged;
         }

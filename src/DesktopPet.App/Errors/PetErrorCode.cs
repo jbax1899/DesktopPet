@@ -10,5 +10,7 @@ public enum PetErrorCode
     TtsFailed,
     PlaybackFailed,
     HotkeyConflict,
-    HotkeyInvalid
+    HotkeyInvalid,
+    MissingOpenRouterKey,
+    VisionAnalysisFailed
 }

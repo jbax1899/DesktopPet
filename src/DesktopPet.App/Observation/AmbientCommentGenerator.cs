@@ -4,7 +4,7 @@ namespace DesktopPet.App.Observation;
 
 public interface IAmbientCommentGenerator
 {
-    Task<string?> GenerateAsync(DesktopObservationChange change, CancellationToken cancellationToken);
+    Task<string?> GenerateAsync(DesktopObservationChange change, VisionObservation? visionObservation, CancellationToken cancellationToken);
 }
 
 internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
@@ -18,6 +18,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
 
     public async Task<string?> GenerateAsync(
         DesktopObservationChange change,
+        VisionObservation? visionObservation,
         CancellationToken cancellationToken)
     {
         var observation = change.Observation;
@@ -28,9 +29,11 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
             observation.Capabilities,
             observation.StructuralDescription);
 
+        var prompt = BuildPrompt(observation, visionObservation);
+
         var reply = await _chatService.ReplyAsync(
             new ChatRequest(
-                "Give one brief, useful desktop-pet comment about this permitted change. If there is nothing specific worth saying, reply with SILENCE.",
+                prompt,
                 DesktopContext: context),
             cancellationToken);
 
@@ -39,5 +42,28 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
             || string.IsNullOrWhiteSpace(text)
             ? null
             : text;
+    }
+
+    private static string BuildPrompt(ReducedDesktopObservation observation, VisionObservation? visionObservation)
+    {
+        if (visionObservation is null)
+        {
+            return "Give one brief, useful desktop-pet comment about this permitted change. If there is nothing specific worth saying, reply with SILENCE.";
+        }
+
+        var parts = new List<string>
+        {
+            $"The user is {observation.ActivityDescription} in {observation.ApplicationName}.",
+            $"Summary: {visionObservation.Summary}"
+        };
+
+        if (visionObservation.PossibleCommentTopics.Count > 0)
+        {
+            parts.Add($"Possible topics: {string.Join(", ", visionObservation.PossibleCommentTopics.Take(2))}");
+        }
+
+        parts.Add("Give one brief, in-character comment as a desktop pet. If there is nothing worth saying, reply with SILENCE.");
+
+        return string.Join(" ", parts);
     }
 }

@@ -24,7 +24,7 @@ public sealed class LocalMemoryStore : IMemoryStore
     public IReadOnlyList<MemoryEntry> List()
     {
         return LoadAll()
-            .OrderByDescending(memory => memory.CreatedAtUtc)
+            .OrderBy(memory => memory.CreatedAtUtc)
             .ToList();
     }
 

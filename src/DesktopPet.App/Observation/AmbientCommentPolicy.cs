@@ -15,12 +15,12 @@ public enum AmbientDecisionReason
     SpeechActive,
     UserRecentlyTyping,
     FullScreenApplication,
-    DoNotDisturb,
     CooldownActive,
     HourlyLimitReached,
     DuplicateTopic,
     GeneratorChoseSilence,
-    GenerationFailed
+    GenerationFailed,
+    BelowThreshold
 }
 
 public sealed record AmbientCommentCandidate(
@@ -32,8 +32,9 @@ public sealed record AmbientPolicyDecision(bool MaySpeak, AmbientDecisionReason 
 
 public interface IAmbientCommentPolicy
 {
-    AmbientPolicyDecision Evaluate(AmbientCommentCandidate candidate, DateTimeOffset now);
+    AmbientPolicyDecision Evaluate(AmbientCommentCandidate candidate, DateTimeOffset now, VisionObservation? visionObservation = null);
     void RecordSpoken(AmbientCommentCandidate candidate, DateTimeOffset spokenAt);
+    DateTimeOffset? GetLastSpokenAt();
 }
 
 internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
@@ -41,6 +42,7 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
     private static readonly TimeSpan MaximumObservationAge = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RecentTypingWindow = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan DuplicateWindow = TimeSpan.FromMinutes(30);
+    private const int MaximumObservationsPerHour = 8;
 
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientActivityState _activityState;
@@ -56,7 +58,7 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         _activityState = activityState;
     }
 
-    public AmbientPolicyDecision Evaluate(AmbientCommentCandidate candidate, DateTimeOffset now)
+    public AmbientPolicyDecision Evaluate(AmbientCommentCandidate candidate, DateTimeOffset now, VisionObservation? visionObservation = null)
     {
         var settings = _permissionService.Current;
         if (!settings.ObservationEnabled) return Reject(AmbientDecisionReason.ObservationPaused);
@@ -69,16 +71,37 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         if (now - _activityState.LastUserInputAt < RecentTypingWindow
             || GetSystemIdleDuration() < TimeSpan.FromSeconds(3)) return Reject(AmbientDecisionReason.UserRecentlyTyping);
         if (IsForegroundFullScreen()) return Reject(AmbientDecisionReason.FullScreenApplication);
-        if (settings.DoNotDisturb) return Reject(AmbientDecisionReason.DoNotDisturb);
 
         lock (_sync)
         {
             Prune(now);
-            var limits = GetLimits(settings.CommentaryLevel);
-            if (_spokenAt.Count > 0 && now - _spokenAt[^1] < limits.Cooldown) return Reject(AmbientDecisionReason.CooldownActive);
-            if (_spokenAt.Count >= limits.HourlyLimit) return Reject(AmbientDecisionReason.HourlyLimitReached);
+            var cooldown = GetCooldown(settings.CommentaryLevel);
+
+            if (_spokenAt.Count > 0 && now - _spokenAt[^1] < cooldown)
+            {
+                return Reject(AmbientDecisionReason.CooldownActive);
+            }
+
+            if (_spokenAt.Count >= MaximumObservationsPerHour)
+            {
+                return Reject(AmbientDecisionReason.HourlyLimitReached);
+            }
+
             if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
-                && now - lastTopic < DuplicateWindow) return Reject(AmbientDecisionReason.DuplicateTopic);
+                && now - lastTopic < DuplicateWindow)
+            {
+                return Reject(AmbientDecisionReason.DuplicateTopic);
+            }
+
+            if (visionObservation is not null)
+            {
+                var interestScore = CalculateInterestScore(visionObservation);
+                var threshold = CalculateEffectiveThreshold(settings.VisionSensitivity);
+                if (interestScore < threshold)
+                {
+                    return Reject(AmbientDecisionReason.BelowThreshold);
+                }
+            }
         }
 
         return new AmbientPolicyDecision(true, AmbientDecisionReason.Eligible);
@@ -94,6 +117,43 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
         }
     }
 
+    public DateTimeOffset? GetLastSpokenAt()
+    {
+        lock (_sync)
+        {
+            return _spokenAt.Count > 0 ? _spokenAt[^1] : null;
+        }
+    }
+
+    private static double CalculateInterestScore(VisionObservation observation)
+    {
+        return (observation.Novelty * 0.3)
+            + (observation.Relevance * 0.3)
+            + (observation.Confidence * 0.2)
+            + ((1.0 - observation.Sensitivity) * 0.1)
+            + ((1.0 - observation.InterruptionCost) * 0.1);
+    }
+
+    private static double CalculateEffectiveThreshold(VisionSensitivity sensitivity)
+    {
+        return sensitivity switch
+        {
+            VisionSensitivity.Low => 0.7,
+            VisionSensitivity.High => 0.3,
+            _ => 0.5
+        };
+    }
+
+    private static TimeSpan GetCooldown(CommentaryLevel level)
+    {
+        return level switch
+        {
+            CommentaryLevel.Quiet => TimeSpan.FromMinutes(30),
+            CommentaryLevel.Talkative => TimeSpan.FromMinutes(7),
+            _ => TimeSpan.FromMinutes(15)
+        };
+    }
+
     private void Prune(DateTimeOffset now)
     {
         _spokenAt.RemoveAll(item => now - item >= TimeSpan.FromHours(1));
@@ -102,13 +162,6 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
             _topics.Remove(key);
         }
     }
-
-    private static (TimeSpan Cooldown, int HourlyLimit) GetLimits(CommentaryLevel level) => level switch
-    {
-        CommentaryLevel.Quiet => (TimeSpan.FromMinutes(30), 1),
-        CommentaryLevel.Talkative => (TimeSpan.FromMinutes(7), 4),
-        _ => (TimeSpan.FromMinutes(15), 2)
-    };
 
     private static AmbientPolicyDecision Reject(AmbientDecisionReason reason) => new(false, reason);
 

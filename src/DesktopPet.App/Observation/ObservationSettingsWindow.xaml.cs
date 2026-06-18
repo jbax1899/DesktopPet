@@ -16,7 +16,6 @@ public partial class ObservationSettingsWindow : Window
     {
         _permissionService = permissionService;
         InitializeComponent();
-        CommentaryLevelComboBox.ItemsSource = Enum.GetValues<CommentaryLevel>();
         ApplicationsGrid.ItemsSource = _rows;
         LoadSettings();
     }
@@ -26,8 +25,6 @@ public partial class ObservationSettingsWindow : Window
         var settings = _permissionService.Current;
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
-        DoNotDisturbCheckBox.IsChecked = settings.DoNotDisturb;
-        CommentaryLevelComboBox.SelectedItem = settings.CommentaryLevel;
 
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
@@ -63,10 +60,7 @@ public partial class ObservationSettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            DoNotDisturb = DoNotDisturbCheckBox.IsChecked == true,
-            CommentaryLevel = CommentaryLevelComboBox.SelectedItem is CommentaryLevel level
-                ? level
-                : CommentaryLevel.Balanced,
+            CommentaryLevel = current.CommentaryLevel,
             ApplicationRules = rules
         });
 

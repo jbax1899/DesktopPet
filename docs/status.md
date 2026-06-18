@@ -4,9 +4,23 @@ This is the working status and architecture note for the current prototype. Keep
 it short and update it when implementation decisions change.
 
 The current prototype combines typed chat, local playback, lightweight
-character behavior, local history and memory, and permission-controlled desktop
-context. Ambient comments are available but default off and are governed by
-local cooldown, activity, freshness, and duplicate checks.
+character behavior, local history and memory, permission-controlled desktop
+context, and OpenRouter vision analysis. Ambient comments are available but
+default off and are governed by local cooldown, activity, freshness, interest
+scoring, and duplicate checks.
+
+## Architecture Layers
+
+- **OpenRouter**: Observation and interpretation layer. Analyzes permitted
+  window screenshots using vision models with structured output. Produces
+  `VisionObservation` records with summary, interest scores, and possible
+  comment topics.
+- **ElevenLabs**: Character and speech layer. Receives reduced observations
+  (summary + topics), never raw screenshots. Decides whether Pebble speaks
+  in-character.
+- **Local code**: Timing, privacy, and policy layer. Decides whether an
+  observation deserves speech based on interest scores, cooldowns, user
+  activity, and commentary level.
 
 ## ElevenLabs Agent Prompt Setup
 
@@ -33,7 +47,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Click-through uses Win32 extended window styles.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.
 - Character behavior includes basic gaze, amplitude-driven mouth movement during playback, and subtle idle breathing/bob animation.
-- Settings window stores ElevenLabs API key, Agent ID, voice ID, and pet profile fields in local JSON under the user's local app data folder.
+- Settings window stores ElevenLabs API key, Agent ID, voice ID, pet profile, and OpenRouter settings in local JSON under the user's local app data folder.
+- OpenRouter settings include API key (PasswordBox), vision model selector (populated from Models API), and zero-data-retention toggle.
 - ElevenLabs Agent text interaction and ElevenLabs TTS/local MP3 playback have both been smoke-tested.
 - Provider calls are behind small interfaces instead of being called directly from XAML.
 - The current `bug.inp` renderer is not a full native Inochi2D runtime.
@@ -54,12 +69,33 @@ Configure `desktop_context` with a harmless fallback such as
 - `ChatRequest` now has a separate optional desktop-context field and `ConversationController` uses a provider-neutral context boundary.
 - Permitted typed chat can include reduced foreground metadata and bounded UI Automation summaries with exact user-visible disclosure.
 - Background observation keeps short-lived reduced state, detects meaningful changes, and can produce sparse ambient comments when enabled.
-- Window capture is implemented in memory, but the unavailable visual analyzer prevents capture until a provider is selected.
-- Desktop Pet Memories has an Observations tab for recent reduced activity and persisted ambient-comment decisions.
+- Window capture is implemented in memory using PrintWindow, downscaled to 1280x720. Images are never written to disk.
+- OpenRouter vision analysis captures permitted window screenshots, converts to base64, and sends to the selected vision model with structured output.
+- The vision model produces `VisionObservation` records with summary, novelty, relevance, confidence, sensitivity, interruption cost, and possible comment topics.
+- Vision analysis enforces a configurable minimum interval between OpenRouter requests (default 30s, adjustable in settings).
+- Minimum dwell time gates window-change observations so rapid Alt-Tab switching is ignored (default 15s, adjustable).
+- Vision sensitivity (Low/Medium/High) controls the interest-score threshold for whether an observation is worth analyzing.
+- Commentary and vision sensitivity use segmented radio-button sliders with live legends in the Settings UI.
+- Ambient policy uses interest scoring from vision observations with soft speaking budgets per commentary level.
+- Desktop Pet Memories has an Observations tab showing card-based records with application, summary, interest score, confidence, and outcome.
+- Recent observation records persist to `observations.json` (capped at 200) for audit trail and tuning.
 - ElevenLabs diagnostics report safe event and variable names without logging provider values, Agent IDs, replies, or full exceptions.
 
 ## Decisions
 
+- OpenRouter is the observation and interpretation layer; ElevenLabs is the character and speech layer.
+- The vision model reports what it sees and why it may matter; local code decides whether Pebble speaks.
+- Raw screenshots are never sent to ElevenLabs; only reduced summaries and possible topics.
+- Zero-data-retention routing is enabled by default for OpenRouter requests.
+- Test vision uses a locally generated test image, not the user's current desktop.
+- Vision analysis enforces a minimum 30-second interval between OpenRouter requests.
+- Interest scoring combines novelty, relevance, confidence, sensitivity, and interruption cost.
+- Vision sensitivity and commentary level are independent axes: sensitivity controls what gets analyzed, commentary controls how often Pebble speaks.
+- Minimum dwell time prevents rapid window switching from generating noise and wasting API calls.
+- Commentary and vision sensitivity are segmented radio-button sliders with contextual legends.
+- Commentary mode creates pressure toward a general cadence via soft speaking budgets, not hard quotas.
+- Silence is a valid outcome; the pet should never say something uninteresting just to meet a quota.
+- Observation records persist to `observations.json` for audit trail and threshold tuning.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
 - Replies use ElevenLabs Agent Chat Mode; speech uses standalone ElevenLabs TTS with hard-coded `eleven_v3`.
 - Playback, interruption, mouth movement, and character behavior stay local. TTS streams as MP3 into local playback and cache.
@@ -121,6 +157,15 @@ Configure `desktop_context` with a harmless fallback such as
 - Show the user what desktop context was used for a turn.
 - Persist global controls and explicit application allow or deny rules in the separate observation settings store.
 
+### OpenRouter Vision
+
+- Enable zero-data-retention routing by default for all vision requests.
+- Send only base64-encoded screenshots to OpenRouter; never upload to other services.
+- Enforce a minimum 30-second interval between OpenRouter requests.
+- The vision model receives recent observation context but never session identifiers or user credentials.
+- Test vision uses a locally generated image, not the user's actual desktop.
+- Observation records store the summary and scores but not the raw screenshot (v1).
+
 ## Observation Follow-up
 
 - Manually smoke-test permissions, scaling, multiple monitors, UI Automation timeouts, shutdown, and user-chat interruption.
@@ -141,10 +186,12 @@ Configure `desktop_context` with a harmless fallback such as
 - Connect the memory screen to automatic chat memories and later Mem0 storage.
 - Add a small pronunciation dictionary screen with list, add, edit, preview, and delete entries.
 - Let each pronunciation entry choose either alias text or a supported phoneme pronunciation.
+- Persist observation screenshots to disk for the Observations tab "View screenshot" feature.
+- Tune interest scoring thresholds and soft speaking budgets from real use.
+- Add a vision analysis error counter in the settings UI for debugging.
 
 ## Later Work
 
-- A selected vision provider for permitted-window analysis.
 - Optional microphone input after typed chat works, not a live voice session.
 - Better credential storage than plain JSON.
 - Blinking.
@@ -155,3 +202,5 @@ Configure `desktop_context` with a harmless fallback such as
 - Subtitles or a speech bubble.
 - Output-device selection.
 - Hosted Mem0, if local Mem0 works and there is a clear reason to add it.
+- Secondary vision model for uncertain or complex observations.
+- User-initiated "what do you see?" mode with full screenshot analysis.

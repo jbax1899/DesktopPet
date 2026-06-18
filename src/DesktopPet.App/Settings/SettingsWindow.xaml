@@ -41,6 +41,14 @@
                     <RowDefinition Height="Auto" />
                     <!-- Separator -->
                     <RowDefinition Height="Auto" />
+                    <!-- OpenRouter -->
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <!-- Separator -->
+                    <RowDefinition Height="Auto" />
                     <!-- Profile -->
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -53,7 +61,6 @@
                     <!-- Separator -->
                     <RowDefinition Height="Auto" />
                     <!-- Screen Context -->
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -106,50 +113,116 @@
                 <Border Grid.Row="4" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />
 
-                <!-- ═══ Profile ═══ -->
+                <!-- ═══ OpenRouter ═══ -->
                 <TextBlock Grid.Row="5"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
-                           Text="Profile" />
+                           Text="OpenRouter" />
 
                 <TextBlock Grid.Row="6"
                            Grid.Column="0"
                            Margin="0,0,12,12"
                            VerticalAlignment="Center"
+                           Text="API key" />
+                <PasswordBox x:Name="OpenRouterApiKeyPasswordBox"
+                             Grid.Row="6"
+                             Grid.Column="1"
+                             Margin="0,0,0,12" />
+
+                <TextBlock Grid.Row="7"
+                           Grid.Column="0"
+                           Margin="0,0,12,12"
+                           VerticalAlignment="Center"
+                           Text="Vision model" />
+                <ComboBox x:Name="OpenRouterVisionModelComboBox"
+                          Grid.Row="7"
+                          Grid.Column="1"
+                          Margin="0,0,0,12"
+                          DisplayMemberPath="Name"
+                          ToolTip="Select a vision-capable model for screenshot analysis." />
+
+                <StackPanel Grid.Row="8"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,6"
+                            Orientation="Horizontal">
+                    <CheckBox x:Name="OpenRouterRequireZdrCheckBox"
+                              VerticalAlignment="Center"
+                              IsChecked="True"
+                              Content="Require zero data retention"
+                              ToolTip="Only route to providers that do not retain your data." />
+                </StackPanel>
+
+                <TextBlock Grid.Row="9"
+                           Grid.ColumnSpan="2"
+                           Margin="0,4,0,4"
+                           Foreground="#FF475569"
+                           TextWrapping="Wrap">
+                    <Run x:Name="OpenRouterModelCapabilitiesText"
+                         Text="Select a model to see capabilities." />
+                </TextBlock>
+
+                <StackPanel Grid.Row="10"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,0"
+                            Orientation="Horizontal">
+                    <Button x:Name="TestVisionButton"
+                            Padding="10,4"
+                            Click="OnTestVisionClicked"
+                            Content="Test vision" />
+                    <TextBlock x:Name="TestVisionStatusText"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- ═══════════════════ -->
+                <Border Grid.Row="11" Grid.ColumnSpan="2"
+                        Style="{StaticResource SectionSeparator}" />
+
+                <!-- ═══ Profile ═══ -->
+                <TextBlock Grid.Row="12"
+                           Grid.ColumnSpan="2"
+                           Margin="0,0,0,10"
+                           FontWeight="SemiBold"
+                           Text="Profile" />
+
+                <TextBlock Grid.Row="13"
+                           Grid.Column="0"
+                           Margin="0,0,12,12"
+                           VerticalAlignment="Center"
                            Text="Your name" />
                 <TextBox x:Name="UserNameTextBox"
-                         Grid.Row="6"
+                         Grid.Row="13"
                          Grid.Column="1"
                          Margin="0,0,0,12" />
 
-                <TextBlock Grid.Row="7"
+                <TextBlock Grid.Row="14"
                            Grid.Column="0"
                            Margin="0,0,12,0"
                            VerticalAlignment="Center"
                            Text="Nickname" />
                 <TextBox x:Name="NicknameTextBox"
-                         Grid.Row="7"
+                         Grid.Row="14"
                          Grid.Column="1"
                          Margin="0,0,0,0" />
 
                 <!-- ═══════════════════ -->
-                <Border Grid.Row="8" Grid.ColumnSpan="2"
+                <Border Grid.Row="15" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />
 
                 <!-- ═══ Input ═══ -->
-                <TextBlock Grid.Row="9"
+                <TextBlock Grid.Row="16"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Input" />
 
-                <TextBlock Grid.Row="10"
+                <TextBlock Grid.Row="17"
                            Grid.Column="0"
                            Margin="0,0,12,0"
                            VerticalAlignment="Center"
                            Text="Chat shortcut" />
-                <StackPanel Grid.Row="10"
+                <StackPanel Grid.Row="17"
                             Grid.Column="1"
                             Orientation="Horizontal">
                     <Button x:Name="ChatShortcutButton"
@@ -163,46 +236,116 @@
                 </StackPanel>
 
                 <!-- ═══════════════════ -->
-                <Border Grid.Row="11" Grid.ColumnSpan="2"
+                <Border Grid.Row="18" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />
 
                 <!-- ═══ Screen Context ═══ -->
-                <TextBlock Grid.Row="12"
+                <TextBlock Grid.Row="19"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Screen Context" />
 
                 <CheckBox x:Name="ObservationEnabledCheckBox"
-                          Grid.Row="13"
+                          Grid.Row="20"
                           Grid.ColumnSpan="2"
                           Margin="0,0,0,8"
                           FontWeight="SemiBold"
                           Content="Enable screen context observation"
                           ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
 
-                <StackPanel Grid.Row="14"
-                            Grid.ColumnSpan="2"
-                            Margin="0,0,0,6"
-                            Orientation="Horizontal">
-                    <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
-                              VerticalAlignment="Center"
-                              Content="Allow ambient comments"
-                              ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
-                    <CheckBox x:Name="DoNotDisturbCheckBox"
-                              Margin="18,0,0,0"
-                              VerticalAlignment="Center"
-                              Content="Do not disturb"
-                              ToolTip="Keep observing, but suppress ambient comments." />
-                    <TextBlock Margin="18,0,6,0"
-                               VerticalAlignment="Center"
-                               Text="Commentary:" />
-                    <ComboBox x:Name="CommentaryLevelComboBox"
-                              Width="120"
-                              ToolTip="Controls ambient-comment cooldown and hourly limits." />
-                </StackPanel>
+                <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
+                          Grid.Row="21"
+                          Grid.ColumnSpan="2"
+                          Margin="0,0,0,8"
+                          Content="Allow ambient comments"
+                          ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
 
-                <TextBlock Grid.Row="15"
+                <Grid Grid.Row="22"
+                      Grid.ColumnSpan="2"
+                      Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!-- Commentary segmented slider -->
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Margin="0,0,12,0"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Text="Commentary" />
+                    <StackPanel Grid.Row="0" Grid.Column="1"
+                                Orientation="Vertical">
+                        <UniformGrid Columns="3">
+                            <RadioButton x:Name="CommentaryQuietRadioButton"
+                                         GroupName="Commentary"
+                                         Margin="0,0,4,0"
+                                         Content="Quiet"
+                                         ToolTip="Rare comments (~30 min cooldown)."
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryBalancedRadioButton"
+                                         GroupName="Commentary"
+                                         Margin="4,0"
+                                         Content="Balanced"
+                                         IsChecked="True"
+                                         ToolTip="Moderate cadence (~15 min cooldown)."
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryTalkativeRadioButton"
+                                         GroupName="Commentary"
+                                         Margin="4,0,0,0"
+                                         Content="Talkative"
+                                         ToolTip="Frequent comments (~7 min cooldown)."
+                                         Checked="OnCommentaryLevelChanged" />
+                        </UniformGrid>
+                        <TextBlock x:Name="CommentaryLegendTextBlock"
+                                   Margin="2,4,0,0"
+                                   Foreground="#FF64748B"
+                                   FontSize="10"
+                                   Text="How often Pebble speaks when interesting things are found." />
+                    </StackPanel>
+
+                    <!-- Vision sensitivity segmented slider -->
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Margin="0,8,12,0"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Text="Vision sensitivity" />
+                    <StackPanel Grid.Row="1" Grid.Column="1"
+                                Orientation="Vertical">
+                        <UniformGrid Columns="3">
+                            <RadioButton x:Name="VisionLowRadioButton"
+                                         GroupName="VisionSensitivity"
+                                         Margin="0,0,4,0"
+                                         Content="Low"
+                                         ToolTip="Only highly interesting changes trigger analysis."
+                                         Checked="OnVisionSensitivityChanged" />
+                            <RadioButton x:Name="VisionMediumRadioButton"
+                                         GroupName="VisionSensitivity"
+                                         Margin="4,0"
+                                         Content="Medium"
+                                         IsChecked="True"
+                                         ToolTip="Balanced interest threshold."
+                                         Checked="OnVisionSensitivityChanged" />
+                            <RadioButton x:Name="VisionHighRadioButton"
+                                         GroupName="VisionSensitivity"
+                                         Margin="4,0,0,0"
+                                         Content="High"
+                                         ToolTip="More things trigger analysis, including subtle changes."
+                                         Checked="OnVisionSensitivityChanged" />
+                        </UniformGrid>
+                        <TextBlock x:Name="VisionSensitivityLegendTextBlock"
+                                   Margin="2,4,0,0"
+                                   Foreground="#FF64748B"
+                                   FontSize="10"
+                                   Text="How easily the vision model considers something interesting to analyze." />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Grid.Row="23"
                            Grid.ColumnSpan="2"
                            Margin="0,4,0,0"
                            Foreground="#FF475569"
@@ -210,15 +353,15 @@
                            TextWrapping="Wrap" />
 
                 <TextBlock x:Name="VisionWarningTextBlock"
-                           Grid.Row="16"
+                           Grid.Row="24"
                            Grid.ColumnSpan="2"
                            Margin="0,4,0,8"
                            Foreground="#FF9A3412"
-                           Text="Vision analysis provider unavailable: vision permission can be saved, but no image will be captured or analyzed."
+                           Text="Vision analysis requires an OpenRouter API key and vision model selection above."
                            TextWrapping="Wrap" />
 
                 <DataGrid x:Name="ApplicationsGrid"
-                          Grid.Row="17"
+                          Grid.Row="25"
                           Grid.ColumnSpan="2"
                           MaxHeight="250"
                           VerticalAlignment="Top"

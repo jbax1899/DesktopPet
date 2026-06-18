@@ -37,9 +37,6 @@
                             BorderBrush="#F6C453"
                             BorderThickness="1"
                             CornerRadius="6">
-                        <TextBlock Foreground="#6B4F00"
-                                   Text="Desktop context is collected only when a message is submitted. This preview does not inspect the foreground app, capture a screenshot, or call a provider."
-                                   TextWrapping="Wrap" />
                     </Border>
 
                     <ScrollViewer Grid.Row="2"

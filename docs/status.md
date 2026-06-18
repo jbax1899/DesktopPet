@@ -109,6 +109,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 - Provider API keys are encrypted with Windows DPAPI for the current user and
   stored separately from readable provider settings.
+- Mutable JSON files use flushed temporary writes, atomic replacement, and one
+  backup copy; malformed primaries are preserved for diagnosis.
 - Observation settings default to paused and are stored separately in
   `%LOCALAPPDATA%\DesktopPet\observation-settings.json`.
 - OpenRouter vision uses zero-data-retention routing by default. Test Vision

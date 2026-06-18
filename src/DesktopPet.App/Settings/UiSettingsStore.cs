@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Settings;
 
@@ -10,56 +11,43 @@ public sealed class UiSettingsStore
         WriteIndented = true
     };
 
-    private readonly string _settingsFilePath;
+    private readonly JsonFileStore<UiSettings> _settingsFile;
 
     public UiSettingsStore()
-    {
-        var settingsDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet");
+            "DesktopPet",
+            "ui-settings.json"))
+    {
+    }
 
-        _settingsFilePath = Path.Combine(settingsDirectory, "ui-settings.json");
+    internal UiSettingsStore(string settingsFilePath)
+    {
+        _settingsFile = new JsonFileStore<UiSettings>(
+            settingsFilePath,
+            json => JsonSerializer.Deserialize<UiSettings>(json, JsonOptions)
+                ?? throw new JsonException("UI settings are empty."),
+            settings => JsonSerializer.Serialize(settings, JsonOptions));
     }
 
     public UiSettings Load()
     {
-        if (!File.Exists(_settingsFilePath))
+        var settings = _settingsFile.Load(UiSettings.Default);
+        return settings with
         {
-            return UiSettings.Default;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_settingsFilePath);
-            var settings = JsonSerializer.Deserialize<UiSettings>(json, JsonOptions) ?? UiSettings.Default;
-            return settings with
-            {
-                ChatShortcut = settings.ChatShortcut.IsValid()
-                    ? settings.ChatShortcut
-                    : KeyboardShortcut.DefaultChatShortcut,
-                ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
-            };
-        }
-        catch (JsonException)
-        {
-            return UiSettings.Default;
-        }
-        catch (IOException)
-        {
-            return UiSettings.Default;
-        }
+            ChatShortcut = settings.ChatShortcut.IsValid()
+                ? settings.ChatShortcut
+                : KeyboardShortcut.DefaultChatShortcut,
+            ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
+        };
     }
 
     public void Save(UiSettings settings)
     {
-        var directory = Path.GetDirectoryName(_settingsFilePath)
-            ?? throw new InvalidOperationException("Settings file path does not have a directory.");
-
-        Directory.CreateDirectory(directory);
         var normalizedSettings = settings with
         {
             ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
         };
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(normalizedSettings, JsonOptions));
+        _settingsFile.Save(normalizedSettings);
     }
 }

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Observation;
 
@@ -10,48 +11,34 @@ public sealed class ObservationSettingsStore
         WriteIndented = true
     };
 
-    private readonly string _settingsFilePath;
+    private readonly JsonFileStore<ObservationSettings> _settingsFile;
 
     public ObservationSettingsStore()
-    {
-        var settingsDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet");
+            "DesktopPet",
+            "observation-settings.json"))
+    {
+    }
 
-        _settingsFilePath = Path.Combine(settingsDirectory, "observation-settings.json");
+    internal ObservationSettingsStore(string settingsFilePath)
+    {
+        _settingsFile = new JsonFileStore<ObservationSettings>(
+            settingsFilePath,
+            json => Normalize(JsonSerializer.Deserialize<ObservationSettings>(
+                MigrateOldFormat(json),
+                JsonOptions) ?? throw new JsonException("Observation settings are empty.")),
+            settings => JsonSerializer.Serialize(Normalize(settings), JsonOptions));
     }
 
     public ObservationSettings Load()
     {
-        if (!File.Exists(_settingsFilePath))
-        {
-            return ObservationSettings.Default;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_settingsFilePath);
-            var migrated = MigrateOldFormat(json);
-            return Normalize(JsonSerializer.Deserialize<ObservationSettings>(migrated, JsonOptions)
-                ?? ObservationSettings.Default);
-        }
-        catch (JsonException)
-        {
-            return ObservationSettings.Default;
-        }
-        catch (IOException)
-        {
-            return ObservationSettings.Default;
-        }
+        return _settingsFile.Load(ObservationSettings.Default);
     }
 
     public void Save(ObservationSettings settings)
     {
-        var directory = Path.GetDirectoryName(_settingsFilePath)
-            ?? throw new InvalidOperationException("Observation settings path does not have a directory.");
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(Normalize(settings), JsonOptions));
+        _settingsFile.Save(settings);
     }
 
     private static ObservationSettings Normalize(ObservationSettings settings)

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using DesktopPet.App.Security;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Cloud;
 
@@ -11,7 +12,7 @@ public sealed class ElevenLabsSettingsStore
         WriteIndented = true
     };
 
-    private readonly string _settingsFilePath;
+    private readonly JsonFileStore<ElevenLabsSettings> _settingsFile;
     private readonly CredentialStore _credentialStore;
 
     public ElevenLabsSettingsStore()
@@ -26,43 +27,25 @@ public sealed class ElevenLabsSettingsStore
 
     internal ElevenLabsSettingsStore(string settingsFilePath, CredentialStore credentialStore)
     {
-        _settingsFilePath = settingsFilePath;
+        _settingsFile = new JsonFileStore<ElevenLabsSettings>(
+            settingsFilePath,
+            json => JsonSerializer.Deserialize<ElevenLabsSettings>(json, JsonOptions)
+                ?? throw new JsonException("ElevenLabs settings are empty."),
+            settings => JsonSerializer.Serialize(settings, JsonOptions));
         _credentialStore = credentialStore;
     }
 
     public ElevenLabsSettings Load()
     {
         var apiKey = _credentialStore.GetElevenLabsApiKey();
-        if (!File.Exists(_settingsFilePath))
-        {
-            return EmptySettings() with { ElevenLabsApiKey = apiKey };
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_settingsFilePath);
-            var settings = JsonSerializer.Deserialize<ElevenLabsSettings>(json, JsonOptions) ?? EmptySettings();
-            return settings with { ElevenLabsApiKey = apiKey };
-        }
-        catch (JsonException)
-        {
-            return EmptySettings() with { ElevenLabsApiKey = apiKey };
-        }
-        catch (IOException)
-        {
-            return EmptySettings() with { ElevenLabsApiKey = apiKey };
-        }
+        return _settingsFile.Load(EmptySettings()) with { ElevenLabsApiKey = apiKey };
     }
 
     public void Save(ElevenLabsSettings settings)
     {
         _credentialStore.SaveElevenLabsApiKey(settings.ElevenLabsApiKey);
 
-        var directory = Path.GetDirectoryName(_settingsFilePath)
-            ?? throw new InvalidOperationException("Settings file path does not have a directory.");
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        _settingsFile.Save(settings);
     }
 
     private static ElevenLabsSettings EmptySettings()

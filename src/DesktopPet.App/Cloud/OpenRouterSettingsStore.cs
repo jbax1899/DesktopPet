@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using DesktopPet.App.Security;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Cloud;
 
@@ -11,7 +12,7 @@ public sealed class OpenRouterSettingsStore
         WriteIndented = true
     };
 
-    private readonly string _settingsFilePath;
+    private readonly JsonFileStore<OpenRouterSettings> _settingsFile;
     private readonly CredentialStore _credentialStore;
 
     public OpenRouterSettingsStore()
@@ -26,43 +27,25 @@ public sealed class OpenRouterSettingsStore
 
     internal OpenRouterSettingsStore(string settingsFilePath, CredentialStore credentialStore)
     {
-        _settingsFilePath = settingsFilePath;
+        _settingsFile = new JsonFileStore<OpenRouterSettings>(
+            settingsFilePath,
+            json => JsonSerializer.Deserialize<OpenRouterSettings>(json, JsonOptions)
+                ?? throw new JsonException("OpenRouter settings are empty."),
+            settings => JsonSerializer.Serialize(settings, JsonOptions));
         _credentialStore = credentialStore;
     }
 
     public OpenRouterSettings Load()
     {
         var apiKey = _credentialStore.GetOpenRouterApiKey();
-        if (!File.Exists(_settingsFilePath))
-        {
-            return EmptySettings() with { ApiKey = apiKey };
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_settingsFilePath);
-            var settings = JsonSerializer.Deserialize<OpenRouterSettings>(json, JsonOptions) ?? EmptySettings();
-            return settings with { ApiKey = apiKey };
-        }
-        catch (JsonException)
-        {
-            return EmptySettings() with { ApiKey = apiKey };
-        }
-        catch (IOException)
-        {
-            return EmptySettings() with { ApiKey = apiKey };
-        }
+        return _settingsFile.Load(EmptySettings()) with { ApiKey = apiKey };
     }
 
     public void Save(OpenRouterSettings settings)
     {
         _credentialStore.SaveOpenRouterApiKey(settings.ApiKey);
 
-        var directory = Path.GetDirectoryName(_settingsFilePath)
-            ?? throw new InvalidOperationException("Settings file path does not have a directory.");
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        _settingsFile.Save(settings);
     }
 
     private static OpenRouterSettings EmptySettings()

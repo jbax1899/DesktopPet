@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Observation;
 
@@ -13,15 +14,24 @@ public sealed class AmbientDecisionStore
 {
     private const int MaximumRecords = 100;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    private readonly string _filePath;
+    private readonly JsonFileStore<List<AmbientDecisionRecord>> _file;
     private readonly object _sync = new();
 
     public AmbientDecisionStore()
-    {
-        _filePath = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "DesktopPet",
-            "ambient-decisions.json");
+            "ambient-decisions.json"))
+    {
+    }
+
+    internal AmbientDecisionStore(string filePath)
+    {
+        _file = new JsonFileStore<List<AmbientDecisionRecord>>(
+            filePath,
+            json => JsonSerializer.Deserialize<List<AmbientDecisionRecord>>(json, JsonOptions)
+                ?? throw new JsonException("Ambient decisions are empty."),
+            records => JsonSerializer.Serialize(records, JsonOptions));
     }
 
     public IReadOnlyList<AmbientDecisionRecord> List()
@@ -53,37 +63,17 @@ public sealed class AmbientDecisionStore
     {
         lock (_sync)
         {
-            if (File.Exists(_filePath))
-            {
-                File.Delete(_filePath);
-            }
+            _file.Delete();
         }
     }
 
     private List<AmbientDecisionRecord> Load()
     {
-        if (!File.Exists(_filePath))
-        {
-            return [];
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<AmbientDecisionRecord>>(
-                File.ReadAllText(_filePath),
-                JsonOptions) ?? [];
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            return [];
-        }
+        return _file.Load([]);
     }
 
     private void Save(IReadOnlyCollection<AmbientDecisionRecord> records)
     {
-        var directory = Path.GetDirectoryName(_filePath)
-            ?? throw new InvalidOperationException("Ambient decision path does not have a directory.");
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_filePath, JsonSerializer.Serialize(records, JsonOptions));
+        _file.Save(records.ToList());
     }
 }

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Settings;
 
@@ -10,46 +11,32 @@ public sealed class ProfileSettingsStore
         WriteIndented = true
     };
 
-    private readonly string _settingsFilePath;
+    private readonly JsonFileStore<ProfileSettings> _settingsFile;
 
     public ProfileSettingsStore()
-    {
-        var settingsDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet");
+            "DesktopPet",
+            "pet-profile-settings.json"))
+    {
+    }
 
-        _settingsFilePath = Path.Combine(settingsDirectory, "pet-profile-settings.json");
+    internal ProfileSettingsStore(string settingsFilePath)
+    {
+        _settingsFile = new JsonFileStore<ProfileSettings>(
+            settingsFilePath,
+            json => JsonSerializer.Deserialize<ProfileSettings>(json, JsonOptions)
+                ?? throw new JsonException("Profile settings are empty."),
+            settings => JsonSerializer.Serialize(settings, JsonOptions));
     }
 
     public ProfileSettings Load()
     {
-        if (!File.Exists(_settingsFilePath))
-        {
-            return ProfileSettings.Default;
-        }
-
-        try
-        {
-            var json = File.ReadAllText(_settingsFilePath);
-            return JsonSerializer.Deserialize<ProfileSettings>(json, JsonOptions)
-                ?? ProfileSettings.Default;
-        }
-        catch (JsonException)
-        {
-            return ProfileSettings.Default;
-        }
-        catch (IOException)
-        {
-            return ProfileSettings.Default;
-        }
+        return _settingsFile.Load(ProfileSettings.Default);
     }
 
     public void Save(ProfileSettings settings)
     {
-        var directory = Path.GetDirectoryName(_settingsFilePath)
-            ?? throw new InvalidOperationException("Settings file path does not have a directory.");
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        _settingsFile.Save(settings);
     }
 }

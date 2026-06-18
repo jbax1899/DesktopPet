@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using DesktopPet.App.Storage;
 
 namespace DesktopPet.App.Observation;
 
@@ -7,16 +8,24 @@ public sealed class ObservationStore
 {
     private const int MaximumRecords = 200;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    private readonly string _filePath;
+    private readonly JsonFileStore<List<ObservationRecord>> _file;
     private readonly string _thumbnailDirectory;
     private readonly object _sync = new();
 
     public ObservationStore()
-    {
-        var dataDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet");
-        _filePath = Path.Combine(dataDirectory, "observations.json");
+            "DesktopPet"))
+    {
+    }
+
+    internal ObservationStore(string dataDirectory)
+    {
+        _file = new JsonFileStore<List<ObservationRecord>>(
+            Path.Combine(dataDirectory, "observations.json"),
+            json => JsonSerializer.Deserialize<List<ObservationRecord>>(json, JsonOptions)
+                ?? throw new JsonException("Observations are empty."),
+            records => JsonSerializer.Serialize(records, JsonOptions));
         _thumbnailDirectory = Path.Combine(dataDirectory, "thumbnails");
     }
 
@@ -64,10 +73,7 @@ public sealed class ObservationStore
     {
         lock (_sync)
         {
-            if (File.Exists(_filePath))
-            {
-                File.Delete(_filePath);
-            }
+            _file.Delete();
 
             if (Directory.Exists(_thumbnailDirectory))
             {
@@ -78,28 +84,11 @@ public sealed class ObservationStore
 
     private List<ObservationRecord> Load()
     {
-        if (!File.Exists(_filePath))
-        {
-            return [];
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<ObservationRecord>>(
-                File.ReadAllText(_filePath),
-                JsonOptions) ?? [];
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            return [];
-        }
+        return _file.Load([]);
     }
 
     private void Save(IReadOnlyCollection<ObservationRecord> records)
     {
-        var directory = Path.GetDirectoryName(_filePath)
-            ?? throw new InvalidOperationException("Observation store path does not have a directory.");
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(_filePath, JsonSerializer.Serialize(records, JsonOptions));
+        _file.Save(records.ToList());
     }
 }

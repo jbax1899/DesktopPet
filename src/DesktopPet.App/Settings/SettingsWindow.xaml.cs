@@ -178,6 +178,7 @@ public partial class SettingsWindow : Window
         _loadingObservationSettings = true;
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
+        CaptureScreenshotOnChatSendCheckBox.IsChecked = settings.CaptureScreenshotOnChatSend;
         SetCommentaryPreset(ObservationSettingLimits.MatchPreset(
             settings.CooldownMinutes,
             settings.CheckInMinutes,
@@ -285,6 +286,7 @@ public partial class SettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
+            CaptureScreenshotOnChatSend = CaptureScreenshotOnChatSendCheckBox.IsChecked == true,
             CooldownMinutes = ParseInt(CooldownMinutesTextBox, current.CooldownMinutes),
             DuplicateWindowMinutes = ParseInt(DuplicateWindowMinutesTextBox, current.DuplicateWindowMinutes),
             CheckInMinutes = ParseInt(CheckInMinutesTextBox, current.CheckInMinutes),

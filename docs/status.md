@@ -57,8 +57,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Screen observation and ambient comments default to off. Access is granted
   per application through separate Metadata and Vision permissions.
 - Typed chat can include reduced foreground metadata and bounded UI Automation
-  labels. Unsupported or timed-out structural inspection falls back to
-  metadata.
+  labels. An Advanced setting, enabled by default, also captures and analyzes
+  the active window when Vision permission allows it. Unsupported, disabled,
+  or timed-out inspection falls back to the available context.
 - Permitted screenshots are captured in memory, downscaled to 1280x720, and
   analyzed by the configured OpenRouter vision model using structured output.
 - Background observation reacts to stable application/title changes and

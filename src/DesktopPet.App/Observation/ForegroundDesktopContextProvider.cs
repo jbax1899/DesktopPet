@@ -107,7 +107,8 @@ internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
             }
         }
 
-        if (_visualAnalyzer.IsAvailable
+        if (_permissionService.Current.CaptureScreenshotOnChatSend
+            && _visualAnalyzer.IsAvailable
             && _permissionService.IsAllowed(snapshot.ExecutablePath, DesktopContextCapabilities.Visual))
         {
             var capture = await _windowCaptureService.CaptureAsync(

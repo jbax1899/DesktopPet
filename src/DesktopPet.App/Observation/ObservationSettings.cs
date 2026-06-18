@@ -93,6 +93,7 @@ public sealed record ApplicationObservationRule(
 public sealed record ObservationSettings(
     bool ObservationEnabled,
     bool AmbientCommentsEnabled,
+    bool CaptureScreenshotOnChatSend,
     int CooldownMinutes,
     int DuplicateWindowMinutes,
     int CheckInMinutes,
@@ -122,6 +123,7 @@ public sealed record ObservationSettings(
     public static ObservationSettings Default { get; } = new(
         ObservationEnabled: false,
         AmbientCommentsEnabled: false,
+        CaptureScreenshotOnChatSend: true,
         CooldownMinutes: 5,
         DuplicateWindowMinutes: 15,
         CheckInMinutes: 5,

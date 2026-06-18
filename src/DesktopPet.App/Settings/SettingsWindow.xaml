@@ -370,6 +370,11 @@
                             </UniformGrid>
 
                             <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Vision and context" />
+                            <CheckBox x:Name="CaptureScreenshotOnChatSendCheckBox"
+                                      Margin="0,6,0,6"
+                                      Content="Capture the active window when sending a chat message"
+                                      ToolTip="When enabled, a typed chat request captures and analyzes the active application window if Desktop observation is on, the application has Vision permission, and OpenRouter vision is configured."
+                                      ToolTipService.ShowsToolTipOnKeyboardFocus="True" />
                             <UniformGrid Columns="2" Margin="0,6,0,0">
                                 <StackPanel Margin="0,0,12,6"><TextBlock Text="Vision analysis cooldown (seconds)" /><TextBox x:Name="VisionCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between OpenRouter vision analyses. Lower values can increase provider usage and cost." /></StackPanel>
                                 <StackPanel Margin="0,0,0,6"><TextBlock Text="Vision request timeout (seconds)" /><TextBox x:Name="VisionTimeoutSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Cancel a vision provider request if it has not completed within this time." /></StackPanel>

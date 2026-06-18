@@ -49,6 +49,7 @@ public sealed class ObservationSettingsTests
         Assert.AreEqual(25, settings.MinimumDwellTimeSeconds);
         Assert.AreEqual(45, settings.VisionAnalysisCooldownSeconds);
         Assert.AreEqual(ObservationSettings.Default.PollIntervalSeconds, settings.PollIntervalSeconds);
+        Assert.IsTrue(settings.CaptureScreenshotOnChatSend);
         Assert.AreEqual(100d, settings.InterestWeightTotal, 0.001);
     }
 
@@ -84,6 +85,7 @@ public sealed class ObservationSettingsTests
         var store = new ObservationSettingsStore(path);
         store.Save(ObservationSettings.Default with
         {
+            CaptureScreenshotOnChatSend = false,
             CommentThresholdPercent = 42,
             ObservationContextDepth = 9,
             ApplicationRules =
@@ -101,6 +103,7 @@ public sealed class ObservationSettingsTests
 
         Assert.AreEqual(42, loaded.CommentThresholdPercent);
         Assert.AreEqual(9, loaded.ObservationContextDepth);
+        Assert.IsFalse(loaded.CaptureScreenshotOnChatSend);
         Assert.HasCount(1, loaded.ApplicationRules);
         Assert.IsTrue(loaded.ApplicationRules[0].AllowVisual);
     }

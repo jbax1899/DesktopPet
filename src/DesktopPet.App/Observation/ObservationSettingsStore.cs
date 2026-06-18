@@ -87,6 +87,7 @@ public sealed class ObservationSettingsStore
         return Normalize(new ObservationSettings(
             Read(root, nameof(ObservationSettings.ObservationEnabled), defaults.ObservationEnabled),
             Read(root, nameof(ObservationSettings.AmbientCommentsEnabled), defaults.AmbientCommentsEnabled),
+            Read(root, nameof(ObservationSettings.CaptureScreenshotOnChatSend), defaults.CaptureScreenshotOnChatSend),
             Read(root, nameof(ObservationSettings.CooldownMinutes), defaults.CooldownMinutes),
             Read(root, nameof(ObservationSettings.DuplicateWindowMinutes), defaults.DuplicateWindowMinutes),
             Read(root, nameof(ObservationSettings.CheckInMinutes), defaults.CheckInMinutes),

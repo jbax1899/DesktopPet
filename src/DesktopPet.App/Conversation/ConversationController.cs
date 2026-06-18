@@ -12,7 +12,6 @@ namespace DesktopPet.App.Conversation;
 
 public sealed class ConversationController : IDisposable
 {
-    private const int ObservationHistoryCount = 5;
 
     private static readonly TimeSpan TranscriptHoldAfterSpeech = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
@@ -30,6 +29,7 @@ public sealed class ConversationController : IDisposable
     private readonly IDesktopContextProvider _desktopContextProvider;
     private readonly IAmbientActivityState _ambientActivityState;
     private readonly ObservationStore _observationStore;
+    private readonly IObservationPermissionService _observationPermissionService;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -51,7 +51,8 @@ public sealed class ConversationController : IDisposable
         IMemoryStore memoryStore,
         IDesktopContextProvider desktopContextProvider,
         IAmbientActivityState ambientActivityState,
-        ObservationStore observationStore)
+        ObservationStore observationStore,
+        IObservationPermissionService observationPermissionService)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -66,6 +67,7 @@ public sealed class ConversationController : IDisposable
         _desktopContextProvider = desktopContextProvider;
         _ambientActivityState = ambientActivityState;
         _observationStore = observationStore;
+        _observationPermissionService = observationPermissionService;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
         _overlayWindow.UserInputActivity += OnUserInputActivity;
@@ -417,7 +419,7 @@ public sealed class ConversationController : IDisposable
         {
             return _observationStore.List()
                 .OrderByDescending(r => r.CapturedAt)
-                .Take(ObservationHistoryCount)
+                .Take(_observationPermissionService.Current.ObservationContextDepth)
                 .ToArray();
         }
         catch (Exception ex)

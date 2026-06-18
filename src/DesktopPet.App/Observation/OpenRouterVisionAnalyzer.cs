@@ -13,9 +13,6 @@ namespace DesktopPet.App.Observation;
 internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
-    private const int ObservationHistoryCount = 5;
-
     private static readonly string AnalysisSchemaJson = """
     {
       "type": "json_schema",
@@ -96,7 +93,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         var systemPrompt = BuildSystemPrompt(request);
         var userContent = BuildUserContent(request);
 
-        using var timeout = new CancellationTokenSource(RequestTimeout);
+        using var timeout = new CancellationTokenSource(GetRequestTimeout());
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
         try
@@ -182,7 +179,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         var observationHistory = GetObservationHistory();
         var systemPrompt = BuildDetailedSystemPrompt(request, recentObservations, lastSpokeAt, scanQuality, observationHistory);
 
-        using var timeout = new CancellationTokenSource(RequestTimeout);
+        using var timeout = new CancellationTokenSource(GetRequestTimeout());
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
         try
@@ -243,6 +240,13 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         return TimeSpan.FromSeconds(Math.Max(5, cooldownSeconds));
     }
 
+    private TimeSpan GetRequestTimeout()
+    {
+        var seconds = _permissionService?.Current.VisionRequestTimeoutSeconds
+            ?? ObservationSettings.Default.VisionRequestTimeoutSeconds;
+        return TimeSpan.FromSeconds(seconds);
+    }
+
     private IReadOnlyList<ObservationRecord> GetObservationHistory()
     {
         if (_observationStore is null)
@@ -254,7 +258,8 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         {
             return _observationStore.List()
                 .OrderByDescending(r => r.CapturedAt)
-                .Take(ObservationHistoryCount)
+                .Take(_permissionService?.Current.ObservationContextDepth
+                    ?? ObservationSettings.Default.ObservationContextDepth)
                 .Reverse()
                 .ToArray();
         }

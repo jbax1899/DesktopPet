@@ -9,8 +9,6 @@ namespace DesktopPet.App.Observation;
 
 internal sealed class AmbientCommentCoordinator : IDisposable
 {
-    private static readonly TimeSpan PageLoadCaptureDelay = TimeSpan.FromMilliseconds(200);
-
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientCommentPolicy _policy;
@@ -294,7 +292,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             if (change.Type is DesktopObservationChangeType.ForegroundApplicationChanged
                 or DesktopObservationChangeType.WindowTitleChanged)
             {
-                await Task.Delay(PageLoadCaptureDelay, cancellationToken);
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(_permissionService.Current.ScreenshotCaptureDelayMilliseconds),
+                    cancellationToken);
                 if (turnId != Volatile.Read(ref _turnId))
                 {
                     return null;
@@ -377,7 +377,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         if (visionObservation is not null)
         {
-            var interestScore = AmbientCommentPolicy.CalculateInterestScore(visionObservation);
+            var interestScore = AmbientCommentPolicy.CalculateInterestScore(
+                visionObservation,
+                _permissionService.Current);
             var record = new ObservationRecord(
                 Id: Guid.NewGuid().ToString("N"),
                 CapturedAt: DateTimeOffset.UtcNow,

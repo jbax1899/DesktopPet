@@ -29,14 +29,11 @@ public interface IDesktopObservationCoordinator : IDisposable
     IReadOnlyList<ReducedDesktopObservation> RecentObservations { get; }
 
     void Start();
+    void ApplySettings();
 }
 
 internal sealed partial class DesktopObservationCoordinator : IDesktopObservationCoordinator
 {
-    private const int MaximumObservations = 50;
-    private static readonly TimeSpan MaximumAge = TimeSpan.FromMinutes(30);
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
-
     private readonly IForegroundWindowCollector _collector;
     private readonly IObservationPermissionService _permissionService;
     private readonly IUiAutomationContextCollector _uiAutomationCollector;
@@ -80,6 +77,20 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         _loopTask ??= Task.Run(() => ObserveAsync(_shutdown.Token));
     }
 
+    public void ApplySettings()
+    {
+        lock (_sync)
+        {
+            var settings = _permissionService.Current;
+            var cutoff = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(settings.RecentObservationAgeMinutes);
+            _recent.RemoveAll(item => item.ObservedAt < cutoff);
+            if (_recent.Count > settings.RecentObservationCount)
+            {
+                _recent.RemoveRange(0, _recent.Count - settings.RecentObservationCount);
+            }
+        }
+    }
+
     public void Dispose()
     {
         _shutdown.Cancel();
@@ -96,9 +107,11 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
 
     private async Task ObserveAsync(CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(PollInterval);
-        while (await timer.WaitForNextTickAsync(cancellationToken))
+        while (!cancellationToken.IsCancellationRequested)
         {
+            await Task.Delay(
+                TimeSpan.FromSeconds(_permissionService.Current.PollIntervalSeconds),
+                cancellationToken);
             if (!_permissionService.Current.ObservationEnabled)
             {
                 continue;
@@ -158,12 +171,13 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
     {
         lock (_sync)
         {
-            var cutoff = observation.ObservedAt - MaximumAge;
+            var settings = _permissionService.Current;
+            var cutoff = observation.ObservedAt - TimeSpan.FromMinutes(settings.RecentObservationAgeMinutes);
             _recent.RemoveAll(item => item.ObservedAt < cutoff);
             _recent.Add(observation);
-            if (_recent.Count > MaximumObservations)
+            if (_recent.Count > settings.RecentObservationCount)
             {
-                _recent.RemoveRange(0, _recent.Count - MaximumObservations);
+                _recent.RemoveRange(0, _recent.Count - settings.RecentObservationCount);
             }
         }
     }
@@ -229,7 +243,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         }
 
         if (_lastStructuralInspection.TryGetValue(executablePath, out var last)
-            && now - last < TimeSpan.FromSeconds(10))
+            && now - last < TimeSpan.FromSeconds(_permissionService.Current.StructureInspectionCooldownSeconds))
         {
             return false;
         }

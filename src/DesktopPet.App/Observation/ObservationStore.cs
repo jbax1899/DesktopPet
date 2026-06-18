@@ -6,20 +6,20 @@ namespace DesktopPet.App.Observation;
 
 public sealed class ObservationStore
 {
-    private const int MaximumRecords = 200;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly JsonFileStore<List<ObservationRecord>> _file;
     private readonly string _thumbnailDirectory;
     private readonly object _sync = new();
+    private readonly Func<int> _maximumRecordsProvider;
 
     public ObservationStore()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet"))
+        : this(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesktopPet"),
+            () => ObservationSettings.Default.StoredObservationCount)
     {
     }
 
-    internal ObservationStore(string dataDirectory)
+    internal ObservationStore(string dataDirectory, Func<int>? maximumRecordsProvider = null)
     {
         _file = new JsonFileStore<List<ObservationRecord>>(
             Path.Combine(dataDirectory, "observations.json"),
@@ -27,6 +27,8 @@ public sealed class ObservationStore
                 ?? throw new JsonException("Observations are empty."),
             records => JsonSerializer.Serialize(records, JsonOptions));
         _thumbnailDirectory = Path.Combine(dataDirectory, "thumbnails");
+        _maximumRecordsProvider = maximumRecordsProvider
+            ?? (() => ObservationSettings.Default.StoredObservationCount);
     }
 
     public string SaveThumbnail(System.Drawing.Bitmap bitmap, string id)
@@ -51,7 +53,7 @@ public sealed class ObservationStore
         {
             var records = Load();
             records.Add(record);
-            Save(records.OrderByDescending(item => item.CapturedAt).Take(MaximumRecords).ToArray());
+            SavePruned(records, _maximumRecordsProvider());
         }
     }
 
@@ -82,6 +84,14 @@ public sealed class ObservationStore
         }
     }
 
+    public void ApplyRetentionLimit()
+    {
+        lock (_sync)
+        {
+            SavePruned(Load(), _maximumRecordsProvider());
+        }
+    }
+
     private List<ObservationRecord> Load()
     {
         return _file.Load([]);
@@ -90,5 +100,20 @@ public sealed class ObservationStore
     private void Save(IReadOnlyCollection<ObservationRecord> records)
     {
         _file.Save(records.ToList());
+    }
+
+    private void SavePruned(IEnumerable<ObservationRecord> records, int maximumRecords)
+    {
+        var ordered = records.OrderByDescending(item => item.CapturedAt).ToArray();
+        var kept = ordered.Take(maximumRecords).ToArray();
+        foreach (var removed in ordered.Skip(maximumRecords))
+        {
+            if (!string.IsNullOrWhiteSpace(removed.ThumbnailPath) && File.Exists(removed.ThumbnailPath))
+            {
+                File.Delete(removed.ThumbnailPath);
+            }
+        }
+
+        Save(kept);
     }
 }

@@ -15,6 +15,14 @@
             <Setter Property="Background" Value="#FFD0D0D0" />
             <Setter Property="Margin" Value="0,12,0,14" />
         </Style>
+        <Style x:Key="AdvancedNumberTextBox" TargetType="TextBox">
+            <Setter Property="Width" Value="74" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            <Setter Property="ToolTipService.ShowsToolTipOnKeyboardFocus" Value="True" />
+            <EventSetter Event="PreviewTextInput" Handler="OnNumericPreviewTextInput" />
+        </Style>
     </Window.Resources>
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom"
@@ -239,236 +247,160 @@
                             Content="Reset" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="17"
-                           Grid.Column="0"
-                           Margin="0,12,12,0"
-                           VerticalAlignment="Top"
-                           Text="Chat history context" />
-                <StackPanel Grid.Row="17"
-                            Grid.Column="1"
-                            Margin="0,12,0,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="Regular messages" />
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal">
-                            <Button Width="28"
-                                    Padding="4,2"
-                                    Click="OnRegularHistoryDecrementClicked"
-                                    Content="−" />
-                            <TextBox x:Name="RegularHistoryMessageCountTextBox"
-                                     Width="42"
-                                     Margin="4,0"
-                                     HorizontalContentAlignment="Center"
-                                     LostFocus="OnHistoryBudgetLostFocus"
-                                     PreviewTextInput="OnHistoryBudgetPreviewTextInput" />
-                            <Button Width="28"
-                                    Padding="4,2"
-                                    Click="OnRegularHistoryIncrementClicked"
-                                    Content="+" />
-                        </StackPanel>
-                    </Grid>
-                    <Grid Margin="0,6,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="Ambient messages" />
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal">
-                            <Button Width="28"
-                                    Padding="4,2"
-                                    Click="OnAmbientHistoryDecrementClicked"
-                                    Content="−" />
-                            <TextBox x:Name="AmbientHistoryMessageCountTextBox"
-                                     Width="42"
-                                     Margin="4,0"
-                                     HorizontalContentAlignment="Center"
-                                     LostFocus="OnHistoryBudgetLostFocus"
-                                     PreviewTextInput="OnHistoryBudgetPreviewTextInput" />
-                            <Button Width="28"
-                                    Padding="4,2"
-                                    Click="OnAmbientHistoryIncrementClicked"
-                                    Content="+" />
-                        </StackPanel>
-                    </Grid>
-                    <TextBlock Margin="0,5,0,0"
-                               FontSize="10"
-                               Foreground="#FF64748B"
-                               Text="Messages included with each Agent request. Range: 0–50."
-                               TextWrapping="Wrap" />
-                </StackPanel>
-
                 <!-- ═══════════════════ -->
                 <Border Grid.Row="18" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />
 
                 <!-- ═══ Screen Context ═══ -->
-                <TextBlock Grid.Row="19"
-                           Grid.ColumnSpan="2"
-                           Margin="0,0,0,10"
-                           FontWeight="SemiBold"
-                           Text="Screen Context" />
-
-                <CheckBox x:Name="ObservationEnabledCheckBox"
-                          Grid.Row="20"
-                          Grid.ColumnSpan="2"
-                          Margin="0,0,0,8"
-                          FontWeight="SemiBold"
-                          Content="Enable screen context observation"
-                          ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
-
-                <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
-                          Grid.Row="21"
-                          Grid.ColumnSpan="2"
-                          Margin="0,0,0,8"
-                          Content="Allow ambient comments"
-                          ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
-
-                <Grid Grid.Row="22"
-                      Grid.ColumnSpan="2"
-                      Margin="0,0,0,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <!-- Commentary segmented slider -->
-                    <TextBlock Grid.Row="0" Grid.Column="0"
-                               Margin="0,0,12,0"
-                               VerticalAlignment="Center"
+                <StackPanel Grid.Row="19"
+                            Grid.RowSpan="7"
+                            Grid.ColumnSpan="2">
+                    <TextBlock Margin="0,0,0,10"
                                FontWeight="SemiBold"
-                               Text="Commentary" />
-                    <StackPanel Grid.Row="0" Grid.Column="1"
-                                Orientation="Vertical">
-                        <UniformGrid Columns="3">
-                            <RadioButton x:Name="CommentaryQuietRadioButton"
-                                         GroupName="Commentary"
-                                         Margin="0,0,4,0"
-                                         Content="Quiet"
-                                         ToolTip="Comments every ~10 min, checks in every 10 min."
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryBalancedRadioButton"
-                                         GroupName="Commentary"
-                                         Margin="4,0"
-                                         Content="Balanced"
-                                         IsChecked="True"
-                                         ToolTip="Comments every ~5 min, checks in every 5 min."
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryTalkativeRadioButton"
-                                         GroupName="Commentary"
-                                         Margin="4,0,0,0"
-                                         Content="Talkative"
-                                         ToolTip="Comments every ~2 min, checks in every 3 min."
-                                         Checked="OnCommentaryLevelChanged" />
-                        </UniformGrid>
-                        <TextBlock x:Name="CommentaryLegendTextBlock"
-                                   Margin="2,4,0,0"
-                                   Foreground="#FF64748B"
-                                   FontSize="10"
-                                   Text="How often Pebble speaks when interesting things are found." />
-                    </StackPanel>
+                               Text="Screen Context" />
+                    <CheckBox x:Name="ObservationEnabledCheckBox"
+                              Margin="0,0,0,8"
+                              FontWeight="SemiBold"
+                              Content="Enable screen context observation"
+                              ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
+                    <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
+                              Margin="0,0,0,10"
+                              Content="Allow ambient comments"
+                              ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
 
-                    <!-- Vision sensitivity segmented slider -->
-                    <TextBlock Grid.Row="1" Grid.Column="0"
-                               Margin="0,8,12,0"
-                               VerticalAlignment="Center"
-                               FontWeight="SemiBold"
-                               Text="Vision sensitivity" />
-                    <StackPanel Grid.Row="1" Grid.Column="1"
-                                Orientation="Vertical">
-                        <UniformGrid Columns="3">
-                            <RadioButton x:Name="VisionLowRadioButton"
-                                         GroupName="VisionSensitivity"
-                                         Margin="0,0,4,0"
-                                         Content="Low"
-                                         ToolTip="Only highly interesting changes trigger analysis."
-                                         Checked="OnVisionSensitivityChanged" />
-                            <RadioButton x:Name="VisionMediumRadioButton"
-                                         GroupName="VisionSensitivity"
-                                         Margin="4,0"
-                                         Content="Medium"
-                                         IsChecked="True"
-                                         ToolTip="Balanced interest threshold."
-                                         Checked="OnVisionSensitivityChanged" />
-                            <RadioButton x:Name="VisionHighRadioButton"
-                                         GroupName="VisionSensitivity"
-                                         Margin="4,0,0,0"
-                                         Content="High"
-                                         ToolTip="More things trigger analysis, including subtle changes."
-                                         Checked="OnVisionSensitivityChanged" />
-                        </UniformGrid>
-                        <TextBlock x:Name="VisionSensitivityLegendTextBlock"
-                                   Margin="2,4,0,0"
-                                   Foreground="#FF64748B"
-                                   FontSize="10"
-                                   Text="How easily the vision model considers something interesting to analyze." />
-                    </StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="Commentary" />
+                    <UniformGrid Margin="0,4,0,0" Columns="4">
+                        <RadioButton x:Name="CommentaryQuietRadioButton"
+                                     GroupName="Commentary"
+                                     Content="Quiet"
+                                     ToolTip="At least 10 minutes between comments, 10-minute check-ins, and 20-minute duplicate suppression."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnCommentaryLevelChanged" />
+                        <RadioButton x:Name="CommentaryBalancedRadioButton"
+                                     GroupName="Commentary"
+                                     Content="Balanced"
+                                     ToolTip="At least 5 minutes between comments, 5-minute check-ins, and 15-minute duplicate suppression."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnCommentaryLevelChanged" />
+                        <RadioButton x:Name="CommentaryTalkativeRadioButton"
+                                     GroupName="Commentary"
+                                     Content="Talkative"
+                                     ToolTip="At least 2 minutes between comments, 3-minute check-ins, and 10-minute duplicate suppression."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnCommentaryLevelChanged" />
+                        <RadioButton x:Name="CommentaryCustomRadioButton"
+                                     GroupName="Commentary"
+                                     Content="Custom"
+                                     ToolTip="Unlock the three exact commentary timing fields in Advanced."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnCommentaryLevelChanged" />
+                    </UniformGrid>
+                    <TextBlock x:Name="CommentaryLegendTextBlock" Margin="2,4,0,10" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
 
-                    <!-- Scan quality segmented slider -->
-                    <TextBlock Grid.Row="2" Grid.Column="0"
-                               Margin="0,8,12,0"
-                               VerticalAlignment="Center"
-                               FontWeight="SemiBold"
-                               Text="Scan detail" />
-                    <StackPanel Grid.Row="2" Grid.Column="1"
-                                Orientation="Vertical">
-                        <UniformGrid Columns="3">
-                            <RadioButton x:Name="ScanQualityBriefRadioButton"
-                                         GroupName="ScanQuality"
-                                         Margin="0,0,4,0"
-                                         Content="Brief"
-                                         ToolTip="Quick summaries, lowest token cost."
-                                         Checked="OnScanQualityChanged" />
-                            <RadioButton x:Name="ScanQualityDetailedRadioButton"
-                                         GroupName="ScanQuality"
-                                         Margin="4,0"
-                                         Content="Detailed"
-                                         IsChecked="True"
-                                         ToolTip="Balanced detail with activity context."
-                                         Checked="OnScanQualityChanged" />
-                            <RadioButton x:Name="ScanQualityNarrativeRadioButton"
-                                         GroupName="ScanQuality"
-                                         Margin="4,0,0,0"
-                                         Content="Narrative"
-                                         ToolTip="Rich scene descriptions, gives Pebble more to comment on."
-                                         Checked="OnScanQualityChanged" />
-                        </UniformGrid>
-                        <TextBlock x:Name="ScanQualityLegendTextBlock"
-                                   Margin="2,4,0,0"
-                                   Foreground="#FF64748B"
-                                   FontSize="10"
-                                   Text="How much detail the vision model reports about each screenshot." />
-                    </StackPanel>
-                </Grid>
+                    <TextBlock FontWeight="SemiBold" Text="Comment threshold" />
+                    <Grid Margin="0,4,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="CommentThresholdSlider"
+                                Minimum="0" Maximum="100" TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                ToolTip="Minimum weighted interest score required before Pebble may make a vision-backed comment. Lower values comment more often."
+                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                ValueChanged="OnCommentThresholdSliderChanged" />
+                        <TextBox x:Name="CommentThresholdTextBox"
+                                 Grid.Column="1" Margin="8,0,4,0"
+                                 HorizontalContentAlignment="Right"
+                                 ToolTip="Exact comment threshold from 0% to 100%. Lower values allow more vision-backed comments."
+                                 ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                 TextChanged="OnCommentThresholdTextChanged"
+                                 PreviewTextInput="OnNumericPreviewTextInput" />
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="%" />
+                    </Grid>
 
-                <TextBlock Grid.Row="23"
-                           Grid.ColumnSpan="2"
-                           Margin="0,4,0,0"
-                           Foreground="#FF475569"
-                           Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."
-                           TextWrapping="Wrap" />
+                    <TextBlock FontWeight="SemiBold" Text="Vision detail" />
+                    <UniformGrid Margin="0,4,0,0" Columns="3">
+                        <RadioButton x:Name="ScanQualityBriefRadioButton"
+                                     GroupName="ScanQuality"
+                                     Content="Brief"
+                                     ToolTip="Ask the vision model for a concise activity summary with the lowest token use."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnScanQualityChanged" />
+                        <RadioButton x:Name="ScanQualityDetailedRadioButton"
+                                     GroupName="ScanQuality"
+                                     Content="Detailed"
+                                     ToolTip="Ask for balanced activity context and notable screen elements."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnScanQualityChanged" />
+                        <RadioButton x:Name="ScanQualityNarrativeRadioButton"
+                                     GroupName="ScanQuality"
+                                     Content="Narrative"
+                                     ToolTip="Ask for richer scene descriptions. This may use more provider tokens."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     Checked="OnScanQualityChanged" />
+                    </UniformGrid>
+                    <TextBlock x:Name="ScanQualityLegendTextBlock" Margin="2,4,0,8" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
 
-                <TextBlock x:Name="VisionWarningTextBlock"
-                           Grid.Row="24"
-                           Grid.ColumnSpan="2"
-                           Margin="0,4,0,8"
-                           Foreground="#FF9A3412"
-                           Text="Vision analysis requires an OpenRouter API key and vision model selection above."
-                           TextWrapping="Wrap" />
+                    <Expander Header="Advanced"
+                              Margin="0,4,0,10"
+                              IsExpanded="False"
+                              ToolTip="Show exact timing, scoring, provider-cost, context, and retention controls."
+                              ToolTipService.ShowsToolTipOnKeyboardFocus="True">
+                        <StackPanel Margin="12,8,0,4">
+                            <TextBlock FontWeight="SemiBold" Text="Commentary" />
+                            <UniformGrid Columns="2" Margin="0,6,0,0">
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (minutes)" /><TextBox x:Name="CooldownMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (minutes)" /><TextBox x:Name="CheckInMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (minutes)" /><TextBox x:Name="DuplicateWindowMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Privacy safety weight (%)" /><TextBox x:Name="PrivacyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly non-sensitive content raises the comment score. All four weights must total 100%." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Low interruption cost weight (%)" /><TextBox x:Name="InterruptionWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly a low estimated interruption cost raises the comment score. All four weights must total 100%." /></StackPanel>
+                            </UniformGrid>
 
-                <DataGrid x:Name="ApplicationsGrid"
-                          Grid.Row="25"
-                          Grid.ColumnSpan="2"
+                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Observation timing" />
+                            <UniformGrid Columns="2" Margin="0,6,0,0">
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Foreground polling (seconds)" /><TextBox x:Name="PollIntervalSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often DesktopPet checks the foreground window. Lower values react faster but do more local work." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Minimum activity dwell (seconds)" /><TextBox x:Name="MinimumDwellSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Ignore rapid application or title changes until the activity has remained stable for this long." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="UI inspection cooldown (seconds)" /><TextBox x:Name="StructureCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between Windows UI Automation inspections for the same application." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Screenshot delay (milliseconds)" /><TextBox x:Name="CaptureDelayMillisecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Wait this long after an application or title change before capturing, allowing the new screen to finish drawing." /></StackPanel>
+                            </UniformGrid>
+
+                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Vision and context" />
+                            <UniformGrid Columns="2" Margin="0,6,0,0">
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Vision analysis cooldown (seconds)" /><TextBox x:Name="VisionCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between OpenRouter vision analyses. Lower values can increase provider usage and cost." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Vision request timeout (seconds)" /><TextBox x:Name="VisionTimeoutSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Cancel a vision provider request if it has not completed within this time." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Maximum screenshot width" /><TextBox x:Name="ScreenshotWidthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this width before vision analysis. Larger images may cost more." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Maximum screenshot height" /><TextBox x:Name="ScreenshotHeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this height before vision analysis. Aspect ratio is preserved." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Observation context depth" /><TextBox x:Name="ObservationContextDepthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Number of recent visual observations supplied to vision analysis, typed replies, and ambient replies. Zero disables this history." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Suggested comment topics" /><TextBox x:Name="CommentTopicLimitTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum number of vision-suggested topics included when asking the Agent to compose an ambient comment." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Regular conversation messages" /><TextBox x:Name="RegularHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent non-ambient conversation messages included with each Agent request." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Ambient conversation messages" /><TextBox x:Name="AmbientHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent ambient replies included with each Agent request." /></StackPanel>
+                            </UniformGrid>
+
+                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Retention" />
+                            <UniformGrid Columns="2" Margin="0,6,0,0">
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Recent observations in memory" /><TextBox x:Name="RecentObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum reduced foreground observations retained in memory for detecting changes and supplying recent activity." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (minutes)" /><TextBox x:Name="RecentObservationAgeTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Stored visual observations" /><TextBox x:Name="StoredObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum visual observation records retained on disk. Lowering this deletes the oldest records and their thumbnails on Save." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Stored ambient decisions" /><TextBox x:Name="StoredDecisionCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum ambient policy decision records retained on disk. Lowering this removes the oldest records on Save." /></StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Expander>
+
+                    <TextBlock Foreground="#FF475569"
+                               Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="VisionWarningTextBlock"
+                               Margin="0,4,0,8"
+                               Foreground="#FF9A3412"
+                               Text="Vision analysis requires an OpenRouter API key and vision model selection above."
+                               TextWrapping="Wrap" />
+
+                    <DataGrid x:Name="ApplicationsGrid"
                           MaxHeight="250"
                           VerticalAlignment="Top"
                           AutoGenerateColumns="False"
@@ -540,7 +472,8 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
-                </DataGrid>
+                    </DataGrid>
+                </StackPanel>
             </Grid>
         </ScrollViewer>
     </DockPanel>

@@ -31,8 +31,6 @@ public interface IWindowCaptureService
 
 internal sealed partial class WindowCaptureService : IWindowCaptureService
 {
-    private const int MaximumWidth = 1280;
-    private const int MaximumHeight = 720;
     private const uint PrintWindowRenderFullContent = 0x00000002;
 
     private readonly IObservationPermissionService _permissionService;
@@ -61,11 +59,20 @@ internal sealed partial class WindowCaptureService : IWindowCaptureService
                 (DesktopContextCollectionStatus.Unavailable, null));
         }
 
-        return Task.Run(() => Capture(windowHandle, cancellationToken), cancellationToken);
+        var settings = _permissionService.Current;
+        return Task.Run(
+            () => Capture(
+                windowHandle,
+                settings.MaximumScreenshotWidth,
+                settings.MaximumScreenshotHeight,
+                cancellationToken),
+            cancellationToken);
     }
 
     private static (DesktopContextCollectionStatus, CapturedWindowImage?) Capture(
         nint windowHandle,
+        int maximumWidth,
+        int maximumHeight,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -99,7 +106,7 @@ internal sealed partial class WindowCaptureService : IWindowCaptureService
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var scale = Math.Min(1d, Math.Min((double)MaximumWidth / width, (double)MaximumHeight / height));
+        var scale = Math.Min(1d, Math.Min((double)maximumWidth / width, (double)maximumHeight / height));
         var outputWidth = Math.Max(1, (int)Math.Round(width * scale));
         var outputHeight = Math.Max(1, (int)Math.Round(height * scale));
         var output = new Bitmap(outputWidth, outputHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);

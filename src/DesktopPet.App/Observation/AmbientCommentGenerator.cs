@@ -19,26 +19,27 @@ public interface IAmbientCommentGenerator
 
 internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
 {
-    private const int ObservationHistoryCount = 5;
-
     private readonly IChatService _chatService;
     private readonly ObservationStore _observationStore;
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly IMemoryStore _memoryStore;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
+    private readonly IObservationPermissionService _permissionService;
 
     public ElevenLabsAmbientCommentGenerator(
         IChatService chatService,
         ObservationStore observationStore,
         IChatHistoryStore chatHistoryStore,
         IMemoryStore memoryStore,
-        Func<ProfileSettings> profileSettingsProvider)
+        Func<ProfileSettings> profileSettingsProvider,
+        IObservationPermissionService permissionService)
     {
         _chatService = chatService;
         _observationStore = observationStore;
         _chatHistoryStore = chatHistoryStore;
         _memoryStore = memoryStore;
         _profileSettingsProvider = profileSettingsProvider;
+        _permissionService = permissionService;
     }
 
     public async Task<AmbientCommentResult?> GenerateAsync(
@@ -89,7 +90,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         {
             return _observationStore.List()
                 .OrderByDescending(r => r.CapturedAt)
-                .Take(ObservationHistoryCount)
+                .Take(_permissionService.Current.ObservationContextDepth)
                 .ToArray();
         }
         catch (Exception ex)
@@ -128,7 +129,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         }
     }
 
-    private static string BuildPrompt(ReducedDesktopObservation observation, VisionObservation? visionObservation)
+    private string BuildPrompt(ReducedDesktopObservation observation, VisionObservation? visionObservation)
     {
         if (visionObservation is null)
         {
@@ -143,7 +144,8 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
 
         if (visionObservation.PossibleCommentTopics.Count > 0)
         {
-            parts.Add($"Possible topics: {string.Join(", ", visionObservation.PossibleCommentTopics.Take(2))}");
+            parts.Add($"Possible topics: {string.Join(", ", visionObservation.PossibleCommentTopics.Take(
+                _permissionService.Current.CommentTopicLimit))}");
         }
 
         parts.Add("Give one short, playful, in-character comment as a desktop pet. Be curious and opinionated. Never reply SILENCE.");

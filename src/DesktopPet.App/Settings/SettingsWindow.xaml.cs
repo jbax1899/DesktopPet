@@ -24,10 +24,15 @@ public partial class SettingsWindow : Window
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
     private readonly Func<PetError?> _getHotkeyWarning;
     private readonly IObservationPermissionService _permissionService;
+    private readonly ObservationStore _observationStore;
+    private readonly AmbientDecisionStore _ambientDecisionStore;
+    private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly ObservableCollection<ApplicationRuleRow> _observationRows = [];
     private readonly ObservableCollection<OpenRouterModelInfo> _visionModels = [];
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
+    private bool _loadingObservationSettings;
+    private bool _syncingCommentThreshold;
 
     public SettingsWindow(
         ElevenLabsSettingsStore elevenLabsSettingsStore,
@@ -40,7 +45,10 @@ public partial class SettingsWindow : Window
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
         Func<PetError?> getHotkeyWarning,
-        IObservationPermissionService permissionService)
+        IObservationPermissionService permissionService,
+        ObservationStore observationStore,
+        AmbientDecisionStore ambientDecisionStore,
+        IDesktopObservationCoordinator observationCoordinator)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _pronunciationService = pronunciationService;
@@ -53,6 +61,9 @@ public partial class SettingsWindow : Window
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
         _permissionService = permissionService;
+        _observationStore = observationStore;
+        _ambientDecisionStore = ambientDecisionStore;
+        _observationCoordinator = observationCoordinator;
 
         InitializeComponent();
         ApplicationsGrid.ItemsSource = _observationRows;
@@ -66,6 +77,26 @@ public partial class SettingsWindow : Window
     {
         try
         {
+            if (!TryBuildObservationSettings(out var observationSettings, out var validationMessage))
+            {
+                StatusTextBlock.Text = validationMessage;
+                return;
+            }
+
+            var currentUiSettings = _uiSettingsStore.Load();
+            var currentHistorySettings = currentUiSettings.GetEffectiveChatHistoryContext();
+            var historySettings = new ChatHistoryContextSettings(
+                ClampInt(
+                    RegularHistoryMessageCountTextBox.Text,
+                    ChatHistoryContextSettings.MinimumMessageCount,
+                    ChatHistoryContextSettings.MaximumMessageCount,
+                    currentHistorySettings.RegularMessageCount),
+                ClampInt(
+                    AmbientHistoryMessageCountTextBox.Text,
+                    ChatHistoryContextSettings.MinimumMessageCount,
+                    ChatHistoryContextSettings.MaximumMessageCount,
+                    currentHistorySettings.AmbientMessageCount));
+
             var currentElevenLabsSettings = _elevenLabsSettingsStore.Load();
             _elevenLabsSettingsStore.Save(currentElevenLabsSettings with
             {
@@ -84,19 +115,6 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
-            var currentUiSettings = _uiSettingsStore.Load();
-            var currentHistorySettings = currentUiSettings.GetEffectiveChatHistoryContext();
-            var historySettings = new ChatHistoryContextSettings(
-                ClampInt(
-                    RegularHistoryMessageCountTextBox.Text,
-                    ChatHistoryContextSettings.MinimumMessageCount,
-                    ChatHistoryContextSettings.MaximumMessageCount,
-                    currentHistorySettings.RegularMessageCount),
-                ClampInt(
-                    AmbientHistoryMessageCountTextBox.Text,
-                    ChatHistoryContextSettings.MinimumMessageCount,
-                    ChatHistoryContextSettings.MaximumMessageCount,
-                    currentHistorySettings.AmbientMessageCount));
             var uiSettings = currentUiSettings with
             {
                 ChatShortcut = _selectedChatShortcut,
@@ -106,7 +124,11 @@ public partial class SettingsWindow : Window
             RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
             AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
 
-            SaveObservationSettings();
+            _permissionService.Save(observationSettings);
+            _observationStore.ApplyRetentionLimit();
+            _ambientDecisionStore.ApplyRetentionLimit();
+            _observationCoordinator.ApplySettings();
+            LoadObservationSettings();
 
             var hotkeyWarning = _applyUiSettings(uiSettings);
             StatusTextBlock.Text = hotkeyWarning is null
@@ -153,34 +175,37 @@ public partial class SettingsWindow : Window
     private void LoadObservationSettings()
     {
         var settings = _permissionService.Current;
+        _loadingObservationSettings = true;
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
-
-        switch (settings.CooldownMinutes)
-        {
-            case <= 3:
-                CommentaryTalkativeRadioButton.IsChecked = true;
-                break;
-            case >= 8:
-                CommentaryQuietRadioButton.IsChecked = true;
-                break;
-            default:
-                CommentaryBalancedRadioButton.IsChecked = true;
-                break;
-        }
-
-        switch (settings.VisionSensitivity)
-        {
-            case VisionSensitivity.Low:
-                VisionLowRadioButton.IsChecked = true;
-                break;
-            case VisionSensitivity.High:
-                VisionHighRadioButton.IsChecked = true;
-                break;
-            default:
-                VisionMediumRadioButton.IsChecked = true;
-                break;
-        }
+        SetCommentaryPreset(ObservationSettingLimits.MatchPreset(
+            settings.CooldownMinutes,
+            settings.CheckInMinutes,
+            settings.DuplicateWindowMinutes));
+        CooldownMinutesTextBox.Text = settings.CooldownMinutes.ToString();
+        CheckInMinutesTextBox.Text = settings.CheckInMinutes.ToString();
+        DuplicateWindowMinutesTextBox.Text = settings.DuplicateWindowMinutes.ToString();
+        RecentTypingQuietSecondsTextBox.Text = settings.RecentTypingQuietSeconds.ToString();
+        NoveltyWeightTextBox.Text = settings.NoveltyWeightPercent.ToString("0.##");
+        RelevanceWeightTextBox.Text = settings.RelevanceWeightPercent.ToString("0.##");
+        PrivacyWeightTextBox.Text = settings.PrivacySafetyWeightPercent.ToString("0.##");
+        InterruptionWeightTextBox.Text = settings.LowInterruptionCostWeightPercent.ToString("0.##");
+        PollIntervalSecondsTextBox.Text = settings.PollIntervalSeconds.ToString();
+        MinimumDwellSecondsTextBox.Text = settings.MinimumDwellTimeSeconds.ToString();
+        StructureCooldownSecondsTextBox.Text = settings.StructureInspectionCooldownSeconds.ToString();
+        CaptureDelayMillisecondsTextBox.Text = settings.ScreenshotCaptureDelayMilliseconds.ToString();
+        VisionCooldownSecondsTextBox.Text = settings.VisionAnalysisCooldownSeconds.ToString();
+        VisionTimeoutSecondsTextBox.Text = settings.VisionRequestTimeoutSeconds.ToString();
+        ScreenshotWidthTextBox.Text = settings.MaximumScreenshotWidth.ToString();
+        ScreenshotHeightTextBox.Text = settings.MaximumScreenshotHeight.ToString();
+        ObservationContextDepthTextBox.Text = settings.ObservationContextDepth.ToString();
+        CommentTopicLimitTextBox.Text = settings.CommentTopicLimit.ToString();
+        RecentObservationCountTextBox.Text = settings.RecentObservationCount.ToString();
+        RecentObservationAgeTextBox.Text = settings.RecentObservationAgeMinutes.ToString();
+        StoredObservationCountTextBox.Text = settings.StoredObservationCount.ToString();
+        StoredDecisionCountTextBox.Text = settings.StoredAmbientDecisionCount.ToString();
+        CommentThresholdSlider.Value = settings.CommentThresholdPercent;
+        CommentThresholdTextBox.Text = settings.CommentThresholdPercent.ToString();
 
         switch (settings.ScanQuality)
         {
@@ -194,6 +219,8 @@ public partial class SettingsWindow : Window
                 ScanQualityDetailedRadioButton.IsChecked = true;
                 break;
         }
+        _loadingObservationSettings = false;
+        UpdateCommentaryPresetState(populateValues: false);
 
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
@@ -230,7 +257,9 @@ public partial class SettingsWindow : Window
         window.ShowDialog();
     }
 
-    private void SaveObservationSettings()
+    private bool TryBuildObservationSettings(
+        out ObservationSettings settings,
+        out string validationMessage)
     {
         var current = _permissionService.Current;
         var rules = _observationRows
@@ -238,40 +267,63 @@ public partial class SettingsWindow : Window
             .Select(row => row.ToRule())
             .ToArray();
 
-        _permissionService.Save(current with
+        var weights = new[]
+        {
+            ParseDouble(NoveltyWeightTextBox.Text, current.NoveltyWeightPercent),
+            ParseDouble(RelevanceWeightTextBox.Text, current.RelevanceWeightPercent),
+            ParseDouble(PrivacyWeightTextBox.Text, current.PrivacySafetyWeightPercent),
+            ParseDouble(InterruptionWeightTextBox.Text, current.LowInterruptionCostWeightPercent)
+        };
+        if (Math.Abs(weights.Sum() - 100d) > 0.001)
+        {
+            settings = current;
+            validationMessage = "Interest weights must total exactly 100%.";
+            return false;
+        }
+
+        settings = ObservationSettingsStore.Normalize(current with
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            CooldownMinutes = CommentaryTalkativeRadioButton.IsChecked == true
-                ? 2
-                : CommentaryQuietRadioButton.IsChecked == true
-                    ? 10
-                    : 5,
-            DuplicateWindowMinutes = CommentaryTalkativeRadioButton.IsChecked == true
-                ? 3
-                : CommentaryQuietRadioButton.IsChecked == true
-                    ? 20
-                    : 15,
-            CheckInMinutes = CommentaryTalkativeRadioButton.IsChecked == true
-                ? 3
-                : CommentaryQuietRadioButton.IsChecked == true
-                    ? 10
-                    : 5,
-            VisionSensitivity = VisionHighRadioButton.IsChecked == true
-                ? VisionSensitivity.High
-                : VisionLowRadioButton.IsChecked == true
-                    ? VisionSensitivity.Low
-                    : VisionSensitivity.Medium,
+            CooldownMinutes = ParseInt(CooldownMinutesTextBox, current.CooldownMinutes),
+            DuplicateWindowMinutes = ParseInt(DuplicateWindowMinutesTextBox, current.DuplicateWindowMinutes),
+            CheckInMinutes = ParseInt(CheckInMinutesTextBox, current.CheckInMinutes),
+            CommentThresholdPercent = ParseInt(CommentThresholdTextBox, current.CommentThresholdPercent),
+            NoveltyWeightPercent = weights[0],
+            RelevanceWeightPercent = weights[1],
+            PrivacySafetyWeightPercent = weights[2],
+            LowInterruptionCostWeightPercent = weights[3],
             ScanQuality = ScanQualityNarrativeRadioButton.IsChecked == true
                 ? ScanQuality.Narrative
                 : ScanQualityBriefRadioButton.IsChecked == true
                     ? ScanQuality.Brief
                     : ScanQuality.Detailed,
-            MinimumDwellTimeSeconds = current.MinimumDwellTimeSeconds,
-            VisionAnalysisCooldownSeconds = current.VisionAnalysisCooldownSeconds,
+            RecentTypingQuietSeconds = ParseInt(RecentTypingQuietSecondsTextBox, current.RecentTypingQuietSeconds),
+            PollIntervalSeconds = ParseInt(PollIntervalSecondsTextBox, current.PollIntervalSeconds),
+            MinimumDwellTimeSeconds = ParseInt(MinimumDwellSecondsTextBox, current.MinimumDwellTimeSeconds),
+            StructureInspectionCooldownSeconds = ParseInt(StructureCooldownSecondsTextBox, current.StructureInspectionCooldownSeconds),
+            ScreenshotCaptureDelayMilliseconds = ParseInt(CaptureDelayMillisecondsTextBox, current.ScreenshotCaptureDelayMilliseconds),
+            VisionAnalysisCooldownSeconds = ParseInt(VisionCooldownSecondsTextBox, current.VisionAnalysisCooldownSeconds),
+            VisionRequestTimeoutSeconds = ParseInt(VisionTimeoutSecondsTextBox, current.VisionRequestTimeoutSeconds),
+            MaximumScreenshotWidth = ParseInt(ScreenshotWidthTextBox, current.MaximumScreenshotWidth),
+            MaximumScreenshotHeight = ParseInt(ScreenshotHeightTextBox, current.MaximumScreenshotHeight),
+            ObservationContextDepth = ParseInt(ObservationContextDepthTextBox, current.ObservationContextDepth),
+            CommentTopicLimit = ParseInt(CommentTopicLimitTextBox, current.CommentTopicLimit),
+            RecentObservationCount = ParseInt(RecentObservationCountTextBox, current.RecentObservationCount),
+            RecentObservationAgeMinutes = ParseInt(RecentObservationAgeTextBox, current.RecentObservationAgeMinutes),
+            StoredObservationCount = ParseInt(StoredObservationCountTextBox, current.StoredObservationCount),
+            StoredAmbientDecisionCount = ParseInt(StoredDecisionCountTextBox, current.StoredAmbientDecisionCount),
             ApplicationRules = rules
         });
+        validationMessage = string.Empty;
+        return true;
     }
+
+    private static int ParseInt(System.Windows.Controls.TextBox textBox, int fallback) =>
+        int.TryParse(textBox.Text, out var value) ? value : fallback;
+
+    private static double ParseDouble(string text, double fallback) =>
+        double.TryParse(text, out var value) ? value : fallback;
 
     private static int ClampInt(string text, int min, int max, int fallback)
     {
@@ -283,104 +335,70 @@ public partial class SettingsWindow : Window
         return fallback;
     }
 
-    private void OnRegularHistoryDecrementClicked(object sender, RoutedEventArgs e)
-    {
-        AdjustHistoryBudget(
-            RegularHistoryMessageCountTextBox,
-            -1,
-            ChatHistoryContextSettings.DefaultRegularMessageCount);
-    }
-
-    private void OnRegularHistoryIncrementClicked(object sender, RoutedEventArgs e)
-    {
-        AdjustHistoryBudget(
-            RegularHistoryMessageCountTextBox,
-            1,
-            ChatHistoryContextSettings.DefaultRegularMessageCount);
-    }
-
-    private void OnAmbientHistoryDecrementClicked(object sender, RoutedEventArgs e)
-    {
-        AdjustHistoryBudget(
-            AmbientHistoryMessageCountTextBox,
-            -1,
-            ChatHistoryContextSettings.DefaultAmbientMessageCount);
-    }
-
-    private void OnAmbientHistoryIncrementClicked(object sender, RoutedEventArgs e)
-    {
-        AdjustHistoryBudget(
-            AmbientHistoryMessageCountTextBox,
-            1,
-            ChatHistoryContextSettings.DefaultAmbientMessageCount);
-    }
-
-    private static void AdjustHistoryBudget(
-        System.Windows.Controls.TextBox textBox,
-        int delta,
-        int fallback)
-    {
-        var current = ClampInt(
-            textBox.Text,
-            ChatHistoryContextSettings.MinimumMessageCount,
-            ChatHistoryContextSettings.MaximumMessageCount,
-            fallback);
-        textBox.Text = Math.Clamp(
-            current + delta,
-            ChatHistoryContextSettings.MinimumMessageCount,
-            ChatHistoryContextSettings.MaximumMessageCount).ToString();
-    }
-
-    private void OnHistoryBudgetLostFocus(object sender, RoutedEventArgs e)
-    {
-        if (sender == RegularHistoryMessageCountTextBox)
-        {
-            NormalizeHistoryBudgetTextBox(
-                RegularHistoryMessageCountTextBox,
-                ChatHistoryContextSettings.DefaultRegularMessageCount);
-        }
-        else if (sender == AmbientHistoryMessageCountTextBox)
-        {
-            NormalizeHistoryBudgetTextBox(
-                AmbientHistoryMessageCountTextBox,
-                ChatHistoryContextSettings.DefaultAmbientMessageCount);
-        }
-    }
-
-    private static void NormalizeHistoryBudgetTextBox(
-        System.Windows.Controls.TextBox textBox,
-        int fallback)
-    {
-        textBox.Text = ClampInt(
-            textBox.Text,
-            ChatHistoryContextSettings.MinimumMessageCount,
-            ChatHistoryContextSettings.MaximumMessageCount,
-            fallback).ToString();
-    }
-
-    private void OnHistoryBudgetPreviewTextInput(object sender, TextCompositionEventArgs e)
-    {
-        e.Handled = e.Text.Any(character => !char.IsDigit(character));
-    }
-
     private void OnCommentaryLevelChanged(object sender, RoutedEventArgs e)
     {
         if (CommentaryLegendTextBlock is null) return;
-        CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
-            ? "Comments every ~10 min. Check-in every 10 min. Duplicate topics suppressed for 20 min."
-            : CommentaryTalkativeRadioButton.IsChecked == true
-                ? "Comments every ~2 min. Check-in every 3 min. Duplicate topics suppressed for 10 min."
-                : "Comments every ~5 min. Check-in every 5 min. Duplicate topics suppressed for 15 min.";
+        UpdateCommentaryPresetState(populateValues: !_loadingObservationSettings);
     }
 
-    private void OnVisionSensitivityChanged(object sender, RoutedEventArgs e)
+    private void UpdateCommentaryPresetState(bool populateValues)
     {
-        if (VisionSensitivityLegendTextBlock is null) return;
-        VisionSensitivityLegendTextBlock.Text = VisionLowRadioButton.IsChecked == true
-            ? "Only highly interesting changes trigger analysis."
-            : VisionHighRadioButton.IsChecked == true
-                ? "More things trigger analysis, including subtle changes."
-                : "Balanced interest threshold for most situations.";
+        var preset = GetSelectedCommentaryPreset();
+        var custom = preset == CommentaryPreset.Custom;
+        CooldownMinutesTextBox.IsEnabled = custom;
+        CheckInMinutesTextBox.IsEnabled = custom;
+        DuplicateWindowMinutesTextBox.IsEnabled = custom;
+        if (!custom && populateValues)
+        {
+            var timing = ObservationSettingLimits.GetPreset(preset);
+            CooldownMinutesTextBox.Text = timing.CooldownMinutes.ToString();
+            CheckInMinutesTextBox.Text = timing.CheckInMinutes.ToString();
+            DuplicateWindowMinutesTextBox.Text = timing.DuplicateWindowMinutes.ToString();
+        }
+
+        CommentaryLegendTextBlock.Text = custom
+            ? "Use the exact timing values in Advanced."
+            : $"Comments every ~{ObservationSettingLimits.GetPreset(preset).CooldownMinutes} min; "
+                + $"checks every {ObservationSettingLimits.GetPreset(preset).CheckInMinutes} min; "
+                + $"duplicates suppressed for {ObservationSettingLimits.GetPreset(preset).DuplicateWindowMinutes} min.";
+    }
+
+    private CommentaryPreset GetSelectedCommentaryPreset() =>
+        CommentaryQuietRadioButton.IsChecked == true ? CommentaryPreset.Quiet :
+        CommentaryTalkativeRadioButton.IsChecked == true ? CommentaryPreset.Talkative :
+        CommentaryCustomRadioButton.IsChecked == true ? CommentaryPreset.Custom :
+        CommentaryPreset.Balanced;
+
+    private void SetCommentaryPreset(CommentaryPreset preset)
+    {
+        CommentaryQuietRadioButton.IsChecked = preset == CommentaryPreset.Quiet;
+        CommentaryBalancedRadioButton.IsChecked = preset == CommentaryPreset.Balanced;
+        CommentaryTalkativeRadioButton.IsChecked = preset == CommentaryPreset.Talkative;
+        CommentaryCustomRadioButton.IsChecked = preset == CommentaryPreset.Custom;
+    }
+
+    private void OnCommentThresholdSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_syncingCommentThreshold || CommentThresholdTextBox is null) return;
+        _syncingCommentThreshold = true;
+        CommentThresholdTextBox.Text = ((int)Math.Round(e.NewValue)).ToString();
+        _syncingCommentThreshold = false;
+    }
+
+    private void OnCommentThresholdTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (_syncingCommentThreshold || CommentThresholdSlider is null) return;
+        if (int.TryParse(CommentThresholdTextBox.Text, out var value))
+        {
+            _syncingCommentThreshold = true;
+            CommentThresholdSlider.Value = Math.Clamp(value, 0, 100);
+            _syncingCommentThreshold = false;
+        }
+    }
+
+    private void OnNumericPreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = e.Text.Any(character => !char.IsDigit(character) && character != '.');
     }
 
     private void OnScanQualityChanged(object sender, RoutedEventArgs e)

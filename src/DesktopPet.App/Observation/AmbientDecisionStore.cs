@@ -12,26 +12,30 @@ public sealed record AmbientDecisionRecord(
 
 public sealed class AmbientDecisionStore
 {
-    private const int MaximumRecords = 100;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly JsonFileStore<List<AmbientDecisionRecord>> _file;
     private readonly object _sync = new();
+    private readonly Func<int> _maximumRecordsProvider;
 
     public AmbientDecisionStore()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet",
-            "ambient-decisions.json"))
+        : this(
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DesktopPet",
+                "ambient-decisions.json"),
+            () => ObservationSettings.Default.StoredAmbientDecisionCount)
     {
     }
 
-    internal AmbientDecisionStore(string filePath)
+    internal AmbientDecisionStore(string filePath, Func<int>? maximumRecordsProvider = null)
     {
         _file = new JsonFileStore<List<AmbientDecisionRecord>>(
             filePath,
             json => JsonSerializer.Deserialize<List<AmbientDecisionRecord>>(json, JsonOptions)
                 ?? throw new JsonException("Ambient decisions are empty."),
             records => JsonSerializer.Serialize(records, JsonOptions));
+        _maximumRecordsProvider = maximumRecordsProvider
+            ?? (() => ObservationSettings.Default.StoredAmbientDecisionCount);
     }
 
     public IReadOnlyList<AmbientDecisionRecord> List()
@@ -55,7 +59,7 @@ public sealed class AmbientDecisionStore
         {
             var records = Load();
             records.Add(record);
-            Save(records.OrderByDescending(item => item.CreatedAt).Take(MaximumRecords).ToArray());
+            Save(records.OrderByDescending(item => item.CreatedAt).Take(_maximumRecordsProvider()).ToArray());
         }
     }
 
@@ -64,6 +68,17 @@ public sealed class AmbientDecisionStore
         lock (_sync)
         {
             _file.Delete();
+        }
+    }
+
+    public void ApplyRetentionLimit()
+    {
+        lock (_sync)
+        {
+            Save(Load()
+                .OrderByDescending(item => item.CreatedAt)
+                .Take(_maximumRecordsProvider())
+                .ToArray());
         }
     }
 

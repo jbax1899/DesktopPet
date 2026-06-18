@@ -66,12 +66,18 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Local policy evaluates freshness, user activity, cooldown, duplicate topics,
   and vision interest before requesting a short ambient ElevenLabs comment.
   Silence is the normal valid outcome.
-- Commentary level controls cooldown, duplicate suppression, and check-in
-  timing. Vision sensitivity controls the analysis threshold; scan quality
-  controls observation detail.
+- Settings expose commentary presets, an exact comment threshold, vision
+  detail, and a collapsed Advanced section for timing, interest-score weights,
+  provider cost limits, context depth, and retention. Presets lock their exact
+  cooldown, duplicate-suppression, and check-in values; Custom unlocks them.
+- The comment threshold is evaluated after vision analysis. Its weighted score
+  combines novelty, relevance, privacy safety, and interruption cost.
+- Duplicate-topic suppression applies to metadata-only and vision-backed
+  comments. One observation-context depth is shared by vision analysis, typed
+  replies, and ambient replies.
 - The Memories window combines visual observations and ambient decisions in an
-  auditable Observations tab. Observation records are capped at 200 and ambient
-  decisions at 100.
+  auditable Observations tab. Their retention limits are configurable in
+  Advanced settings and default to 200 observations and 100 decisions.
 - Ambient visual observations can save local JPEG thumbnails for inspection.
   Clearing observations also removes those thumbnails.
 
@@ -129,8 +135,7 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 - Smoke-test observation permissions, display scaling, multiple monitors, UI
   Automation timeouts, shutdown, and interruption by user chat.
-- Tune interest thresholds, commentary timing, dwell behavior, and speaking
-  budgets from real use.
+- Tune the newly exposed observation defaults from real use.
 - Add a visible vision-analysis error counter for debugging.
 - Improve transcript timing if full-text-at-once remains too abrupt.
 - Add automatic chat memory capture and retrieve only a few relevant memories

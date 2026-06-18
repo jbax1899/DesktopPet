@@ -8,6 +8,7 @@ using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Tray;
 using DesktopPet.App.Voice;
+using System.IO;
 using System.Net.Http;
 using System.Windows;
 using WpfApplication = System.Windows.Application;
@@ -82,7 +83,11 @@ public sealed class DesktopPetApplication : IDisposable
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _windowCaptureService = new WindowCaptureService(_observationPermissionService);
-        _observationStore = new ObservationStore();
+        _observationStore = new ObservationStore(
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DesktopPet"),
+            () => _observationPermissionService.Current.StoredObservationCount);
         _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService, _observationStore);
         _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
         _creditInfoService = new CreditInfoService(_httpClient, _elevenLabsSettingsStore.Load, _openRouterSettingsStore.Load);
@@ -100,8 +105,14 @@ public sealed class DesktopPetApplication : IDisposable
             _observationStore,
             _chatHistoryStore,
             _memoryStore,
-            _profileSettingsStore.Load);
-        _ambientDecisionStore = new AmbientDecisionStore();
+            _profileSettingsStore.Load,
+            _observationPermissionService);
+        _ambientDecisionStore = new AmbientDecisionStore(
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DesktopPet",
+                "ambient-decisions.json"),
+            () => _observationPermissionService.Current.StoredAmbientDecisionCount);
         _desktopContextProvider = new ForegroundDesktopContextProvider(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -129,7 +140,8 @@ public sealed class DesktopPetApplication : IDisposable
             _memoryStore,
             _desktopContextProvider,
             _ambientActivityState,
-            _observationStore);
+            _observationStore,
+            _observationPermissionService);
         _ambientCommentCoordinator = new AmbientCommentCoordinator(
             _observationCoordinator,
             _observationPermissionService,
@@ -193,7 +205,10 @@ public sealed class DesktopPetApplication : IDisposable
                 _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning,
-                _observationPermissionService);
+                _observationPermissionService,
+                _observationStore,
+                _ambientDecisionStore,
+                _observationCoordinator);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 

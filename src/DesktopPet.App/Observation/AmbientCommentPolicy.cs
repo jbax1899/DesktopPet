@@ -31,8 +31,6 @@ public interface IAmbientCommentPolicy
 
 internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
 {
-    private static readonly TimeSpan RecentTypingWindow = TimeSpan.FromSeconds(8);
-
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientActivityState _activityState;
     private readonly object _sync = new();
@@ -55,7 +53,8 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
         if (!candidate.PermissionStillAllowed) return Reject(AmbientDecisionReason.PermissionRemoved);
         if (_activityState.IsUserRequestActive) return Reject(AmbientDecisionReason.UserRequestActive);
         if (_activityState.IsSpeechActive) return Reject(AmbientDecisionReason.SpeechActive);
-        if (now - _activityState.LastUserInputAt < RecentTypingWindow) return Reject(AmbientDecisionReason.UserRecentlyTyping);
+        if (now - _activityState.LastUserInputAt < TimeSpan.FromSeconds(settings.RecentTypingQuietSeconds))
+            return Reject(AmbientDecisionReason.UserRecentlyTyping);
 
         lock (_sync)
         {
@@ -67,20 +66,17 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
                 return Reject(AmbientDecisionReason.CooldownActive);
             }
 
-            if (visionObservation is null)
+            var duplicateWindow = TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
+            if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
+                && now - lastTopic < duplicateWindow)
             {
-                var duplicateWindow = TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
-                if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
-                    && now - lastTopic < duplicateWindow)
-                {
-                    return Reject(AmbientDecisionReason.DuplicateTopic);
-                }
+                return Reject(AmbientDecisionReason.DuplicateTopic);
             }
 
             if (visionObservation is not null)
             {
-                var interestScore = CalculateInterestScore(visionObservation);
-                var threshold = CalculateEffectiveThreshold(settings.VisionSensitivity);
+                var interestScore = CalculateInterestScore(visionObservation, settings);
+                var threshold = settings.CommentThresholdPercent / 100d;
                 if (interestScore < threshold)
                 {
                     return Reject(AmbientDecisionReason.BelowThreshold);
@@ -110,22 +106,12 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
         }
     }
 
-    public static double CalculateInterestScore(VisionObservation observation)
+    public static double CalculateInterestScore(VisionObservation observation, ObservationSettings settings)
     {
-        return (observation.Novelty * 0.375)
-            + (observation.Relevance * 0.375)
-            + ((1.0 - observation.Sensitivity) * 0.125)
-            + ((1.0 - observation.InterruptionCost) * 0.125);
-    }
-
-    private static double CalculateEffectiveThreshold(VisionSensitivity sensitivity)
-    {
-        return sensitivity switch
-        {
-            VisionSensitivity.Low => 0.7,
-            VisionSensitivity.High => 0.3,
-            _ => 0.5
-        };
+        return (observation.Novelty * settings.NoveltyWeightPercent / 100d)
+            + (observation.Relevance * settings.RelevanceWeightPercent / 100d)
+            + ((1.0 - observation.Sensitivity) * settings.PrivacySafetyWeightPercent / 100d)
+            + ((1.0 - observation.InterruptionCost) * settings.LowInterruptionCostWeightPercent / 100d);
     }
 
     private void Prune(DateTimeOffset now, ObservationSettings settings)

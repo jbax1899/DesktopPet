@@ -270,17 +270,15 @@
 
                                             <StackPanel Margin="0,4,0,0"
                                                         Orientation="Horizontal">
-                                                <TextBlock FontSize="11"
-                                                           Foreground="#64748B">
-                                                    <Run Text="Outcome: " />
-                                                    <Run Text="{Binding Outcome}" />
-                                                </TextBlock>
+                                                <Ellipse x:Name="OutcomeDot"
+                                                         Width="8" Height="8"
+                                                         Margin="0,0,4,0"
+                                                         VerticalAlignment="Center"
+                                                         ToolTip="{Binding Outcome}" />
                                                 <TextBlock x:Name="SpokenAtText"
-                                                           Margin="8,0,0,0"
                                                            FontSize="11"
                                                            Foreground="#64748B"
                                                            Visibility="Collapsed">
-                                                    <Run Text="Spoken: " />
                                                     <Run Text="{Binding SpokenAt, StringFormat={}{0:g}}" />
                                                 </TextBlock>
                                             </StackPanel>
@@ -292,6 +290,29 @@
                                                             VerticalAlignment="Top" />
                                     </Grid>
                                 </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Spoken">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#22C55E" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="BelowThreshold">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#9CA3AF" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Cooldown">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#F59E0B" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Duplicate">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#F97316" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="UserBusy">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#3B82F6" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Stale">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#64748B" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Sensitive">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#EF4444" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

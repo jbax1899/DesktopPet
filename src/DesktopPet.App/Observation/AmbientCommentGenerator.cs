@@ -9,11 +9,15 @@ public interface IAmbientCommentGenerator
 
 internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
 {
-    private readonly IChatService _chatService;
+    private const int ObservationHistoryCount = 5;
 
-    public ElevenLabsAmbientCommentGenerator(IChatService chatService)
+    private readonly IChatService _chatService;
+    private readonly ObservationStore _observationStore;
+
+    public ElevenLabsAmbientCommentGenerator(IChatService chatService, ObservationStore observationStore)
     {
         _chatService = chatService;
+        _observationStore = observationStore;
     }
 
     public async Task<string?> GenerateAsync(
@@ -30,11 +34,13 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
             observation.StructuralDescription);
 
         var prompt = BuildPrompt(observation, visionObservation);
+        var history = GetRecentObservations();
 
         var reply = await _chatService.ReplyAsync(
             new ChatRequest(
                 prompt,
-                DesktopContext: context),
+                DesktopContext: context,
+                ObservationHistory: history),
             cancellationToken);
 
         var text = reply.Text.Trim();
@@ -42,6 +48,22 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
             || string.IsNullOrWhiteSpace(text)
             ? null
             : text;
+    }
+
+    private IReadOnlyList<ObservationRecord> GetRecentObservations()
+    {
+        try
+        {
+            return _observationStore.List()
+                .OrderByDescending(r => r.CapturedAt)
+                .Take(ObservationHistoryCount)
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load observation history ({ex.GetType().Name}): {ex.Message}");
+            return [];
+        }
     }
 
     private static string BuildPrompt(ReducedDesktopObservation observation, VisionObservation? visionObservation)

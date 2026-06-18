@@ -7,6 +7,7 @@ public sealed record ChatRequest(
     string UserMessage,
     ProfileSettings? ProfileSettings = null,
     string? MemoriesContext = null,
-    DesktopTurnContext? DesktopContext = null);
+    DesktopTurnContext? DesktopContext = null,
+    IReadOnlyList<ObservationRecord>? ObservationHistory = null);
 
 public sealed record ChatReply(string Text);

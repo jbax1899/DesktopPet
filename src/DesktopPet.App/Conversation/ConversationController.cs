@@ -12,6 +12,8 @@ namespace DesktopPet.App.Conversation;
 
 public sealed class ConversationController : IDisposable
 {
+    private const int ObservationHistoryCount = 5;
+
     private static readonly TimeSpan TranscriptHoldAfterSpeech = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan ErrorMoodDuration = TimeSpan.FromSeconds(2.5);
 
@@ -27,6 +29,7 @@ public sealed class ConversationController : IDisposable
     private readonly IMemoryStore _memoryStore;
     private readonly IDesktopContextProvider _desktopContextProvider;
     private readonly IAmbientActivityState _ambientActivityState;
+    private readonly ObservationStore _observationStore;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -47,7 +50,8 @@ public sealed class ConversationController : IDisposable
         CharacterErrorMessageStore errorMessageStore,
         IMemoryStore memoryStore,
         IDesktopContextProvider desktopContextProvider,
-        IAmbientActivityState ambientActivityState)
+        IAmbientActivityState ambientActivityState,
+        ObservationStore observationStore)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -61,6 +65,7 @@ public sealed class ConversationController : IDisposable
         _memoryStore = memoryStore;
         _desktopContextProvider = desktopContextProvider;
         _ambientActivityState = ambientActivityState;
+        _observationStore = observationStore;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
         _overlayWindow.UserInputActivity += OnUserInputActivity;
@@ -137,7 +142,8 @@ public sealed class ConversationController : IDisposable
                         message,
                         _profileSettingsProvider(),
                         BuildMemoriesContext(),
-                        desktopContext.Context),
+                        desktopContext.Context,
+                        GetRecentObservations()),
                     CancellationToken.None);
                 var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
                 audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
@@ -371,6 +377,22 @@ public sealed class ConversationController : IDisposable
         {
             Debug.WriteLine($"DesktopPet memory load error: {ex.Message}");
             return null;
+        }
+    }
+
+    private IReadOnlyList<ObservationRecord> GetRecentObservations()
+    {
+        try
+        {
+            return _observationStore.List()
+                .OrderByDescending(r => r.CapturedAt)
+                .Take(ObservationHistoryCount)
+                .ToArray();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DesktopPet observation history load error: {ex.Message}");
+            return [];
         }
     }
 }

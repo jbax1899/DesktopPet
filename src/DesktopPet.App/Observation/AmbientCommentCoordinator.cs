@@ -1,5 +1,7 @@
+using System.IO;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Conversation;
+using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
 using DesktopPet.App.Voice;
 
@@ -18,6 +20,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private readonly IAmbientActivityState _activityState;
     private readonly AmbientDecisionStore _decisionStore;
     private readonly ObservationStore _observationStore;
+    private readonly IChatHistoryStore _chatHistoryStore;
+    private readonly ChatAudioStore _chatAudioStore;
     private readonly IWindowCaptureService? _windowCaptureService;
     private readonly IVisualContextAnalyzer? _visualAnalyzer;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -38,6 +42,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         IAmbientActivityState activityState,
         AmbientDecisionStore decisionStore,
         ObservationStore observationStore,
+        IChatHistoryStore chatHistoryStore,
+        ChatAudioStore chatAudioStore,
         IWindowCaptureService? windowCaptureService = null,
         IVisualContextAnalyzer? visualAnalyzer = null)
     {
@@ -52,6 +58,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         _activityState = activityState;
         _decisionStore = decisionStore;
         _observationStore = observationStore;
+        _chatHistoryStore = chatHistoryStore;
+        _chatAudioStore = chatAudioStore;
         _windowCaptureService = windowCaptureService;
         _visualAnalyzer = visualAnalyzer;
 
@@ -158,6 +166,11 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             _currentCancellation?.Dispose();
             _currentCancellation = new CancellationTokenSource();
             var cancellationToken = _currentCancellation.Token;
+            using var transcriptReset = cancellationToken.Register(static state =>
+            {
+                var overlay = (ConversationOverlayWindow)state!;
+                overlay.Dispatcher.Invoke(() => overlay.HideTranscript());
+            }, _overlayWindow);
 
             var comment = await _generator.GenerateAsync(change, visionObservation, cancellationToken);
             if (string.IsNullOrWhiteSpace(comment) || turnId != Volatile.Read(ref _turnId))
@@ -177,20 +190,57 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 return;
             }
 
-            _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.ShowTranscript(comment));
-            using var speaking = _characterStateController.BeginSpeaking();
-            _activityState.SetSpeechActive(true);
+            var historyMessage = TryAddHistoryMessage(comment);
+            FileStream? cacheStream = null;
+            string? audioFileName = null;
+            var audioCacheSaved = false;
+
             try
             {
-                await _audioPlayer.PlayAsync(
-                    audio.AudioStream,
-                    audio.AudioFormat,
-                    cancellationToken,
-                    speaking.SetMouthOpen);
+                if (historyMessage is not null)
+                {
+                    try
+                    {
+                        audioFileName = _chatAudioStore.CreateAudioFileName(historyMessage.Id);
+                        cacheStream = _chatAudioStore.CreateAudioFile(audioFileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Ambient audio cache error: {ex.Message}");
+                        audioFileName = null;
+                    }
+                }
+
+                _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.ShowTranscript(comment));
+                using var speaking = _characterStateController.BeginSpeaking();
+                _activityState.SetSpeechActive(true);
+                try
+                {
+                    await _audioPlayer.PlayAsync(
+                        audio.AudioStream,
+                        audio.AudioFormat,
+                        cancellationToken,
+                        speaking.SetMouthOpen,
+                        cacheStream);
+                }
+                finally
+                {
+                    _activityState.SetSpeechActive(false);
+                }
+
+                if (SaveCachedAudio(cacheStream, audioFileName, historyMessage?.Id))
+                {
+                    cacheStream = null;
+                    audioCacheSaved = true;
+                }
             }
             finally
             {
-                _activityState.SetSpeechActive(false);
+                cacheStream?.Dispose();
+                if (!audioCacheSaved)
+                {
+                    _chatAudioStore.Delete(audioFileName);
+                }
             }
 
             _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
@@ -317,7 +367,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         return reason switch
         {
             AmbientDecisionReason.CooldownActive => ObservationOutcome.Cooldown,
-            AmbientDecisionReason.HourlyLimitReached => ObservationOutcome.Cooldown,
             AmbientDecisionReason.DuplicateTopic => ObservationOutcome.Duplicate,
             AmbientDecisionReason.UserRequestActive => ObservationOutcome.UserBusy,
             AmbientDecisionReason.SpeechActive => ObservationOutcome.UserBusy,
@@ -335,5 +384,43 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             && string.Equals(rule.DisplayName, change.Observation.ApplicationName, StringComparison.OrdinalIgnoreCase));
 
         return new AmbientCommentCandidate(change, permitted);
+    }
+
+    private ChatHistoryMessage? TryAddHistoryMessage(string text)
+    {
+        try
+        {
+            return _chatHistoryStore.Add(ChatHistoryRole.Bot, text);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Ambient chat history error: {ex.Message}");
+            return null;
+        }
+    }
+
+    private bool SaveCachedAudio(
+        FileStream? cacheStream,
+        string? audioFileName,
+        string? historyMessageId)
+    {
+        if (cacheStream is null
+            || string.IsNullOrWhiteSpace(audioFileName)
+            || string.IsNullOrWhiteSpace(historyMessageId))
+        {
+            return false;
+        }
+
+        try
+        {
+            cacheStream.Dispose();
+            _chatHistoryStore.SetAudioFileName(historyMessageId, audioFileName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Ambient audio cache finalize error: {ex.Message}");
+            return false;
+        }
     }
 }

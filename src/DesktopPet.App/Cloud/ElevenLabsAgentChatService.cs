@@ -223,6 +223,12 @@ public sealed class ElevenLabsAgentChatService : IChatService
             dynamicVariables["desktop_context"] = desktopContext;
         }
 
+        var observationHistory = ObservationHistoryFormatter.Format(request.ObservationHistory);
+        if (!string.IsNullOrWhiteSpace(observationHistory))
+        {
+            dynamicVariables["desktop_observation_history"] = observationHistory;
+        }
+
         var profile = request.ProfileSettings;
         if (profile is null)
         {

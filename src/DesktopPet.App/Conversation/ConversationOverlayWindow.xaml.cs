@@ -57,8 +57,6 @@ public partial class ConversationOverlayWindow : Window
 
     public event EventHandler? UserInputActivity;
 
-    public event EventHandler? StopSpeechRequested;
-
     public void ShowAndFocusInput()
     {
         _lastPetBounds = _petBoundsProvider();
@@ -123,7 +121,6 @@ public partial class ConversationOverlayWindow : Window
     public void HideTranscript()
     {
         _transcriptTimer.Stop();
-        StopSpeechButton.Visibility = Visibility.Collapsed;
         TranscriptShell.Visibility = Visibility.Collapsed;
     }
 
@@ -147,19 +144,6 @@ public partial class ConversationOverlayWindow : Window
         _pendingCount += isPending ? 1 : -1;
         _pendingCount = Math.Max(0, _pendingCount);
         PendingSpinner.Visibility = _pendingCount > 0 ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    public void SetSpeechPlaying(long transcriptVersion, bool isPlaying)
-    {
-        if (transcriptVersion != _transcriptVersion)
-        {
-            return;
-        }
-
-        StopSpeechButton.Visibility = isPlaying
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        ArrangeOverlay();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -244,12 +228,6 @@ public partial class ConversationOverlayWindow : Window
 
         ClearSubmittedMessage();
         HideInput();
-    }
-
-    private void OnStopSpeechClicked(object sender, RoutedEventArgs e)
-    {
-        StopSpeechButton.Visibility = Visibility.Collapsed;
-        StopSpeechRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
@@ -379,8 +357,7 @@ public partial class ConversationOverlayWindow : Window
 
     private bool IsScreenPointInteractive(System.Windows.Point screenPoint)
     {
-        return IsPointOverElement(InputShell, screenPoint)
-            || IsPointOverElement(StopSpeechButton, screenPoint);
+        return IsPointOverElement(InputShell, screenPoint);
     }
 
     private static bool IsPointOverElement(FrameworkElement element, System.Windows.Point screenPoint)

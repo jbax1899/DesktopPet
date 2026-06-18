@@ -67,7 +67,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         _observationCoordinator.ChangeDetected += OnChangeDetected;
         _activityState.UserRequestStarted += OnUserRequestStarted;
-        _overlayWindow.StopSpeechRequested += OnStopSpeechRequested;
     }
 
     public void Dispose()
@@ -79,7 +78,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         _observationCoordinator.ChangeDetected -= OnChangeDetected;
         _activityState.UserRequestStarted -= OnUserRequestStarted;
-        _overlayWindow.StopSpeechRequested -= OnStopSpeechRequested;
         Interlocked.Increment(ref _turnId);
         _currentCancellation?.Cancel();
         _currentCancellation?.Dispose();
@@ -105,11 +103,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private void OnUserRequestStarted(object? sender, EventArgs e)
     {
         Interlocked.Increment(ref _turnId);
-        _currentCancellation?.Cancel();
-    }
-
-    private void OnStopSpeechRequested(object? sender, EventArgs e)
-    {
         _currentCancellation?.Cancel();
     }
 
@@ -231,8 +224,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
                     using var speaking = _characterStateController.BeginSpeaking();
                     _activityState.SetSpeechActive(true);
-                    await _overlayWindow.Dispatcher.InvokeAsync(
-                        () => _overlayWindow.SetSpeechPlaying(transcriptVersion, isPlaying: true));
                     try
                     {
                         await _audioPlayer.PlayAsync(
@@ -245,8 +236,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                     finally
                     {
                         _activityState.SetSpeechActive(false);
-                        await _overlayWindow.Dispatcher.InvokeAsync(
-                            () => _overlayWindow.SetSpeechPlaying(transcriptVersion, isPlaying: false));
                     }
 
                     if (SaveCachedAudio(cacheStream, audioFileName, historyMessage?.Id))

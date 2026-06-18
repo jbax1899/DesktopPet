@@ -39,20 +39,20 @@
                                      GroupName="Commentary"
                                      Margin="0,0,4,0"
                                      Content="Quiet"
-                                     ToolTip="Rare comments (~15 min cooldown)."
+                                     ToolTip="Comments every ~10 min, checks in every 10 min."
                                      Checked="OnCommentaryLevelChanged" />
                         <RadioButton x:Name="CommentaryBalancedRadioButton"
                                      GroupName="Commentary"
                                      Margin="4,0"
                                      Content="Balanced"
                                      IsChecked="True"
-                                     ToolTip="Moderate cadence (~7 min cooldown)."
+                                     ToolTip="Comments every ~5 min, checks in every 5 min."
                                      Checked="OnCommentaryLevelChanged" />
                         <RadioButton x:Name="CommentaryTalkativeRadioButton"
                                      GroupName="Commentary"
                                      Margin="4,0,0,0"
                                      Content="Talkative"
-                                     ToolTip="Frequent comments (~3 min cooldown)."
+                                     ToolTip="Comments every ~2 min, checks in every 3 min."
                                      Checked="OnCommentaryLevelChanged" />
                     </UniformGrid>
                     <TextBlock x:Name="CommentaryLegendTextBlock"

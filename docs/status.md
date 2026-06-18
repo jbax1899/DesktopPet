@@ -75,7 +75,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Vision analysis enforces a configurable minimum interval between OpenRouter requests (default 30s, adjustable in settings).
 - Minimum dwell time gates window-change observations so rapid Alt-Tab switching is ignored (default 15s, adjustable).
 - Vision sensitivity (Low/Medium/High) controls the interest-score threshold for whether an observation is worth analyzing.
-- Commentary and vision sensitivity use segmented radio-button sliders with live legends in the Settings UI.
+- Commentary and vision sensitivity use segmented radio-button sliders with live legends in the Settings UI. Each commentary level maps to cooldown (2/5/10 min), duplicate window (10/15/20 min), and check-in interval (3/5/10 min).
 - Scan quality (Brief/Detailed/Narrative) controls how much detail the vision model reports about each screenshot.
 - The vision analyzer receives the last 5 observation summaries as context to avoid repeating itself and focus on what is new or changed.
 - Ambient policy uses interest scoring from vision observations with soft speaking budgets per commentary level.
@@ -94,10 +94,10 @@ Configure `desktop_context` with a harmless fallback such as
 - Interest scoring combines novelty, relevance, confidence, sensitivity, and interruption cost.
 - Vision sensitivity and commentary level are independent axes: sensitivity controls what gets analyzed, commentary controls how often Pebble speaks.
 - Minimum dwell time prevents rapid window switching from generating noise and wasting API calls.
-- Commentary and vision sensitivity are segmented radio-button sliders with contextual legends.
+- Commentary and vision sensitivity are segmented radio-button sliders with contextual legends showing actual timing values.
 - Scan quality (Brief/Detailed/Narrative) controls the verbosity and narrative richness of vision observations.
 - Recent observation history is passed to the vision analyzer so it can describe what is new rather than repeating prior summaries.
-- Commentary mode creates pressure toward a general cadence via soft speaking budgets, not hard quotas.
+- Commentary level sets cooldown, duplicate window, and check-in interval directly; vision-based observations skip the duplicate check since interest scoring handles novelty. Check-in events periodically re-evaluate the current app so the pet can comment on sustained activity.
 - Silence is a valid outcome; the pet should never say something uninteresting just to meet a quota.
 - Observation records persist to `observations.json` for audit trail and threshold tuning.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
@@ -124,14 +124,14 @@ Configure `desktop_context` with a harmless fallback such as
 - Visual analysis is behind `IVisualContextAnalyzer`; the current unavailable implementation prevents capture until a provider is deliberately selected.
 - A cancellable background coordinator polls permitted metadata every two seconds off the UI thread and retains only the latest 50 reduced observations for at most 30 minutes.
 - Recent activity and comment decisions are consolidated in the Memories window instead of separate Screen Context windows.
-- The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and long-running activity.
+- The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and periodic check-ins on sustained activity.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
-- Ambient policy is local-first and rejects paused, disabled, permission-removed, busy, recently typed, cooldown, hourly-limit, and duplicate candidates before generation. Turn cancellation suppresses speech if a newer change arrives during processing.
-- Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits.
+- Ambient policy is local-first and rejects paused, disabled, permission-removed, busy, recently typed, cooldown, and duplicate (metadata-only) candidates before generation. Turn cancellation suppresses speech if a newer change arrives during processing. Vision-based observations skip the duplicate check since interest scoring handles novelty.
+- Quiet, Balanced, and Talkative profiles map to cooldown (10/5/2 min), duplicate window (20/15/10 min), and check-in interval (10/5/3 min) values directly.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
 - Ambient work has separate turn cancellation and is cancelled when a user request starts.
 - Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from the Observations tab.
-- Screen Context settings now controls ambient enablement, do-not-disturb, and Quiet/Balanced/Talkative behavior independently from application permissions.
+- Screen Context settings now controls ambient enablement, cooldown, and duplicate window independently from application permissions.
 - Durable memory remains manually managed through the existing Memories tab; observation history does not create memory proposals.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
@@ -175,7 +175,7 @@ Configure `desktop_context` with a harmless fallback such as
 
 - Manually smoke-test permissions, scaling, multiple monitors, UI Automation timeouts, shutdown, and user-chat interruption.
 - Select a vision provider before enabling visual capture or analysis.
-- Tune ambient cooldowns and change heuristics from real use while keeping silence as the normal outcome.
+- Tune ambient cooldowns, check-in intervals, and change heuristics from real use while keeping silence as the normal outcome.
 - Keep auditing logs and local JSON files whenever observation models change.
 
 ## Near-Term Work

@@ -26,13 +26,13 @@ public partial class ObservationSettingsWindow : Window
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
 
-        switch (settings.CommentaryLevel)
+        switch (settings.CooldownMinutes)
         {
-            case CommentaryLevel.Quiet:
-                CommentaryQuietRadioButton.IsChecked = true;
-                break;
-            case CommentaryLevel.Talkative:
+            case <= 3:
                 CommentaryTalkativeRadioButton.IsChecked = true;
+                break;
+            case >= 8:
+                CommentaryQuietRadioButton.IsChecked = true;
                 break;
             default:
                 CommentaryBalancedRadioButton.IsChecked = true;
@@ -86,11 +86,21 @@ public partial class ObservationSettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            CommentaryLevel = CommentaryTalkativeRadioButton.IsChecked == true
-                ? CommentaryLevel.Talkative
+            CooldownMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 2
                 : CommentaryQuietRadioButton.IsChecked == true
-                    ? CommentaryLevel.Quiet
-                    : CommentaryLevel.Balanced,
+                    ? 10
+                    : 5,
+            DuplicateWindowMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 3
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? 20
+                    : 15,
+            CheckInMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 3
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? 10
+                    : 5,
             VisionSensitivity = VisionHighRadioButton.IsChecked == true
                 ? VisionSensitivity.High
                 : VisionLowRadioButton.IsChecked == true
@@ -106,10 +116,10 @@ public partial class ObservationSettingsWindow : Window
     {
         if (CommentaryLegendTextBlock is null) return;
         CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
-            ? "Rare comments, long silence between remarks."
+            ? "Comments every ~10 min. Check-in every 10 min. Duplicate topics suppressed for 20 min."
             : CommentaryTalkativeRadioButton.IsChecked == true
-                ? "Frequent comments, notices small changes quickly."
-                : "Moderate cadence, balanced between silence and speech.";
+                ? "Comments every ~2 min. Check-in every 3 min. Duplicate topics suppressed for 10 min."
+                : "Comments every ~5 min. Check-in every 5 min. Duplicate topics suppressed for 15 min.";
     }
 
     private void OnVisionSensitivityChanged(object sender, RoutedEventArgs e)

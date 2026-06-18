@@ -16,13 +16,13 @@ public partial class SettingsWindow : Window
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
     private readonly OpenRouterSettingsStore _openRouterSettingsStore;
     private readonly OpenRouterModelsService _openRouterModelsService;
+    private readonly CreditInfoService _creditInfoService;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
     private readonly Func<PetError?> _getHotkeyWarning;
     private readonly IObservationPermissionService _permissionService;
-    private readonly Func<Task> _testVisionAsync;
     private readonly ObservableCollection<ApplicationRuleRow> _observationRows = [];
     private readonly ObservableCollection<OpenRouterModelInfo> _visionModels = [];
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
@@ -32,30 +32,31 @@ public partial class SettingsWindow : Window
         ElevenLabsSettingsStore elevenLabsSettingsStore,
         OpenRouterSettingsStore openRouterSettingsStore,
         OpenRouterModelsService openRouterModelsService,
+        CreditInfoService creditInfoService,
         UiSettingsStore uiSettingsStore,
         ProfileSettingsStore profileSettingsStore,
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
         Func<PetError?> getHotkeyWarning,
-        IObservationPermissionService permissionService,
-        Func<Task>? testVisionAsync = null)
+        IObservationPermissionService permissionService)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _openRouterSettingsStore = openRouterSettingsStore;
         _openRouterModelsService = openRouterModelsService;
+        _creditInfoService = creditInfoService;
         _uiSettingsStore = uiSettingsStore;
         _profileSettingsStore = profileSettingsStore;
         _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
         _permissionService = permissionService;
-        _testVisionAsync = testVisionAsync ?? (() => Task.CompletedTask);
 
         InitializeComponent();
         ApplicationsGrid.ItemsSource = _observationRows;
         OpenRouterVisionModelComboBox.ItemsSource = _visionModels;
         LoadSettings();
         _ = LoadVisionModelsAsync();
+        _ = LoadCreditsAsync();
     }
 
     private void OnSaveClicked(object sender, RoutedEventArgs e)
@@ -130,13 +131,13 @@ public partial class SettingsWindow : Window
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
 
-        switch (settings.CommentaryLevel)
+        switch (settings.CooldownMinutes)
         {
-            case CommentaryLevel.Quiet:
-                CommentaryQuietRadioButton.IsChecked = true;
-                break;
-            case CommentaryLevel.Talkative:
+            case <= 3:
                 CommentaryTalkativeRadioButton.IsChecked = true;
+                break;
+            case >= 8:
+                CommentaryQuietRadioButton.IsChecked = true;
                 break;
             default:
                 CommentaryBalancedRadioButton.IsChecked = true;
@@ -197,11 +198,21 @@ public partial class SettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            CommentaryLevel = CommentaryTalkativeRadioButton.IsChecked == true
-                ? CommentaryLevel.Talkative
+            CooldownMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 2
                 : CommentaryQuietRadioButton.IsChecked == true
-                    ? CommentaryLevel.Quiet
-                    : CommentaryLevel.Balanced,
+                    ? 10
+                    : 5,
+            DuplicateWindowMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 3
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? 20
+                    : 15,
+            CheckInMinutes = CommentaryTalkativeRadioButton.IsChecked == true
+                ? 3
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? 10
+                    : 5,
             VisionSensitivity = VisionHighRadioButton.IsChecked == true
                 ? VisionSensitivity.High
                 : VisionLowRadioButton.IsChecked == true
@@ -232,10 +243,10 @@ public partial class SettingsWindow : Window
     {
         if (CommentaryLegendTextBlock is null) return;
         CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
-            ? "Rare comments, long silence between remarks."
+            ? "Comments every ~10 min. Check-in every 10 min. Duplicate topics suppressed for 20 min."
             : CommentaryTalkativeRadioButton.IsChecked == true
-                ? "Frequent comments, notices small changes quickly."
-                : "Moderate cadence, balanced between silence and speech.";
+                ? "Comments every ~2 min. Check-in every 3 min. Duplicate topics suppressed for 10 min."
+                : "Comments every ~5 min. Check-in every 5 min. Duplicate topics suppressed for 15 min.";
     }
 
     private void OnVisionSensitivityChanged(object sender, RoutedEventArgs e)
@@ -359,23 +370,30 @@ public partial class SettingsWindow : Window
         OpenRouterModelCapabilitiesText.Text = $"Capabilities: {string.Join(", ", capabilities)}";
     }
 
-    private async void OnTestVisionClicked(object sender, RoutedEventArgs e)
+    private async Task LoadCreditsAsync()
     {
-        TestVisionStatusText.Text = "Testing...";
-        TestVisionButton.IsEnabled = false;
+        var elevenLabsTask = _creditInfoService.GetElevenLabsCreditsAsync(CancellationToken.None);
+        var openRouterTask = _creditInfoService.GetOpenRouterCreditsAsync(CancellationToken.None);
 
-        try
+        await Task.WhenAll(elevenLabsTask, openRouterTask);
+
+        var elevenLabs = elevenLabsTask.Result;
+        if (elevenLabs is not null)
         {
-            await _testVisionAsync();
-            TestVisionStatusText.Text = "Vision test passed.";
+            ElevenLabsCreditText.Text = $"{elevenLabs.Tier} — {elevenLabs.CharacterCount:N0} / {elevenLabs.CharacterLimit:N0} credits";
         }
-        catch (Exception ex)
+
+        var openRouter = openRouterTask.Result;
+        if (openRouter is not null)
         {
-            TestVisionStatusText.Text = $"Test failed: {ex.Message}";
-        }
-        finally
-        {
-            TestVisionButton.IsEnabled = true;
+            if (openRouter.LimitRemaining.HasValue)
+            {
+                OpenRouterCreditText.Text = $"${openRouter.LimitRemaining:F2} remaining";
+            }
+            else
+            {
+                OpenRouterCreditText.Text = $"${openRouter.Usage:F2} used";
+            }
         }
     }
 

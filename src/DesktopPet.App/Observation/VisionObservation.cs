@@ -9,7 +9,6 @@ public sealed record VisionObservation(
     [property: JsonPropertyName("possible_comment_topics")] IReadOnlyList<string> PossibleCommentTopics,
     [property: JsonPropertyName("novelty")] double Novelty,
     [property: JsonPropertyName("relevance")] double Relevance,
-    [property: JsonPropertyName("confidence")] double Confidence,
     [property: JsonPropertyName("sensitivity")] double Sensitivity,
     [property: JsonPropertyName("interruption_cost")] double InterruptionCost,
     [property: JsonPropertyName("expires_after_seconds")] int ExpiresAfterSeconds);

@@ -10,7 +10,7 @@ public enum DesktopObservationChangeType
     DialogOrErrorDisappeared,
     TaskCompleted,
     UserReturned,
-    LongRunningActivity
+    CheckIn
 }
 
 public sealed record ReducedDesktopObservation(
@@ -53,6 +53,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
     private Task? _loopTask;
     private ReducedDesktopObservation? _previous;
     private DateTimeOffset _activityStartedAt;
+    private DateTimeOffset _lastCheckInAt;
     private bool _wasIdle;
     private readonly Dictionary<string, DateTimeOffset> _lastStructuralInspection = new(StringComparer.OrdinalIgnoreCase);
 
@@ -191,6 +192,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
             }
 
             _activityStartedAt = observedAt;
+            _lastCheckInAt = observedAt;
             return previous is null ? null : DesktopObservationChangeType.ForegroundApplicationChanged;
         }
 
@@ -202,6 +204,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
             }
 
             _activityStartedAt = observedAt;
+            _lastCheckInAt = observedAt;
             return DesktopObservationChangeType.WindowTitleChanged;
         }
 
@@ -241,11 +244,11 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         }
 
         _wasIdle = isIdle;
-        if (current.ObservedAt - _activityStartedAt >= TimeSpan.FromMinutes(30)
-            && previous is not null
-            && previous.ObservedAt - _activityStartedAt < TimeSpan.FromMinutes(30))
+        var checkInInterval = TimeSpan.FromMinutes(_permissionService.Current.CheckInMinutes);
+        if (current.ObservedAt - _lastCheckInAt >= checkInInterval)
         {
-            yield return CreateChange(DesktopObservationChangeType.LongRunningActivity, current);
+            _lastCheckInAt = current.ObservedAt;
+            yield return CreateChange(DesktopObservationChangeType.CheckIn, current);
         }
     }
 

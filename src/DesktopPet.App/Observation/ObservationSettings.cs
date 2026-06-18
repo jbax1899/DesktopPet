@@ -1,12 +1,5 @@
 namespace DesktopPet.App.Observation;
 
-public enum CommentaryLevel
-{
-    Quiet,
-    Balanced,
-    Talkative
-}
-
 public enum VisionSensitivity
 {
     Low,
@@ -32,7 +25,9 @@ public sealed record ApplicationObservationRule(
 public sealed record ObservationSettings(
     bool ObservationEnabled,
     bool AmbientCommentsEnabled,
-    CommentaryLevel CommentaryLevel,
+    int CooldownMinutes,
+    int DuplicateWindowMinutes,
+    int CheckInMinutes,
     VisionSensitivity VisionSensitivity,
     ScanQuality ScanQuality,
     int MinimumDwellTimeSeconds,
@@ -42,7 +37,9 @@ public sealed record ObservationSettings(
     public static ObservationSettings Default { get; } = new(
         ObservationEnabled: false,
         AmbientCommentsEnabled: false,
-        CommentaryLevel.Balanced,
+        CooldownMinutes: 5,
+        DuplicateWindowMinutes: 15,
+        CheckInMinutes: 5,
         VisionSensitivity.Medium,
         ScanQuality.Detailed,
         MinimumDwellTimeSeconds: 15,

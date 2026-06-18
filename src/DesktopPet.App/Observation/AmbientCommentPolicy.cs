@@ -10,7 +10,6 @@ public enum AmbientDecisionReason
     SpeechActive,
     UserRecentlyTyping,
     CooldownActive,
-    HourlyLimitReached,
     DuplicateTopic,
     GeneratorChoseSilence,
     GenerationFailed,
@@ -33,8 +32,6 @@ public interface IAmbientCommentPolicy
 internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
 {
     private static readonly TimeSpan RecentTypingWindow = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan DuplicateWindow = TimeSpan.FromMinutes(30);
-    private const int MaximumObservationsPerHour = 8;
 
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientActivityState _activityState;
@@ -62,23 +59,22 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
 
         lock (_sync)
         {
-            Prune(now);
-            var cooldown = GetCooldown(settings.CommentaryLevel);
+            Prune(now, settings);
+            var cooldown = TimeSpan.FromMinutes(settings.CooldownMinutes);
 
             if (_spokenAt.Count > 0 && now - _spokenAt[^1] < cooldown)
             {
                 return Reject(AmbientDecisionReason.CooldownActive);
             }
 
-            if (_spokenAt.Count >= MaximumObservationsPerHour)
+            if (visionObservation is null)
             {
-                return Reject(AmbientDecisionReason.HourlyLimitReached);
-            }
-
-            if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
-                && now - lastTopic < DuplicateWindow)
-            {
-                return Reject(AmbientDecisionReason.DuplicateTopic);
+                var duplicateWindow = TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
+                if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
+                    && now - lastTopic < duplicateWindow)
+                {
+                    return Reject(AmbientDecisionReason.DuplicateTopic);
+                }
             }
 
             if (visionObservation is not null)
@@ -99,7 +95,8 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
     {
         lock (_sync)
         {
-            Prune(spokenAt);
+            var settings = _permissionService.Current;
+            Prune(spokenAt, settings);
             _spokenAt.Add(spokenAt);
             _topics[candidate.Change.TopicKey] = spokenAt;
         }
@@ -115,11 +112,10 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
 
     public static double CalculateInterestScore(VisionObservation observation)
     {
-        return (observation.Novelty * 0.3)
-            + (observation.Relevance * 0.3)
-            + (observation.Confidence * 0.2)
-            + ((1.0 - observation.Sensitivity) * 0.1)
-            + ((1.0 - observation.InterruptionCost) * 0.1);
+        return (observation.Novelty * 0.375)
+            + (observation.Relevance * 0.375)
+            + ((1.0 - observation.Sensitivity) * 0.125)
+            + ((1.0 - observation.InterruptionCost) * 0.125);
     }
 
     private static double CalculateEffectiveThreshold(VisionSensitivity sensitivity)
@@ -132,22 +128,12 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
         };
     }
 
-    private static TimeSpan GetCooldown(CommentaryLevel level)
-    {
-        return level switch
-        {
-            CommentaryLevel.Quiet => TimeSpan.FromMinutes(15),
-            CommentaryLevel.Talkative => TimeSpan.FromMinutes(3),
-            _ => TimeSpan.FromMinutes(7)
-        };
-    }
-
-    private void Prune(DateTimeOffset now)
+    private void Prune(DateTimeOffset now, ObservationSettings settings)
     {
         var spokenCutoff = now - TimeSpan.FromHours(1);
         _spokenAt.RemoveAll(item => item < spokenCutoff);
 
-        var topicCutoff = now - DuplicateWindow;
+        var topicCutoff = now - TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
         foreach (var key in _topics.Where(pair => pair.Value < topicCutoff).Select(pair => pair.Key).ToArray())
         {
             _topics.Remove(key);

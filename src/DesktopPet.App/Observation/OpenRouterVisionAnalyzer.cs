@@ -31,12 +31,11 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
             "possible_comment_topics": { "type": "array", "items": { "type": "string" }, "description": "Topics a desktop pet might comment on" },
             "novelty": { "type": "number", "description": "How novel this is compared to typical desktop use, 0-1" },
             "relevance": { "type": "number", "description": "How relevant this might be for a companion pet to notice, 0-1" },
-            "confidence": { "type": "number", "description": "How confident you are in this analysis, 0-1" },
             "sensitivity": { "type": "number", "description": "How sensitive/private this content is, 0-1" },
             "interruption_cost": { "type": "number", "description": "How disruptive it would be to interrupt the user now, 0-1" },
             "expires_after_seconds": { "type": "integer", "description": "How long this observation remains relevant in seconds" }
           },
-          "required": ["summary", "visible_activity", "notable_changes", "possible_comment_topics", "novelty", "relevance", "confidence", "sensitivity", "interruption_cost", "expires_after_seconds"],
+          "required": ["summary", "visible_activity", "notable_changes", "possible_comment_topics", "novelty", "relevance", "sensitivity", "interruption_cost", "expires_after_seconds"],
           "additionalProperties": false
         }
       }

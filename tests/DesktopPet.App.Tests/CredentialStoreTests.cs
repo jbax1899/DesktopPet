@@ -54,16 +54,23 @@ public sealed class CredentialStoreTests
     }
 
     [TestMethod]
-    public void MissingOrCorruptCredentialFileReturnsEmptyKeys()
+    public void MissingCredentialFileReturnsEmptyKeys()
     {
         Assert.IsNull(_credentialStore.GetElevenLabsApiKey());
         Assert.IsNull(_credentialStore.GetOpenRouterApiKey());
+    }
 
+    [TestMethod]
+    public void CorruptCredentialFileReturnsEmptyKeysButRefusesOverwrite()
+    {
         Directory.CreateDirectory(_directory);
         File.WriteAllText(_credentialPath, "not protected data");
 
         Assert.IsNull(_credentialStore.GetElevenLabsApiKey());
         Assert.IsNull(_credentialStore.GetOpenRouterApiKey());
+        Assert.ThrowsExactly<InvalidDataException>(
+            () => _credentialStore.SaveElevenLabsApiKey("replacement"));
+        Assert.AreEqual("not protected data", File.ReadAllText(_credentialPath));
     }
 
     [TestMethod]

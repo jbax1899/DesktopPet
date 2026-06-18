@@ -15,18 +15,3 @@ public interface IVisualContextAnalyzer
         VisualAnalysisRequest request,
         CancellationToken cancellationToken);
 }
-
-public sealed class UnavailableVisualContextAnalyzer : IVisualContextAnalyzer
-{
-    public bool IsAvailable => false;
-
-    public Task<VisualContextSummary> AnalyzeAsync(
-        CapturedWindowImage image,
-        VisualAnalysisRequest request,
-        CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new VisualContextSummary(
-            DesktopContextCollectionStatus.Unsupported,
-            null));
-    }
-}

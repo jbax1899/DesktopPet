@@ -78,8 +78,24 @@ internal sealed class JsonFileStore<T>
     {
         lock (_sync)
         {
-            TryDelete(_filePath);
-            TryDelete(_backupPath);
+            DeleteIfExists(_backupPath);
+
+            var directory = Path.GetDirectoryName(_filePath);
+            if (directory is not null && Directory.Exists(directory))
+            {
+                var fileName = Path.GetFileName(_filePath);
+                foreach (var path in Directory.EnumerateFiles(directory, $"{fileName}.*.corrupt"))
+                {
+                    DeleteIfExists(path);
+                }
+
+                foreach (var path in Directory.EnumerateFiles(directory, $"{fileName}.*.tmp"))
+                {
+                    DeleteIfExists(path);
+                }
+            }
+
+            DeleteIfExists(_filePath);
         }
     }
 
@@ -152,6 +168,14 @@ internal sealed class JsonFileStore<T>
         }
         catch (UnauthorizedAccessException)
         {
+        }
+    }
+
+    private static void DeleteIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
         }
     }
 }

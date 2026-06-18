@@ -25,9 +25,8 @@ public sealed class ObservationSettingsStore
     {
         _settingsFile = new JsonFileStore<ObservationSettings>(
             settingsFilePath,
-            json => Normalize(JsonSerializer.Deserialize<ObservationSettings>(
-                MigrateOldFormat(json),
-                JsonOptions) ?? throw new JsonException("Observation settings are empty.")),
+            json => Normalize(JsonSerializer.Deserialize<ObservationSettings>(json, JsonOptions)
+                ?? throw new JsonException("Observation settings are empty.")),
             settings => JsonSerializer.Serialize(Normalize(settings), JsonOptions));
     }
 
@@ -72,45 +71,5 @@ public sealed class ObservationSettingsStore
             DuplicateWindowMinutes = duplicateWindow,
             CheckInMinutes = checkIn
         };
-    }
-
-    private static string MigrateOldFormat(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-
-        if (!root.TryGetProperty("CommentaryLevel", out var levelProp))
-        {
-            return json;
-        }
-
-        if (root.TryGetProperty("CooldownMinutes", out _))
-        {
-            return json;
-        }
-
-        var (cooldown, duplicateWindow, checkIn) = levelProp.ValueKind switch
-        {
-            JsonValueKind.Number => levelProp.GetInt32() switch
-            {
-                0 => (10, 20, 10),
-                2 => (2, 10, 3),
-                _ => (5, 15, 5)
-            },
-            _ => levelProp.GetString() switch
-            {
-                "Quiet" => (10, 20, 10),
-                "Talkative" => (2, 10, 3),
-                _ => (5, 15, 5)
-            }
-        };
-
-        var obj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, JsonOptions) ?? [];
-        obj.Remove("CommentaryLevel");
-        obj["CooldownMinutes"] = JsonSerializer.SerializeToElement(cooldown);
-        obj["DuplicateWindowMinutes"] = JsonSerializer.SerializeToElement(duplicateWindow);
-        obj["CheckInMinutes"] = JsonSerializer.SerializeToElement(checkIn);
-
-        return JsonSerializer.Serialize(obj, JsonOptions);
     }
 }

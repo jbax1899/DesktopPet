@@ -30,7 +30,7 @@ internal sealed class CredentialStore
     {
         lock (Sync)
         {
-            return Load().ElevenLabsApiKey;
+            return Load().Credentials.ElevenLabsApiKey;
         }
     }
 
@@ -38,7 +38,7 @@ internal sealed class CredentialStore
     {
         lock (Sync)
         {
-            return Load().OpenRouterApiKey;
+            return Load().Credentials.OpenRouterApiKey;
         }
     }
 
@@ -46,8 +46,9 @@ internal sealed class CredentialStore
     {
         lock (Sync)
         {
-            var credentials = Load();
-            Save(credentials with { ElevenLabsApiKey = Normalize(apiKey) });
+            var loaded = Load();
+            EnsureWritable(loaded);
+            Save(loaded.Credentials with { ElevenLabsApiKey = Normalize(apiKey) });
         }
     }
 
@@ -55,16 +56,17 @@ internal sealed class CredentialStore
     {
         lock (Sync)
         {
-            var credentials = Load();
-            Save(credentials with { OpenRouterApiKey = Normalize(apiKey) });
+            var loaded = Load();
+            EnsureWritable(loaded);
+            Save(loaded.Credentials with { OpenRouterApiKey = Normalize(apiKey) });
         }
     }
 
-    private Credentials Load()
+    private CredentialLoadResult Load()
     {
         if (!File.Exists(_filePath))
         {
-            return Credentials.Empty;
+            return new CredentialLoadResult(Credentials.Empty, IsUnreadable: false);
         }
 
         try
@@ -74,12 +76,26 @@ internal sealed class CredentialStore
                 protectedBytes,
                 Entropy,
                 DataProtectionScope.CurrentUser);
-            return JsonSerializer.Deserialize<Credentials>(jsonBytes, JsonOptions)
-                ?? Credentials.Empty;
+            var credentials = JsonSerializer.Deserialize<Credentials>(jsonBytes, JsonOptions)
+                ?? throw new JsonException("Credential payload is empty.");
+            return new CredentialLoadResult(credentials, IsUnreadable: false);
         }
-        catch (Exception ex) when (ex is CryptographicException or IOException or JsonException)
+        catch (Exception ex) when (
+            ex is CryptographicException
+            or IOException
+            or UnauthorizedAccessException
+            or JsonException)
         {
-            return Credentials.Empty;
+            return new CredentialLoadResult(Credentials.Empty, IsUnreadable: true);
+        }
+    }
+
+    private void EnsureWritable(CredentialLoadResult loaded)
+    {
+        if (loaded.IsUnreadable)
+        {
+            throw new InvalidDataException(
+                $"Credential file '{_filePath}' could not be read. It was not overwritten.");
         }
     }
 
@@ -132,4 +148,8 @@ internal sealed class CredentialStore
     {
         public static Credentials Empty { get; } = new(null, null);
     }
+
+    private sealed record CredentialLoadResult(
+        Credentials Credentials,
+        bool IsUnreadable);
 }

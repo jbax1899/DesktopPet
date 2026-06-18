@@ -100,6 +100,39 @@ public sealed class JsonFileStoreTests
         Assert.IsNotNull(JsonSerializer.Deserialize<ProfileSettings>(File.ReadAllText(_filePath)));
     }
 
+    [TestMethod]
+    public void DeleteRemovesPrimaryBackupCorruptAndTemporaryCopies()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(_filePath, "{}");
+        File.WriteAllText($"{_filePath}.bak", "{}");
+        File.WriteAllText($"{_filePath}.20260101000000000.test.corrupt", "{}");
+        File.WriteAllText($"{_filePath}.test.tmp", "{}");
+
+        CreateStore().Delete();
+
+        Assert.IsFalse(File.Exists(_filePath));
+        Assert.IsFalse(File.Exists($"{_filePath}.bak"));
+        Assert.AreEqual(0, Directory.GetFiles(_directory).Length);
+    }
+
+    [TestMethod]
+    public void DeleteReportsFailureAndLeavesPrimaryWhenBackupCannotBeDeleted()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(_filePath, "{}");
+        File.WriteAllText($"{_filePath}.bak", "{}");
+
+        using var lockedBackup = new FileStream(
+            $"{_filePath}.bak",
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.None);
+
+        Assert.ThrowsExactly<IOException>(() => CreateStore().Delete());
+        Assert.IsTrue(File.Exists(_filePath));
+    }
+
     private JsonFileStore<TestSettings> CreateStore()
     {
         return new JsonFileStore<TestSettings>(

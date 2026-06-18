@@ -283,6 +283,12 @@ public partial class MemoryWindow : Window
         }
         catch (Exception)
         {
+            System.Windows.MessageBox.Show(
+                this,
+                "Desktop Pet could not clear every observation file. Close anything using the local data files and try again.",
+                "Desktop Pet Observations",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -391,12 +397,13 @@ public partial class MemoryWindow : Window
         Directory.CreateDirectory(directory);
         var watcher = new FileSystemWatcher(directory, fileName)
         {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
             EnableRaisingEvents = true
         };
         watcher.Changed += handler;
         watcher.Created += handler;
         watcher.Deleted += handler;
+        watcher.Renamed += (sender, args) => handler(sender, args);
         return watcher;
     }
 

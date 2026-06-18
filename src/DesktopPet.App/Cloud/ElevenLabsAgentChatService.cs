@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using DesktopPet.App.Errors;
 using DesktopPet.App.Memory;
 using DesktopPet.App.Observation;
+using DesktopPet.App.Settings;
 
 namespace DesktopPet.App.Cloud;
 
@@ -20,11 +21,16 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
     private readonly HttpClient _httpClient;
     private readonly Func<ElevenLabsSettings> _settingsProvider;
+    private readonly Func<UiSettings> _uiSettingsProvider;
 
-    public ElevenLabsAgentChatService(HttpClient httpClient, Func<ElevenLabsSettings> settingsProvider)
+    public ElevenLabsAgentChatService(
+        HttpClient httpClient,
+        Func<ElevenLabsSettings> settingsProvider,
+        Func<UiSettings> uiSettingsProvider)
     {
         _httpClient = httpClient;
         _settingsProvider = settingsProvider;
+        _uiSettingsProvider = uiSettingsProvider;
     }
 
     public async Task<ChatReply> ReplyAsync(ChatRequest request, CancellationToken cancellationToken)
@@ -86,7 +92,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return signedUrlResponse.SignedUrl;
     }
 
-    private static async Task<string> SendMessageAsync(string signedUrl, ChatRequest request, CancellationToken cancellationToken)
+    private async Task<string> SendMessageAsync(string signedUrl, ChatRequest request, CancellationToken cancellationToken)
     {
         using var webSocket = new ClientWebSocket();
         await webSocket.ConnectAsync(new Uri(signedUrl), cancellationToken);
@@ -209,7 +215,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return AgentResponseIdleTimeout - elapsed;
     }
 
-    private static Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
+    private Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
     {
         var now = DateTimeOffset.UtcNow;
         var localTimeZone = TimeZoneInfo.Local;
@@ -235,10 +241,13 @@ public sealed class ElevenLabsAgentChatService : IChatService
             dynamicVariables["desktop_observation_history"] = observationHistory;
         }
 
+        var historySettings = _uiSettingsProvider().GetEffectiveChatHistoryContext();
         var conversationHistory = ConversationHistoryFormatter.Format(
             request.ConversationHistory,
             now,
-            localTimeZone);
+            localTimeZone,
+            historySettings.RegularMessageCount,
+            historySettings.AmbientMessageCount);
         if (!string.IsNullOrWhiteSpace(conversationHistory))
         {
             dynamicVariables["conversation_history"] = conversationHistory;

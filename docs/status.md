@@ -80,7 +80,9 @@ kind of harmless empty-state fallback.
 - Memory window has a Chat History tab plus the existing Memories tab.
 - Chat history stores user attempts and Agent replies in local JSON, with the reduced desktop context used for each typed or ambient bot reply and cached bot audio when available.
 - Every ElevenLabs Agent request includes current local time, timezone, and UTC through `temporal_context`.
-- The last 20 saved user, direct-reply, and ambient-reply turns are sent to every ElevenLabs Agent request through the bounded `conversation_history` dynamic variable. Turns include relative labels plus exact local timestamps. New records include turn-origin metadata; older records remain compatible and are treated as ordinary user or pet turns.
+- Settings exposes independent 0–50 count budgets for regular and ambient conversation context, defaulting to 14 regular and 6 ambient messages. Zero disables that category.
+- Conversation history selection protects typed dialogue from ambient-message displacement. Explicit origin metadata is preferred; legacy bot messages immediately following a user within five minutes are treated as direct replies, while other legacy bot messages are treated as ambient.
+- Selected user, direct-reply, and ambient-reply turns are sent through the `conversation_history` dynamic variable in chronological order. There is no aggregate character cap; individual message text and saved desktop context remain truncated. Turns include relative labels plus exact local timestamps.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
@@ -162,6 +164,7 @@ kind of harmless empty-state fallback.
 - Treat Mem0 as an experimental local memory service behind one small REST client boundary.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.
 - Saved chat history is the cross-request conversation source of truth because the current text-only Agent integration opens one short-lived WebSocket per generated reply.
+- Regular and ambient conversation-history budgets are independent user settings; unused capacity in one category does not increase the other category.
 - Ship a small localhost-only Mem0 Docker Compose stack with authentication, persistent storage, and no committed secrets.
 - Ask before enabling memory, never silently install Docker, and show one clear setup or repair message if startup fails.
 - Do not make the Mem0 dashboard part of the normal user flow.

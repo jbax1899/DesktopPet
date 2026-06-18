@@ -32,7 +32,13 @@ public sealed class UiSettingsStore
         {
             var json = File.ReadAllText(_settingsFilePath);
             var settings = JsonSerializer.Deserialize<UiSettings>(json, JsonOptions) ?? UiSettings.Default;
-            return settings.ChatShortcut.IsValid() ? settings : UiSettings.Default;
+            return settings with
+            {
+                ChatShortcut = settings.ChatShortcut.IsValid()
+                    ? settings.ChatShortcut
+                    : KeyboardShortcut.DefaultChatShortcut,
+                ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
+            };
         }
         catch (JsonException)
         {
@@ -50,6 +56,10 @@ public sealed class UiSettingsStore
             ?? throw new InvalidOperationException("Settings file path does not have a directory.");
 
         Directory.CreateDirectory(directory);
-        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        var normalizedSettings = settings with
+        {
+            ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
+        };
+        File.WriteAllText(_settingsFilePath, JsonSerializer.Serialize(normalizedSettings, JsonOptions));
     }
 }

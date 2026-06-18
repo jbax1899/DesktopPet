@@ -85,11 +85,26 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
             var currentUiSettings = _uiSettingsStore.Load();
+            var currentHistorySettings = currentUiSettings.GetEffectiveChatHistoryContext();
+            var historySettings = new ChatHistoryContextSettings(
+                ClampInt(
+                    RegularHistoryMessageCountTextBox.Text,
+                    ChatHistoryContextSettings.MinimumMessageCount,
+                    ChatHistoryContextSettings.MaximumMessageCount,
+                    currentHistorySettings.RegularMessageCount),
+                ClampInt(
+                    AmbientHistoryMessageCountTextBox.Text,
+                    ChatHistoryContextSettings.MinimumMessageCount,
+                    ChatHistoryContextSettings.MaximumMessageCount,
+                    currentHistorySettings.AmbientMessageCount));
             var uiSettings = currentUiSettings with
             {
-                ChatShortcut = _selectedChatShortcut
+                ChatShortcut = _selectedChatShortcut,
+                ChatHistoryContext = historySettings
             };
             _uiSettingsStore.Save(uiSettings);
+            RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
+            AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
 
             SaveObservationSettings();
 
@@ -119,7 +134,11 @@ public partial class SettingsWindow : Window
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
         NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
 
-        _selectedChatShortcut = _uiSettingsStore.Load().ChatShortcut;
+        var uiSettings = _uiSettingsStore.Load();
+        _selectedChatShortcut = uiSettings.ChatShortcut;
+        var historySettings = uiSettings.GetEffectiveChatHistoryContext();
+        RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
+        AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
         UpdateShortcutButton();
 
         var hotkeyWarning = _getHotkeyWarning();
@@ -262,6 +281,86 @@ public partial class SettingsWindow : Window
         }
 
         return fallback;
+    }
+
+    private void OnRegularHistoryDecrementClicked(object sender, RoutedEventArgs e)
+    {
+        AdjustHistoryBudget(
+            RegularHistoryMessageCountTextBox,
+            -1,
+            ChatHistoryContextSettings.DefaultRegularMessageCount);
+    }
+
+    private void OnRegularHistoryIncrementClicked(object sender, RoutedEventArgs e)
+    {
+        AdjustHistoryBudget(
+            RegularHistoryMessageCountTextBox,
+            1,
+            ChatHistoryContextSettings.DefaultRegularMessageCount);
+    }
+
+    private void OnAmbientHistoryDecrementClicked(object sender, RoutedEventArgs e)
+    {
+        AdjustHistoryBudget(
+            AmbientHistoryMessageCountTextBox,
+            -1,
+            ChatHistoryContextSettings.DefaultAmbientMessageCount);
+    }
+
+    private void OnAmbientHistoryIncrementClicked(object sender, RoutedEventArgs e)
+    {
+        AdjustHistoryBudget(
+            AmbientHistoryMessageCountTextBox,
+            1,
+            ChatHistoryContextSettings.DefaultAmbientMessageCount);
+    }
+
+    private static void AdjustHistoryBudget(
+        System.Windows.Controls.TextBox textBox,
+        int delta,
+        int fallback)
+    {
+        var current = ClampInt(
+            textBox.Text,
+            ChatHistoryContextSettings.MinimumMessageCount,
+            ChatHistoryContextSettings.MaximumMessageCount,
+            fallback);
+        textBox.Text = Math.Clamp(
+            current + delta,
+            ChatHistoryContextSettings.MinimumMessageCount,
+            ChatHistoryContextSettings.MaximumMessageCount).ToString();
+    }
+
+    private void OnHistoryBudgetLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender == RegularHistoryMessageCountTextBox)
+        {
+            NormalizeHistoryBudgetTextBox(
+                RegularHistoryMessageCountTextBox,
+                ChatHistoryContextSettings.DefaultRegularMessageCount);
+        }
+        else if (sender == AmbientHistoryMessageCountTextBox)
+        {
+            NormalizeHistoryBudgetTextBox(
+                AmbientHistoryMessageCountTextBox,
+                ChatHistoryContextSettings.DefaultAmbientMessageCount);
+        }
+    }
+
+    private static void NormalizeHistoryBudgetTextBox(
+        System.Windows.Controls.TextBox textBox,
+        int fallback)
+    {
+        textBox.Text = ClampInt(
+            textBox.Text,
+            ChatHistoryContextSettings.MinimumMessageCount,
+            ChatHistoryContextSettings.MaximumMessageCount,
+            fallback).ToString();
+    }
+
+    private void OnHistoryBudgetPreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = e.Text.Any(character => !char.IsDigit(character));
     }
 
     private void OnCommentaryLevelChanged(object sender, RoutedEventArgs e)

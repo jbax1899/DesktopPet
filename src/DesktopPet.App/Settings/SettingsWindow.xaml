@@ -58,6 +58,7 @@
                     <!-- Input -->
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <!-- Separator -->
                     <RowDefinition Height="Auto" />
                     <!-- Screen Context -->
@@ -238,19 +239,84 @@
                             Content="Reset" />
                 </StackPanel>
 
+                <TextBlock Grid.Row="17"
+                           Grid.Column="0"
+                           Margin="0,12,12,0"
+                           VerticalAlignment="Top"
+                           Text="Chat history context" />
+                <StackPanel Grid.Row="17"
+                            Grid.Column="1"
+                            Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="Regular messages" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal">
+                            <Button Width="28"
+                                    Padding="4,2"
+                                    Click="OnRegularHistoryDecrementClicked"
+                                    Content="−" />
+                            <TextBox x:Name="RegularHistoryMessageCountTextBox"
+                                     Width="42"
+                                     Margin="4,0"
+                                     HorizontalContentAlignment="Center"
+                                     LostFocus="OnHistoryBudgetLostFocus"
+                                     PreviewTextInput="OnHistoryBudgetPreviewTextInput" />
+                            <Button Width="28"
+                                    Padding="4,2"
+                                    Click="OnRegularHistoryIncrementClicked"
+                                    Content="+" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="Ambient messages" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal">
+                            <Button Width="28"
+                                    Padding="4,2"
+                                    Click="OnAmbientHistoryDecrementClicked"
+                                    Content="−" />
+                            <TextBox x:Name="AmbientHistoryMessageCountTextBox"
+                                     Width="42"
+                                     Margin="4,0"
+                                     HorizontalContentAlignment="Center"
+                                     LostFocus="OnHistoryBudgetLostFocus"
+                                     PreviewTextInput="OnHistoryBudgetPreviewTextInput" />
+                            <Button Width="28"
+                                    Padding="4,2"
+                                    Click="OnAmbientHistoryIncrementClicked"
+                                    Content="+" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Margin="0,5,0,0"
+                               FontSize="10"
+                               Foreground="#FF64748B"
+                               Text="Messages included with each Agent request. Range: 0–50."
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
                 <!-- ═══════════════════ -->
-                <Border Grid.Row="17" Grid.ColumnSpan="2"
+                <Border Grid.Row="18" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />
 
                 <!-- ═══ Screen Context ═══ -->
-                <TextBlock Grid.Row="18"
+                <TextBlock Grid.Row="19"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Screen Context" />
 
                 <CheckBox x:Name="ObservationEnabledCheckBox"
-                          Grid.Row="19"
+                          Grid.Row="20"
                           Grid.ColumnSpan="2"
                           Margin="0,0,0,8"
                           FontWeight="SemiBold"
@@ -258,13 +324,13 @@
                           ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
 
                 <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
-                          Grid.Row="20"
+                          Grid.Row="21"
                           Grid.ColumnSpan="2"
                           Margin="0,0,0,8"
                           Content="Allow ambient comments"
                           ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
 
-                <Grid Grid.Row="21"
+                <Grid Grid.Row="22"
                       Grid.ColumnSpan="2"
                       Margin="0,0,0,6">
                     <Grid.ColumnDefinitions>
@@ -385,7 +451,7 @@
                     </StackPanel>
                 </Grid>
 
-                <TextBlock Grid.Row="22"
+                <TextBlock Grid.Row="23"
                            Grid.ColumnSpan="2"
                            Margin="0,4,0,0"
                            Foreground="#FF475569"
@@ -393,7 +459,7 @@
                            TextWrapping="Wrap" />
 
                 <TextBlock x:Name="VisionWarningTextBlock"
-                           Grid.Row="23"
+                           Grid.Row="24"
                            Grid.ColumnSpan="2"
                            Margin="0,4,0,8"
                            Foreground="#FF9A3412"
@@ -401,7 +467,7 @@
                            TextWrapping="Wrap" />
 
                 <DataGrid x:Name="ApplicationsGrid"
-                          Grid.Row="24"
+                          Grid.Row="25"
                           Grid.ColumnSpan="2"
                           MaxHeight="250"
                           VerticalAlignment="Top"

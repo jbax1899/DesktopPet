@@ -10,6 +10,7 @@ permission-based awareness of the active application.
 - Typed chat from the overlay or a configurable global shortcut
 - ElevenLabs Agent replies with streamed speech, replay, and custom pronunciations
 - Local chat history, conversation continuity, and manually managed memories
+- Configurable regular and ambient history counts for Agent context
 - Optional screen context using per-application permissions
 - Optional OpenRouter vision analysis and ambient comments
 
@@ -52,6 +53,10 @@ Each variable should have a harmless fallback in the Agent configuration.
 The Agent prompt should treat `temporal_context` as the authoritative current
 date, time, and timezone when interpreting relative dates in conversation
 history.
+
+The Settings window controls how many regular and ambient history messages are
+included with each Agent request. Both counts support 0–50; defaults are 14
+regular and 6 ambient messages.
 
 ## Run
 

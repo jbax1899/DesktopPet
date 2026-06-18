@@ -65,7 +65,10 @@ public sealed class DesktopPetApplication : IDisposable
         _profileSettingsStore = new ProfileSettingsStore();
         _errorMessageStore = new CharacterErrorMessageStore();
         _httpClient = new HttpClient();
-        _chatService = new ElevenLabsAgentChatService(_httpClient, _elevenLabsSettingsStore.Load);
+        _chatService = new ElevenLabsAgentChatService(
+            _httpClient,
+            _elevenLabsSettingsStore.Load,
+            _uiSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
         _memoryStore = new LocalMemoryStore();
         _chatHistoryStore = new LocalChatHistoryStore();

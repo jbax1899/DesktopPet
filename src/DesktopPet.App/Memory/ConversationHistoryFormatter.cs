@@ -5,57 +5,48 @@ namespace DesktopPet.App.Memory;
 
 public static class ConversationHistoryFormatter
 {
-    private const int MaximumTurns = 20;
-    private const int MaximumTotalLength = 8_000;
     private const int MaximumTextLength = 600;
     private const int MaximumContextLength = 500;
+    private const int MaximumConfiguredMessageCount = 50;
+    private static readonly TimeSpan LegacyDirectReplyWindow = TimeSpan.FromMinutes(5);
 
     public static string? Format(
         IReadOnlyList<ChatHistoryMessage>? messages,
         DateTimeOffset? asOf = null,
-        TimeZoneInfo? timeZone = null)
+        TimeZoneInfo? timeZone = null,
+        int regularMessageCount = 14,
+        int ambientMessageCount = 6)
     {
-        if (messages is null || messages.Count == 0)
+        if (messages is null
+            || messages.Count == 0
+            || (regularMessageCount <= 0 && ambientMessageCount <= 0))
         {
             return null;
         }
 
         var now = asOf ?? DateTimeOffset.UtcNow;
         var localTimeZone = timeZone ?? TimeZoneInfo.Local;
-        var newestTurns = messages
-            .OrderByDescending(message => message.CreatedAtUtc)
-            .Take(MaximumTurns)
-            .Select(message => FormatTurn(message, now, localTimeZone))
-            .ToArray();
+        var selectedTurns = SelectTurns(
+            messages,
+            Math.Clamp(regularMessageCount, 0, MaximumConfiguredMessageCount),
+            Math.Clamp(ambientMessageCount, 0, MaximumConfiguredMessageCount));
 
-        var selectedTurns = new List<string>();
-        var selectedLength = 0;
-        foreach (var turn in newestTurns)
-        {
-            var separatorLength = selectedTurns.Count == 0 ? 0 : Environment.NewLine.Length;
-            if (selectedLength + separatorLength + turn.Length > MaximumTotalLength)
-            {
-                continue;
-            }
-
-            selectedTurns.Add(turn);
-            selectedLength += separatorLength + turn.Length;
-        }
-
-        selectedTurns.Reverse();
         return selectedTurns.Count == 0
             ? null
-            : string.Join(Environment.NewLine, selectedTurns);
+            : string.Join(
+                Environment.NewLine,
+                selectedTurns.Select(turn => FormatTurn(turn, now, localTimeZone)));
     }
 
     private static string FormatTurn(
-        ChatHistoryMessage message,
+        SelectedHistoryTurn turn,
         DateTimeOffset now,
         TimeZoneInfo timeZone)
     {
+        var message = turn.Message;
         var speaker = message.Role == ChatHistoryRole.User
             ? "User"
-            : message.Origin == ChatHistoryOrigin.AmbientReply
+            : turn.IsAmbient
                 ? "Pet (ambient observation)"
                 : "Pet";
 
@@ -76,6 +67,62 @@ public static class ConversationHistoryFormatter
         }
 
         return builder.ToString();
+    }
+
+    private static IReadOnlyList<SelectedHistoryTurn> SelectTurns(
+        IReadOnlyList<ChatHistoryMessage> messages,
+        int regularMessageCount,
+        int ambientMessageCount)
+    {
+        var orderedMessages = messages
+            .Select((message, sourceIndex) => new { Message = message, SourceIndex = sourceIndex })
+            .OrderBy(item => item.Message.CreatedAtUtc)
+            .ThenBy(item => item.SourceIndex)
+            .ToArray();
+
+        var classifiedTurns = new List<SelectedHistoryTurn>(orderedMessages.Length);
+        for (var index = 0; index < orderedMessages.Length; index++)
+        {
+            var message = orderedMessages[index].Message;
+            classifiedTurns.Add(new SelectedHistoryTurn(
+                message,
+                IsAmbient(message, index > 0 ? orderedMessages[index - 1].Message : null),
+                orderedMessages[index].SourceIndex));
+        }
+
+        var selected = classifiedTurns
+            .Where(turn => !turn.IsAmbient)
+            .TakeLast(regularMessageCount)
+            .Concat(
+                classifiedTurns
+                    .Where(turn => turn.IsAmbient)
+                    .TakeLast(ambientMessageCount))
+            .OrderBy(turn => turn.Message.CreatedAtUtc)
+            .ThenBy(turn => turn.SourceIndex)
+            .ToArray();
+
+        return selected;
+    }
+
+    private static bool IsAmbient(ChatHistoryMessage message, ChatHistoryMessage? previousMessage)
+    {
+        if (message.Origin is not null)
+        {
+            return message.Origin == ChatHistoryOrigin.AmbientReply;
+        }
+
+        if (message.Role == ChatHistoryRole.User)
+        {
+            return false;
+        }
+
+        if (previousMessage?.Role != ChatHistoryRole.User)
+        {
+            return true;
+        }
+
+        var elapsed = message.CreatedAtUtc - previousMessage.CreatedAtUtc;
+        return elapsed < TimeSpan.Zero || elapsed > LegacyDirectReplyWindow;
     }
 
     private static string FormatRelativeTime(
@@ -166,4 +213,9 @@ public static class ConversationHistoryFormatter
             ? value
             : string.Concat(value.AsSpan(0, maximumLength - 3), "...");
     }
+
+    private sealed record SelectedHistoryTurn(
+        ChatHistoryMessage Message,
+        bool IsAmbient,
+        int SourceIndex);
 }

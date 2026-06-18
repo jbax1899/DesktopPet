@@ -1,6 +1,7 @@
 <Window x:Class="DesktopPet.App.Memory.MemoryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DesktopPet.App.Memory"
         Title="Desktop Pet Memories"
         Width="620"
         Height="520"
@@ -245,54 +246,51 @@
                                         BorderBrush="#E2E8F0"
                                         BorderThickness="1"
                                         CornerRadius="6">
-                                    <StackPanel>
-                                        <DockPanel>
-                                            <TextBlock DockPanel.Dock="Left"
-                                                       FontWeight="SemiBold"
-                                                       Text="{Binding Application}" />
-                                            <TextBlock DockPanel.Dock="Right"
-                                                       FontSize="11"
-                                                       Foreground="#64748B"
-                                                       Text="{Binding WindowTitle}" />
-                                        </DockPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                        <TextBlock Margin="0,4,0,0"
-                                                   Foreground="#334155"
-                                                   Text="{Binding Analysis.Summary}"
-                                                   TextWrapping="Wrap" />
+                                        <StackPanel Grid.Column="0">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Left"
+                                                           FontWeight="SemiBold"
+                                                           Text="{Binding Application}" />
+                                                <TextBlock DockPanel.Dock="Right"
+                                                           FontSize="11"
+                                                           Foreground="#64748B"
+                                                           Text="{Binding WindowTitle}" />
+                                            </DockPanel>
 
-                                        <StackPanel Margin="0,6,0,0"
-                                                    Orientation="Horizontal">
-                                            <TextBlock Margin="0,0,12,0"
-                                                       FontSize="11"
-                                                       Foreground="#64748B">
-                                                <Run Text="Interest: " />
-                                                <Run Text="{Binding InterestScore, StringFormat={}{0:F0}}" />
-                                            </TextBlock>
-                                            <TextBlock FontSize="11"
-                                                       Foreground="#64748B">
-                                                <Run Text="Confidence: " />
-                                                <Run Text="{Binding Analysis.Confidence, StringFormat={}{0:F0}}" />
-                                            </TextBlock>
+                                            <TextBlock Margin="0,4,0,0"
+                                                       Foreground="#334155"
+                                                       Text="{Binding Analysis.Summary}"
+                                                       TextWrapping="Wrap" />
+
+                                            <StackPanel Margin="0,4,0,0"
+                                                        Orientation="Horizontal">
+                                                <TextBlock FontSize="11"
+                                                           Foreground="#64748B">
+                                                    <Run Text="Outcome: " />
+                                                    <Run Text="{Binding Outcome}" />
+                                                </TextBlock>
+                                                <TextBlock x:Name="SpokenAtText"
+                                                           Margin="8,0,0,0"
+                                                           FontSize="11"
+                                                           Foreground="#64748B"
+                                                           Visibility="Collapsed">
+                                                    <Run Text="Spoken: " />
+                                                    <Run Text="{Binding SpokenAt, StringFormat={}{0:g}}" />
+                                                </TextBlock>
+                                            </StackPanel>
                                         </StackPanel>
 
-                                        <StackPanel Margin="0,4,0,0"
-                                                    Orientation="Horizontal">
-                                            <TextBlock FontSize="11"
-                                                       Foreground="#64748B">
-                                                <Run Text="Outcome: " />
-                                                <Run Text="{Binding Outcome}" />
-                                            </TextBlock>
-                                            <TextBlock x:Name="SpokenAtText"
-                                                       Margin="8,0,0,0"
-                                                       FontSize="11"
-                                                       Foreground="#64748B"
-                                                       Visibility="Collapsed">
-                                                <Run Text="Spoken: " />
-                                                <Run Text="{Binding SpokenAt, StringFormat={}{0:g}}" />
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </StackPanel>
+                                        <local:ThumbnailBox Grid.Column="1"
+                                                            Margin="10,0,0,0"
+                                                            ThumbnailPath="{Binding ThumbnailPath}"
+                                                            VerticalAlignment="Top" />
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

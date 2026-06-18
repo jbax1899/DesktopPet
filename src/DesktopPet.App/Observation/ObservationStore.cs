@@ -8,14 +8,24 @@ public sealed class ObservationStore
     private const int MaximumRecords = 200;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly string _filePath;
+    private readonly string _thumbnailDirectory;
     private readonly object _sync = new();
 
     public ObservationStore()
     {
-        _filePath = Path.Combine(
+        var dataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet",
-            "observations.json");
+            "DesktopPet");
+        _filePath = Path.Combine(dataDirectory, "observations.json");
+        _thumbnailDirectory = Path.Combine(dataDirectory, "thumbnails");
+    }
+
+    public string SaveThumbnail(System.Drawing.Bitmap bitmap, string id)
+    {
+        Directory.CreateDirectory(_thumbnailDirectory);
+        var path = Path.Combine(_thumbnailDirectory, $"{id}.jpg");
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Jpeg);
+        return path;
     }
 
     public IReadOnlyList<ObservationRecord> List()
@@ -57,6 +67,11 @@ public sealed class ObservationStore
             if (File.Exists(_filePath))
             {
                 File.Delete(_filePath);
+            }
+
+            if (Directory.Exists(_thumbnailDirectory))
+            {
+                Directory.Delete(_thumbnailDirectory, recursive: true);
             }
         }
     }

@@ -24,7 +24,8 @@ public sealed record ObservationRecord(
     VisionObservation Analysis,
     double InterestScore,
     ObservationOutcome Outcome,
-    DateTimeOffset? SpokenAt);
+    DateTimeOffset? SpokenAt,
+    string? ThumbnailPath = null);
 
 public enum ObservationOutcome
 {

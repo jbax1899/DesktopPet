@@ -108,12 +108,15 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         System.Diagnostics.Debug.WriteLine($"Ambient: Change detected for {change.Observation.ApplicationName} ({change.Type}). Turn={turnId}.");
 
         VisionObservation? visionObservation = null;
+        string? thumbnailPath = null;
         if (_visualAnalyzer is not null && _visualAnalyzer.IsAvailable
             && _windowCaptureService is not null
             && _permissionService.IsAllowed(change.Observation.ExecutablePath, DesktopContextCapabilities.Visual))
         {
             System.Diagnostics.Debug.WriteLine($"Ambient: Attempting vision analysis for {change.Observation.ExecutablePath}.");
-            visionObservation = await CaptureAndAnalyzeAsync(change, turnId, CancellationToken.None);
+            var analysis = await CaptureAndAnalyzeAsync(change, turnId, CancellationToken.None);
+            visionObservation = analysis?.Observation;
+            thumbnailPath = analysis?.ThumbnailPath;
             if (visionObservation is not null)
             {
                 System.Diagnostics.Debug.WriteLine($"Ambient: Vision analysis complete. Summary={visionObservation.Summary}");
@@ -138,7 +141,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         if (!initialDecision.MaySpeak)
         {
             System.Diagnostics.Debug.WriteLine($"Ambient: Policy rejected. Reason={initialDecision.Reason}.");
-            RecordObservation(change, visionObservation, initialDecision.Reason, spoke: false);
+            RecordObservation(change, visionObservation, thumbnailPath, initialDecision.Reason, spoke: false);
             return;
         }
 
@@ -161,7 +164,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             {
                 if (turnId == Volatile.Read(ref _turnId))
                 {
-                    RecordObservation(change, visionObservation, AmbientDecisionReason.GeneratorChoseSilence, spoke: false);
+                    RecordObservation(change, visionObservation, thumbnailPath, AmbientDecisionReason.GeneratorChoseSilence, spoke: false);
                 }
                 return;
             }
@@ -170,7 +173,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             var finalDecision = _policy.Evaluate(candidate, DateTimeOffset.UtcNow, visionObservation);
             if (!finalDecision.MaySpeak)
             {
-                RecordObservation(change, visionObservation, finalDecision.Reason, spoke: false);
+                RecordObservation(change, visionObservation, thumbnailPath, finalDecision.Reason, spoke: false);
                 return;
             }
 
@@ -199,7 +202,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             }
 
             _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
-            RecordObservation(change, visionObservation, AmbientDecisionReason.Eligible, spoke: true);
+            RecordObservation(change, visionObservation, thumbnailPath, AmbientDecisionReason.Eligible, spoke: true);
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
             _overlayWindow.HideTranscript();
         }
@@ -209,7 +212,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         }
     }
 
-    private async Task<VisionObservation?> CaptureAndAnalyzeAsync(
+    private sealed record CapturedAnalysis(VisionObservation Observation, string? ThumbnailPath);
+
+    private async Task<CapturedAnalysis?> CaptureAndAnalyzeAsync(
         DesktopObservationChange change,
         long turnId,
         CancellationToken cancellationToken)
@@ -249,12 +254,30 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
                 var lastSpokeAt = _policy.GetLastSpokenAt();
                 var recentObservations = _observationCoordinator.RecentObservations;
-                return await (_visualAnalyzer as OpenRouterVisionAnalyzer)?.AnalyzeDetailedAsync(
+                var visionObservation = await (_visualAnalyzer as OpenRouterVisionAnalyzer)?.AnalyzeDetailedAsync(
                     capture.Image,
                     new VisualAnalysisRequest(change.Observation.ApplicationName, change.Observation.ActivityDescription),
                     recentObservations,
                     lastSpokeAt,
                     cancellationToken)!;
+
+                if (visionObservation is null)
+                {
+                    return null;
+                }
+
+                string? thumbnailPath = null;
+                try
+                {
+                    var thumbnailId = Guid.NewGuid().ToString("N");
+                    thumbnailPath = _observationStore.SaveThumbnail(capture.Image.Bitmap, thumbnailId);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to save thumbnail ({ex.GetType().Name}): {ex.Message}");
+                }
+
+                return new CapturedAnalysis(visionObservation, thumbnailPath);
             }
         }
         catch (OperationCanceledException)
@@ -271,6 +294,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private void RecordObservation(
         DesktopObservationChange change,
         VisionObservation? visionObservation,
+        string? thumbnailPath,
         AmbientDecisionReason reason,
         bool spoke)
     {
@@ -289,7 +313,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 Analysis: visionObservation,
                 InterestScore: interestScore,
                 Outcome: MapOutcome(reason, spoke),
-                SpokenAt: spoke ? DateTimeOffset.UtcNow : null);
+                SpokenAt: spoke ? DateTimeOffset.UtcNow : null,
+                ThumbnailPath: thumbnailPath);
             _observationStore.Add(record);
         }
     }

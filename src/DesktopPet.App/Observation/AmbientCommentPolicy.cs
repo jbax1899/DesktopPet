@@ -148,9 +148,9 @@ internal sealed partial class AmbientCommentPolicy : IAmbientCommentPolicy
     {
         return level switch
         {
-            CommentaryLevel.Quiet => TimeSpan.FromMinutes(30),
-            CommentaryLevel.Talkative => TimeSpan.FromMinutes(7),
-            _ => TimeSpan.FromMinutes(15)
+            CommentaryLevel.Quiet => TimeSpan.FromMinutes(15),
+            CommentaryLevel.Talkative => TimeSpan.FromMinutes(3),
+            _ => TimeSpan.FromMinutes(7)
         };
     }
 

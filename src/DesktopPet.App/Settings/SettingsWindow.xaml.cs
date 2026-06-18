@@ -216,7 +216,7 @@ public partial class SettingsWindow : Window
         CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
             ? "Rare comments, long silence between remarks."
             : CommentaryTalkativeRadioButton.IsChecked == true
-                ? "Frequent comments, notices more small changes."
+                ? "Frequent comments, notices small changes quickly."
                 : "Moderate cadence, balanced between silence and speech.";
     }
 

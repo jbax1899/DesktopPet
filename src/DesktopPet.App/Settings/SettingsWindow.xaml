@@ -66,6 +66,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150" />
@@ -285,20 +287,20 @@
                                          GroupName="Commentary"
                                          Margin="0,0,4,0"
                                          Content="Quiet"
-                                         ToolTip="Rare comments (~30 min cooldown)."
+                                         ToolTip="Rare comments (~15 min cooldown)."
                                          Checked="OnCommentaryLevelChanged" />
                             <RadioButton x:Name="CommentaryBalancedRadioButton"
                                          GroupName="Commentary"
                                          Margin="4,0"
                                          Content="Balanced"
                                          IsChecked="True"
-                                         ToolTip="Moderate cadence (~15 min cooldown)."
+                                         ToolTip="Moderate cadence (~7 min cooldown)."
                                          Checked="OnCommentaryLevelChanged" />
                             <RadioButton x:Name="CommentaryTalkativeRadioButton"
                                          GroupName="Commentary"
                                          Margin="4,0,0,0"
                                          Content="Talkative"
-                                         ToolTip="Frequent comments (~7 min cooldown)."
+                                         ToolTip="Frequent comments (~3 min cooldown)."
                                          Checked="OnCommentaryLevelChanged" />
                         </UniformGrid>
                         <TextBlock x:Name="CommentaryLegendTextBlock"

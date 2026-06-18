@@ -19,6 +19,7 @@ public partial class ThumbnailBox : WpfUserControl
     {
         InitializeComponent();
         ThumbnailBorder.MouseLeftButtonDown += OnThumbnailClick;
+        ExpandedPopup.MouseLeftButtonDown += OnExpandedPopupClick;
     }
 
     public string? ThumbnailPath
@@ -64,6 +65,13 @@ public partial class ThumbnailBox : WpfUserControl
             return;
         }
 
-        ExpandedPopup.IsOpen = true;
+        ExpandedPopup.IsOpen = !ExpandedPopup.IsOpen;
+        e.Handled = true;
+    }
+
+    private void OnExpandedPopupClick(object sender, MouseButtonEventArgs e)
+    {
+        ExpandedPopup.IsOpen = false;
+        e.Handled = true;
     }
 }

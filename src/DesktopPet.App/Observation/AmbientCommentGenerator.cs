@@ -48,7 +48,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
     {
         if (visionObservation is null)
         {
-            return "Give one brief, useful desktop-pet comment about this permitted change. If there is nothing specific worth saying, reply with SILENCE.";
+            return "Give one short, playful, in-character comment about what the user is doing right now. You are a desktop pet — be curious, observant, and opinionated. Never reply SILENCE.";
         }
 
         var parts = new List<string>
@@ -62,7 +62,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
             parts.Add($"Possible topics: {string.Join(", ", visionObservation.PossibleCommentTopics.Take(2))}");
         }
 
-        parts.Add("Give one brief, in-character comment as a desktop pet. If there is nothing worth saying, reply with SILENCE.");
+        parts.Add("Give one short, playful, in-character comment as a desktop pet. Be curious and opinionated. Never reply SILENCE.");
 
         return string.Join(" ", parts);
     }

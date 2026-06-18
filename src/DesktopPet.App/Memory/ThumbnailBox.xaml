@@ -17,7 +17,7 @@
                Placement="Right"
                PlacementTarget="{Binding ElementName=ThumbnailBorder}"
                PopupAnimation="Fade"
-               StaysOpen="False">
+               StaysOpen="True">
             <Border Margin="8"
                     BorderBrush="#1F2937"
                     BorderThickness="1"

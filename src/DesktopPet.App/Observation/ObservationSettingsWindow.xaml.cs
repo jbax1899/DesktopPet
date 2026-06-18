@@ -26,6 +26,32 @@ public partial class ObservationSettingsWindow : Window
         ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
 
+        switch (settings.CommentaryLevel)
+        {
+            case CommentaryLevel.Quiet:
+                CommentaryQuietRadioButton.IsChecked = true;
+                break;
+            case CommentaryLevel.Talkative:
+                CommentaryTalkativeRadioButton.IsChecked = true;
+                break;
+            default:
+                CommentaryBalancedRadioButton.IsChecked = true;
+                break;
+        }
+
+        switch (settings.VisionSensitivity)
+        {
+            case VisionSensitivity.Low:
+                VisionLowRadioButton.IsChecked = true;
+                break;
+            case VisionSensitivity.High:
+                VisionHighRadioButton.IsChecked = true;
+                break;
+            default:
+                VisionMediumRadioButton.IsChecked = true;
+                break;
+        }
+
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
             .ToDictionary(row => row.ExecutablePath, StringComparer.OrdinalIgnoreCase);
@@ -60,11 +86,40 @@ public partial class ObservationSettingsWindow : Window
         {
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
-            CommentaryLevel = current.CommentaryLevel,
+            CommentaryLevel = CommentaryTalkativeRadioButton.IsChecked == true
+                ? CommentaryLevel.Talkative
+                : CommentaryQuietRadioButton.IsChecked == true
+                    ? CommentaryLevel.Quiet
+                    : CommentaryLevel.Balanced,
+            VisionSensitivity = VisionHighRadioButton.IsChecked == true
+                ? VisionSensitivity.High
+                : VisionLowRadioButton.IsChecked == true
+                    ? VisionSensitivity.Low
+                    : VisionSensitivity.Medium,
             ApplicationRules = rules
         });
 
         StatusTextBlock.Text = "Screen context permissions saved.";
+    }
+
+    private void OnCommentaryLevelChanged(object sender, RoutedEventArgs e)
+    {
+        if (CommentaryLegendTextBlock is null) return;
+        CommentaryLegendTextBlock.Text = CommentaryQuietRadioButton.IsChecked == true
+            ? "Rare comments, long silence between remarks."
+            : CommentaryTalkativeRadioButton.IsChecked == true
+                ? "Frequent comments, notices small changes quickly."
+                : "Moderate cadence, balanced between silence and speech.";
+    }
+
+    private void OnVisionSensitivityChanged(object sender, RoutedEventArgs e)
+    {
+        if (VisionSensitivityLegendTextBlock is null) return;
+        VisionSensitivityLegendTextBlock.Text = VisionLowRadioButton.IsChecked == true
+            ? "Only highly interesting changes trigger analysis."
+            : VisionHighRadioButton.IsChecked == true
+                ? "More things trigger analysis, including subtle changes."
+                : "Balanced interest threshold for most situations.";
     }
 
     private static IEnumerable<ApplicationRuleRow> ListRunningApplications()

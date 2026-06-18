@@ -18,6 +18,84 @@
                       Margin="0,6,0,0"
                       Content="Allow ambient comments"
                       ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
+            <Grid Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Text="Commentary" />
+                <StackPanel Grid.Row="0" Grid.Column="1"
+                            Orientation="Vertical">
+                    <UniformGrid Columns="3">
+                        <RadioButton x:Name="CommentaryQuietRadioButton"
+                                     GroupName="Commentary"
+                                     Margin="0,0,4,0"
+                                     Content="Quiet"
+                                     ToolTip="Rare comments (~15 min cooldown)."
+                                     Checked="OnCommentaryLevelChanged" />
+                        <RadioButton x:Name="CommentaryBalancedRadioButton"
+                                     GroupName="Commentary"
+                                     Margin="4,0"
+                                     Content="Balanced"
+                                     IsChecked="True"
+                                     ToolTip="Moderate cadence (~7 min cooldown)."
+                                     Checked="OnCommentaryLevelChanged" />
+                        <RadioButton x:Name="CommentaryTalkativeRadioButton"
+                                     GroupName="Commentary"
+                                     Margin="4,0,0,0"
+                                     Content="Talkative"
+                                     ToolTip="Frequent comments (~3 min cooldown)."
+                                     Checked="OnCommentaryLevelChanged" />
+                    </UniformGrid>
+                    <TextBlock x:Name="CommentaryLegendTextBlock"
+                               Margin="2,4,0,0"
+                               Foreground="#FF64748B"
+                               FontSize="10"
+                               Text="How often Pebble speaks when interesting things are found." />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Margin="0,8,12,0"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Text="Vision sensitivity" />
+                <StackPanel Grid.Row="1" Grid.Column="1"
+                            Orientation="Vertical">
+                    <UniformGrid Columns="3">
+                        <RadioButton x:Name="VisionLowRadioButton"
+                                     GroupName="VisionSensitivity"
+                                     Margin="0,0,4,0"
+                                     Content="Low"
+                                     ToolTip="Only highly interesting changes trigger analysis."
+                                     Checked="OnVisionSensitivityChanged" />
+                        <RadioButton x:Name="VisionMediumRadioButton"
+                                     GroupName="VisionSensitivity"
+                                     Margin="4,0"
+                                     Content="Medium"
+                                     IsChecked="True"
+                                     ToolTip="Balanced interest threshold."
+                                     Checked="OnVisionSensitivityChanged" />
+                        <RadioButton x:Name="VisionHighRadioButton"
+                                     GroupName="VisionSensitivity"
+                                     Margin="4,0,0,0"
+                                     Content="High"
+                                     ToolTip="More things trigger analysis, including subtle changes."
+                                     Checked="OnVisionSensitivityChanged" />
+                    </UniformGrid>
+                    <TextBlock x:Name="VisionSensitivityLegendTextBlock"
+                               Margin="2,4,0,0"
+                               Foreground="#FF64748B"
+                               FontSize="10"
+                               Text="How easily the vision model considers something interesting to analyze." />
+                </StackPanel>
+            </Grid>
             <TextBlock Margin="0,6,0,0"
                        Foreground="#FF475569"
                        Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."

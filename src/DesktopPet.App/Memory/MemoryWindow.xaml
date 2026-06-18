@@ -15,15 +15,27 @@
             <TabItem Header="Chat History">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
+                    <DockPanel Grid.Row="0"
+                               Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right"
+                                Padding="10,4"
+                                Click="OnContextPreviewClicked"
+                                Content="Context preview" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Foreground="#64748B"
+                                   Text="Select a bot reply to inspect its recorded request context." />
+                    </DockPanel>
+
                     <ListBox x:Name="ChatHistoryListBox"
-                             Grid.Row="0"
+                             Grid.Row="1"
                              BorderBrush="#CBD5E1"
                              BorderThickness="1"
                              HorizontalContentAlignment="Stretch"
+                             SelectionChanged="OnChatHistorySelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">

@@ -12,4 +12,4 @@ public sealed record ChatRequest(
     IReadOnlyList<ObservationRecord>? ObservationHistory = null,
     IReadOnlyList<ChatHistoryMessage>? ConversationHistory = null);
 
-public sealed record ChatReply(string Text);
+public sealed record ChatReply(string Text, AgentContextSnapshot? ContextSnapshot = null);

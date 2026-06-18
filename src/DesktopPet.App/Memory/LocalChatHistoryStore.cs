@@ -93,6 +93,27 @@ public sealed class LocalChatHistoryStore : IChatHistoryStore
         SaveAll(messages);
     }
 
+    public void SetContextSnapshot(string id, AgentContextSnapshot contextSnapshot)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        var messages = LoadAll();
+        var index = messages.FindIndex(message => message.Id == id);
+        if (index < 0)
+        {
+            return;
+        }
+
+        messages[index] = messages[index] with
+        {
+            ContextSnapshot = contextSnapshot
+        };
+        SaveAll(messages);
+    }
+
     private List<ChatHistoryMessage> LoadAll()
     {
         if (!File.Exists(_historyFilePath))

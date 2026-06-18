@@ -57,8 +57,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         try
         {
             var signedUrl = await GetSignedUrlAsync(settings, linkedCancellation.Token);
-            var replyText = await SendMessageAsync(signedUrl, request, linkedCancellation.Token);
-            return new ChatReply(replyText);
+            return await SendMessageAsync(signedUrl, request, linkedCancellation.Token);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -92,7 +91,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
         return signedUrlResponse.SignedUrl;
     }
 
-    private async Task<string> SendMessageAsync(string signedUrl, ChatRequest request, CancellationToken cancellationToken)
+    private async Task<ChatReply> SendMessageAsync(string signedUrl, ChatRequest request, CancellationToken cancellationToken)
     {
         using var webSocket = new ClientWebSocket();
         await webSocket.ConnectAsync(new Uri(signedUrl), cancellationToken);
@@ -109,7 +108,10 @@ public sealed class ElevenLabsAgentChatService : IChatService
             }
         };
 
-        var dynamicVariables = BuildDynamicVariables(request);
+        var contextSnapshot = AgentContextBuilder.Build(
+            request,
+            _uiSettingsProvider().GetEffectiveChatHistoryContext());
+        var dynamicVariables = contextSnapshot.Values;
         if (dynamicVariables.Count > 0)
         {
             initiationData["dynamic_variables"] = dynamicVariables;
@@ -136,7 +138,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
             {
                 Debug.WriteLine("ElevenLabs WebSocket received no further agent response before chat idle timeout; returning latest response.");
                 await CloseAsync(webSocket, cancellationToken);
-                return latestResponse.Trim();
+                return new ChatReply(latestResponse.Trim(), contextSnapshot);
             }
 
             using var responseIdleTimeout = remainingIdleTime is null
@@ -157,7 +159,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
             {
                 Debug.WriteLine("ElevenLabs WebSocket received no further agent response before chat idle timeout; returning latest response.");
                 await CloseAsync(webSocket, cancellationToken);
-                return latestResponse.Trim();
+                return new ChatReply(latestResponse.Trim(), contextSnapshot);
             }
 
             if (message is null)
@@ -197,7 +199,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
                     }
 
                     await CloseAsync(webSocket, cancellationToken);
-                    return latestResponse.Trim();
+                    return new ChatReply(latestResponse.Trim(), contextSnapshot);
             }
         }
 
@@ -213,66 +215,6 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
         var elapsed = DateTimeOffset.UtcNow - lastAgentResponseAt.Value;
         return AgentResponseIdleTimeout - elapsed;
-    }
-
-    private Dictionary<string, string> BuildDynamicVariables(ChatRequest request)
-    {
-        var now = DateTimeOffset.UtcNow;
-        var localTimeZone = TimeZoneInfo.Local;
-        var dynamicVariables = new Dictionary<string, string>
-        {
-            ["temporal_context"] = TemporalContextFormatter.Format(now, localTimeZone)
-        };
-
-        if (!string.IsNullOrWhiteSpace(request.MemoriesContext))
-        {
-            dynamicVariables["memories_context"] = request.MemoriesContext;
-        }
-
-        var desktopContext = DesktopContextFormatter.Format(request.DesktopContext);
-        if (!string.IsNullOrWhiteSpace(desktopContext))
-        {
-            dynamicVariables["desktop_context"] = desktopContext;
-        }
-
-        var observationHistory = ObservationHistoryFormatter.Format(request.ObservationHistory);
-        if (!string.IsNullOrWhiteSpace(observationHistory))
-        {
-            dynamicVariables["desktop_observation_history"] = observationHistory;
-        }
-
-        var historySettings = _uiSettingsProvider().GetEffectiveChatHistoryContext();
-        var conversationHistory = ConversationHistoryFormatter.Format(
-            request.ConversationHistory,
-            now,
-            localTimeZone,
-            historySettings.RegularMessageCount,
-            historySettings.AmbientMessageCount);
-        if (!string.IsNullOrWhiteSpace(conversationHistory))
-        {
-            dynamicVariables["conversation_history"] = conversationHistory;
-        }
-
-        var profile = request.ProfileSettings;
-        if (profile is null)
-        {
-            return dynamicVariables;
-        }
-
-        var userName = profile.UserName?.Trim();
-        var petName = profile.Nickname?.Trim();
-
-        if (!string.IsNullOrWhiteSpace(userName))
-        {
-            dynamicVariables["user_name"] = userName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(petName))
-        {
-            dynamicVariables["pet_name"] = petName;
-        }
-
-        return dynamicVariables;
     }
 
     private static void TraceIncomingWebSocketMessage(JsonElement root)

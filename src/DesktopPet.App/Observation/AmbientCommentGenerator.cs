@@ -4,7 +4,10 @@ using DesktopPet.App.Settings;
 
 namespace DesktopPet.App.Observation;
 
-public sealed record AmbientCommentResult(string Text, string? DesktopContext);
+public sealed record AmbientCommentResult(
+    string Text,
+    string? DesktopContext,
+    AgentContextSnapshot? ContextSnapshot);
 
 public interface IAmbientCommentGenerator
 {
@@ -63,7 +66,10 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         return string.Equals(text, "SILENCE", StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(text)
             ? null
-            : new AmbientCommentResult(text, DesktopContextFormatter.Format(context));
+            : new AmbientCommentResult(
+                text,
+                DesktopContextFormatter.Format(context),
+                reply.ContextSnapshot);
     }
 
     private static DesktopTurnContext CreateDesktopContext(DesktopObservationChange change)

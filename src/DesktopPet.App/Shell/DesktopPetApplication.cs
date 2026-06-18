@@ -209,7 +209,9 @@ public sealed class DesktopPetApplication : IDisposable
                 _conversationController.ReplayCachedSpeechAsync,
                 _observationCoordinator,
                 _ambientDecisionStore,
-                _observationStore);
+                _observationStore,
+                _profileSettingsStore.Load,
+                _uiSettingsStore.Load);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 

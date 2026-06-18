@@ -8,7 +8,6 @@ public static class ConversationHistoryFormatter
     private const int MaximumTextLength = 600;
     private const int MaximumContextLength = 500;
     private const int MaximumConfiguredMessageCount = 50;
-    private static readonly TimeSpan LegacyDirectReplyWindow = TimeSpan.FromMinutes(5);
 
     public static string? Format(
         IReadOnlyList<ChatHistoryMessage>? messages,
@@ -86,7 +85,7 @@ public static class ConversationHistoryFormatter
             var message = orderedMessages[index].Message;
             classifiedTurns.Add(new SelectedHistoryTurn(
                 message,
-                IsAmbient(message, index > 0 ? orderedMessages[index - 1].Message : null),
+                IsAmbient(message),
                 orderedMessages[index].SourceIndex));
         }
 
@@ -104,25 +103,9 @@ public static class ConversationHistoryFormatter
         return selected;
     }
 
-    private static bool IsAmbient(ChatHistoryMessage message, ChatHistoryMessage? previousMessage)
+    private static bool IsAmbient(ChatHistoryMessage message)
     {
-        if (message.Origin is not null)
-        {
-            return message.Origin == ChatHistoryOrigin.AmbientReply;
-        }
-
-        if (message.Role == ChatHistoryRole.User)
-        {
-            return false;
-        }
-
-        if (previousMessage?.Role != ChatHistoryRole.User)
-        {
-            return true;
-        }
-
-        var elapsed = message.CreatedAtUtc - previousMessage.CreatedAtUtc;
-        return elapsed < TimeSpan.Zero || elapsed > LegacyDirectReplyWindow;
+        return message.Origin == ChatHistoryOrigin.AmbientReply;
     }
 
     private static string FormatRelativeTime(

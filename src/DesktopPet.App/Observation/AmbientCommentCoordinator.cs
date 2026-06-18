@@ -200,6 +200,10 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             {
                 _chatHistoryStore.SetDesktopContext(historyMessage.Id, generatedComment.DesktopContext);
             }
+            if (historyMessage is not null && generatedComment.ContextSnapshot is not null)
+            {
+                _chatHistoryStore.SetContextSnapshot(historyMessage.Id, generatedComment.ContextSnapshot);
+            }
 
             FileStream? cacheStream = null;
             string? audioFileName = null;

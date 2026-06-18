@@ -13,6 +13,10 @@ public enum ChatHistoryOrigin
     AmbientReply
 }
 
+public sealed record AgentContextSnapshot(
+    DateTimeOffset CreatedAt,
+    IReadOnlyDictionary<string, string> Values);
+
 public sealed record ChatHistoryMessage(
     string Id,
     ChatHistoryRole Role,
@@ -20,4 +24,5 @@ public sealed record ChatHistoryMessage(
     DateTime CreatedAtUtc,
     string? AudioFileName = null,
     string? DesktopContext = null,
-    ChatHistoryOrigin? Origin = null);
+    ChatHistoryOrigin? Origin = null,
+    AgentContextSnapshot? ContextSnapshot = null);

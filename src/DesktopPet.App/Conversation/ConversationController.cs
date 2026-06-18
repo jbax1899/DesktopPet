@@ -171,6 +171,11 @@ public sealed class ConversationController : IDisposable
                     return;
                 }
 
+                if (botMessage is not null && reply.ContextSnapshot is not null)
+                {
+                    _chatHistoryStore.SetContextSnapshot(botMessage.Id, reply.ContextSnapshot);
+                }
+
                 await ReplaceCurrentSpeechAsync(turnId, reply.Text, audio, botMessage?.Id);
                 audio = null;
             }

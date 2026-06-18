@@ -1,7 +1,9 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using DesktopPet.App.Cloud;
 using DesktopPet.App.Observation;
+using DesktopPet.App.Settings;
 using WpfButton = System.Windows.Controls.Button;
 
 namespace DesktopPet.App.Memory;
@@ -15,6 +17,8 @@ public partial class MemoryWindow : Window
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
     private readonly ObservationStore _observationStore;
+    private readonly Func<ProfileSettings> _profileSettingsProvider;
+    private readonly Func<UiSettings> _uiSettingsProvider;
     private readonly FileSystemWatcher _chatHistoryWatcher;
     private readonly FileSystemWatcher _memoriesWatcher;
     private readonly FileSystemWatcher _observationsWatcher;
@@ -23,6 +27,7 @@ public partial class MemoryWindow : Window
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
     private List<ObservationListItemView> _observationItems = [];
+    private ContextInspectorWindow? _contextInspectorWindow;
 
     public MemoryWindow(
         IMemoryStore memoryStore,
@@ -31,7 +36,9 @@ public partial class MemoryWindow : Window
         Func<ChatHistoryMessage, Task> playCachedAudio,
         IDesktopObservationCoordinator observationCoordinator,
         AmbientDecisionStore ambientDecisionStore,
-        ObservationStore observationStore)
+        ObservationStore observationStore,
+        Func<ProfileSettings> profileSettingsProvider,
+        Func<UiSettings> uiSettingsProvider)
     {
         _memoryStore = memoryStore;
         _chatHistoryStore = chatHistoryStore;
@@ -40,6 +47,8 @@ public partial class MemoryWindow : Window
         _observationCoordinator = observationCoordinator;
         _ambientDecisionStore = ambientDecisionStore;
         _observationStore = observationStore;
+        _profileSettingsProvider = profileSettingsProvider;
+        _uiSettingsProvider = uiSettingsProvider;
 
         var dataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -58,11 +67,63 @@ public partial class MemoryWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _contextInspectorWindow?.Close();
         _chatHistoryWatcher.Dispose();
         _memoriesWatcher.Dispose();
         _observationsWatcher.Dispose();
         _ambientDecisionsWatcher.Dispose();
         base.OnClosed(e);
+    }
+
+    private void OnContextPreviewClicked(object sender, RoutedEventArgs e)
+    {
+        var selectedMessage = (ChatHistoryListBox.SelectedItem as ChatHistoryMessageView)?.Message;
+        if (_contextInspectorWindow is null)
+        {
+            _contextInspectorWindow = new ContextInspectorWindow(
+                BuildLiveContextSnapshot,
+                selectedMessage)
+            {
+                Owner = this
+            };
+            _contextInspectorWindow.Closed += (_, _) => _contextInspectorWindow = null;
+        }
+        else
+        {
+            _contextInspectorWindow.SetSelectedMessage(selectedMessage);
+        }
+
+        _contextInspectorWindow.Show();
+        _contextInspectorWindow.Activate();
+    }
+
+    private void OnChatHistorySelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        var selectedMessage = (ChatHistoryListBox.SelectedItem as ChatHistoryMessageView)?.Message;
+        _contextInspectorWindow?.SetSelectedMessage(selectedMessage);
+    }
+
+    private AgentContextSnapshot BuildLiveContextSnapshot()
+    {
+        var memories = _memoryStore.List();
+        var memoriesContext = memories.Count == 0
+            ? null
+            : string.Join("\n", memories.Select(memory => memory.Text));
+        var observations = _observationStore.List()
+            .OrderByDescending(record => record.CapturedAt)
+            .Take(5)
+            .ToArray();
+        var request = new ChatRequest(
+            string.Empty,
+            _profileSettingsProvider(),
+            memoriesContext,
+            DesktopContext: null,
+            ObservationHistory: observations,
+            ConversationHistory: _chatHistoryStore.List());
+
+        return AgentContextBuilder.Build(
+            request,
+            _uiSettingsProvider().GetEffectiveChatHistoryContext());
     }
 
     private async void OnPlayAudioClicked(object sender, RoutedEventArgs e)

@@ -81,8 +81,10 @@ kind of harmless empty-state fallback.
 - Chat history stores user attempts and Agent replies in local JSON, with the reduced desktop context used for each typed or ambient bot reply and cached bot audio when available.
 - Every ElevenLabs Agent request includes current local time, timezone, and UTC through `temporal_context`.
 - Settings exposes independent 0–50 count budgets for regular and ambient conversation context, defaulting to 14 regular and 6 ambient messages. Zero disables that category.
-- Conversation history selection protects typed dialogue from ambient-message displacement. Explicit origin metadata is preferred; legacy bot messages immediately following a user within five minutes are treated as direct replies, while other legacy bot messages are treated as ambient.
+- Conversation history selection protects typed dialogue from ambient-message displacement. Messages without origin metadata load normally and default to regular context.
 - Selected user, direct-reply, and ambient-reply turns are sent through the `conversation_history` dynamic variable in chronological order. There is no aggregate character cap; individual message text and saved desktop context remain truncated. Turns include relative labels plus exact local timestamps.
+- Chat History exposes a read-only Agent Context Inspector. Its live preview shows locally available dynamic variables using current saved budgets without collecting desktop context or making provider calls.
+- Successful direct and ambient replies persist the exact dynamic-variable snapshot sent to ElevenLabs on their bot history entry. Missing snapshots are treated as unavailable.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
@@ -165,6 +167,8 @@ kind of harmless empty-state fallback.
 - Keep chat history, cached replay audio, and durable memories as separate concepts.
 - Saved chat history is the cross-request conversation source of truth because the current text-only Agent integration opens one short-lived WebSocket per generated reply.
 - Regular and ambient conversation-history budgets are independent user settings; unused capacity in one category does not increase the other category.
+- Agent context snapshots reuse the same shared builder as the outgoing WebSocket initiation so historical inspection does not reconstruct an approximation after the request.
+- Live context preview must remain local-only. Desktop metadata, UI Automation, screenshots, visual analysis, and provider traffic occur only through normal chat or ambient flows.
 - Ship a small localhost-only Mem0 Docker Compose stack with authentication, persistent storage, and no committed secrets.
 - Ask before enabling memory, never silently install Docker, and show one clear setup or repair message if startup fails.
 - Do not make the Mem0 dashboard part of the normal user flow.
@@ -188,6 +192,7 @@ kind of harmless empty-state fallback.
 - Reduce raw observations to compact context before sending them to an LLM.
 - Store only the bounded, reduced desktop context on its corresponding bot chat-history message; do not write raw desktop observations to chat history, memories, audio metadata, debug logs, or user-visible exception messages.
 - Show the user what desktop context was used for a turn.
+- Persist model-facing dynamic-variable snapshots on successful bot history entries for user inspection; never include API keys, Agent IDs, signed URLs, audio, or raw screenshots.
 - Persist global controls and explicit application allow or deny rules in the separate observation settings store.
 
 ### OpenRouter Vision

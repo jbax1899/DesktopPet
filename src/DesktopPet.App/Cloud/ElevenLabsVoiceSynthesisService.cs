@@ -73,7 +73,8 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
 
     private static ElevenLabsTextToSpeechRequest CreateRequestBody(string text, ElevenLabsSettings settings)
     {
-        var locators = settings.PronunciationDictionaries?
+        var locators = settings.CustomPronunciations is null or { Count: > 0 }
+            ? settings.PronunciationDictionaries?
             .Where(locator =>
                 !string.IsNullOrWhiteSpace(locator.PronunciationDictionaryId)
                 && !string.IsNullOrWhiteSpace(locator.VersionId))
@@ -81,7 +82,8 @@ public sealed class ElevenLabsVoiceSynthesisService : IVoiceSynthesisService
             .Select(locator => new ElevenLabsPronunciationDictionaryRequestLocator(
                 locator.PronunciationDictionaryId.Trim(),
                 locator.VersionId.Trim()))
-            .ToArray();
+            .ToArray()
+            : null;
 
         return new ElevenLabsTextToSpeechRequest(
             text,

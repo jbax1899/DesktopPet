@@ -14,6 +14,7 @@ namespace DesktopPet.App.Settings;
 public partial class SettingsWindow : Window
 {
     private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
+    private readonly ElevenLabsPronunciationService _pronunciationService;
     private readonly OpenRouterSettingsStore _openRouterSettingsStore;
     private readonly OpenRouterModelsService _openRouterModelsService;
     private readonly CreditInfoService _creditInfoService;
@@ -30,6 +31,7 @@ public partial class SettingsWindow : Window
 
     public SettingsWindow(
         ElevenLabsSettingsStore elevenLabsSettingsStore,
+        ElevenLabsPronunciationService pronunciationService,
         OpenRouterSettingsStore openRouterSettingsStore,
         OpenRouterModelsService openRouterModelsService,
         CreditInfoService creditInfoService,
@@ -41,6 +43,7 @@ public partial class SettingsWindow : Window
         IObservationPermissionService permissionService)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
+        _pronunciationService = pronunciationService;
         _openRouterSettingsStore = openRouterSettingsStore;
         _openRouterModelsService = openRouterModelsService;
         _creditInfoService = creditInfoService;
@@ -63,10 +66,13 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            _elevenLabsSettingsStore.Save(new ElevenLabsSettings(
-                ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password),
-                ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
-                ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
+            var currentElevenLabsSettings = _elevenLabsSettingsStore.Load();
+            _elevenLabsSettingsStore.Save(currentElevenLabsSettings with
+            {
+                ElevenLabsApiKey = ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password),
+                ElevenLabsAgentId = ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
+                ElevenLabsVoiceId = ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)
+            });
 
             var selectedModel = OpenRouterVisionModelComboBox.SelectedItem as OpenRouterModelInfo;
             _openRouterSettingsStore.Save(new OpenRouterSettings(
@@ -184,6 +190,25 @@ public partial class SettingsWindow : Window
         {
             _observationRows.Add(row);
         }
+    }
+
+    private void OnManagePronunciationsClicked(object sender, RoutedEventArgs e)
+    {
+        var apiKey = ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password);
+        if (apiKey is null)
+        {
+            StatusTextBlock.Text = "Enter an ElevenLabs API key first.";
+            return;
+        }
+
+        var window = new PronunciationWindow(
+            _elevenLabsSettingsStore,
+            _pronunciationService,
+            apiKey)
+        {
+            Owner = this
+        };
+        window.ShowDialog();
     }
 
     private void SaveObservationSettings()

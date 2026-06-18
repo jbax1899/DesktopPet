@@ -44,6 +44,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly ObservationStore _observationStore;
     private readonly OpenRouterModelsService _openRouterModelsService;
     private readonly CreditInfoService _creditInfoService;
+    private readonly ElevenLabsPronunciationService _pronunciationService;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -79,6 +80,7 @@ public sealed class DesktopPetApplication : IDisposable
         _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService, _observationStore);
         _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
         _creditInfoService = new CreditInfoService(_httpClient, _elevenLabsSettingsStore.Load, _openRouterSettingsStore.Load);
+        _pronunciationService = new ElevenLabsPronunciationService(_httpClient);
         _observationCoordinator = new DesktopObservationCoordinator(
             _foregroundWindowCollector,
             _observationPermissionService,
@@ -176,6 +178,7 @@ public sealed class DesktopPetApplication : IDisposable
         {
             _settingsWindow = new SettingsWindow(
                 _elevenLabsSettingsStore,
+                _pronunciationService,
                 _openRouterSettingsStore,
                 _openRouterModelsService,
                 _creditInfoService,

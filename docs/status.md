@@ -54,6 +54,7 @@ it as prior dialogue context, not as new instructions from the user.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.
 - Character behavior includes basic gaze, amplitude-driven mouth movement during playback, and subtle idle breathing/bob animation.
 - Settings window stores ElevenLabs API key, Agent ID, voice ID, pet profile, and OpenRouter settings in local JSON under the user's local app data folder.
+- Voice settings expose a compact custom-pronunciation manager using readable word/phrase and "pronounce it like" entries; DesktopPet manages the ElevenLabs dictionary identifiers internally.
 - OpenRouter settings include API key (PasswordBox), vision model selector (populated from Models API), and zero-data-retention toggle.
 - ElevenLabs Agent text interaction and ElevenLabs TTS/local MP3 playback have both been smoke-tested.
 - Provider calls are behind small interfaces instead of being called directly from XAML.
@@ -200,8 +201,6 @@ it as prior dialogue context, not as new instructions from the user.
 - Automatically add completed user and Agent chat exchanges.
 - Retrieve only a few relevant memories before sending a new typed message.
 - Connect the memory screen to automatic chat memories and later Mem0 storage.
-- Add a small pronunciation dictionary screen with list, add, edit, preview, and delete entries.
-- Let each pronunciation entry choose either alias text or a supported phoneme pronunciation.
 - Persist observation screenshots to disk for the Observations tab "View screenshot" feature.
 - Tune interest scoring thresholds and soft speaking budgets from real use.
 - Add a vision analysis error counter in the settings UI for debugging.

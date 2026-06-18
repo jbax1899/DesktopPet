@@ -101,26 +101,6 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-
-                    <Grid Grid.Row="1"
-                          Margin="0,12,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock x:Name="ChatStatusTextBlock"
-                                   Grid.Column="0"
-                                   Margin="0,0,12,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#374151"
-                                   TextWrapping="Wrap" />
-                        <Button Grid.Column="1"
-                                MinWidth="78"
-                                Padding="10,4"
-                                Click="OnRefreshChatClicked"
-                                Content="Refresh" />
-                    </Grid>
                 </Grid>
             </TabItem>
 
@@ -179,31 +159,15 @@
 
                     <Grid Grid.Row="2"
                           Margin="0,12,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock x:Name="MemoryStatusTextBlock"
-                                   Grid.Column="0"
-                                   Margin="0,0,12,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#374151"
-                                   TextWrapping="Wrap" />
-                        <StackPanel Grid.Column="1"
+                        <StackPanel HorizontalAlignment="Right"
                                     Orientation="Horizontal">
                             <Button MinWidth="78"
                                     Margin="0,0,8,0"
                                     Padding="10,4"
-                                    Click="OnRefreshClicked"
-                                    Content="Refresh" />
-                            <Button x:Name="DeleteMemoryButton"
-                                    MinWidth="78"
-                                    Margin="0,0,8,0"
-                                    Padding="10,4"
                                     Click="OnDeleteClicked"
                                     Content="Delete"
-                                    IsEnabled="False" />
+                                    IsEnabled="False"
+                                    x:Name="DeleteMemoryButton" />
                             <Button x:Name="ClearMemoriesButton"
                                     MinWidth="78"
                                     Padding="10,4"
@@ -319,28 +283,11 @@
 
                     <Grid Grid.Row="1"
                           Margin="0,12,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ObservationsStatusTextBlock"
-                                   Grid.Column="0"
-                                   Margin="0,0,12,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#374151"
-                                   TextWrapping="Wrap" />
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal">
-                            <Button Padding="10,4"
-                                    Click="OnRefreshObservationsClicked"
-                                    Content="Refresh"
-                                    ToolTip="Refresh observation history." />
-                            <Button Margin="8,0,0,0"
-                                    Padding="10,4"
-                                    Click="OnClearObservationsClicked"
-                                    Content="Clear all"
-                                    ToolTip="Clear all observation records." />
-                        </StackPanel>
+                        <Button HorizontalAlignment="Right"
+                                Padding="10,4"
+                                Click="OnClearObservationsClicked"
+                                Content="Clear all"
+                                ToolTip="Clear all observation records." />
                     </Grid>
                 </Grid>
             </TabItem>

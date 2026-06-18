@@ -1,5 +1,6 @@
+using System.IO;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Input;
 using DesktopPet.App.Observation;
 
 namespace DesktopPet.App.Memory;
@@ -13,6 +14,10 @@ public partial class MemoryWindow : Window
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
     private readonly ObservationStore _observationStore;
+    private readonly FileSystemWatcher _chatHistoryWatcher;
+    private readonly FileSystemWatcher _memoriesWatcher;
+    private readonly FileSystemWatcher _observationsWatcher;
+    private bool _suppressWatcherEvents;
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
 
@@ -33,10 +38,26 @@ public partial class MemoryWindow : Window
         _ambientDecisionStore = ambientDecisionStore;
         _observationStore = observationStore;
 
+        var dataDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DesktopPet");
+
+        _chatHistoryWatcher = CreateWatcher(dataDirectory, "chat-history.json", OnChatHistoryFileChanged);
+        _memoriesWatcher = CreateWatcher(dataDirectory, "memories.json", OnMemoriesFileChanged);
+        _observationsWatcher = CreateWatcher(dataDirectory, "observations.json", OnObservationsFileChanged);
+
         InitializeComponent();
-        RefreshChatHistory("Chat history loaded.");
-        RefreshMemories("Memories loaded.");
+        RefreshChatHistory();
+        RefreshMemories();
         RefreshObservations();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _chatHistoryWatcher.Dispose();
+        _memoriesWatcher.Dispose();
+        _observationsWatcher.Dispose();
+        base.OnClosed(e);
     }
 
     private async void OnPlayAudioClicked(object sender, RoutedEventArgs e)
@@ -48,26 +69,18 @@ public partial class MemoryWindow : Window
 
         if (!_chatAudioStore.Exists(message.AudioFileName))
         {
-            RefreshChatHistory("Cached audio is missing.");
+            RefreshChatHistory();
             return;
         }
 
         try
         {
-            ChatStatusTextBlock.Text = "Playing cached audio.";
             await _playCachedAudio(message);
-            ChatStatusTextBlock.Text = "Playback started.";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ChatStatusTextBlock.Text = $"Playback failed: {ex.Message}";
-            RefreshChatHistory(ChatStatusTextBlock.Text);
+            RefreshChatHistory();
         }
-    }
-
-    private void OnRefreshChatClicked(object sender, RoutedEventArgs e)
-    {
-        RefreshChatHistory("Chat history refreshed.");
     }
 
     private void OnAddClicked(object sender, RoutedEventArgs e)
@@ -77,23 +90,17 @@ public partial class MemoryWindow : Window
             var text = NewMemoryTextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(text))
             {
-                MemoryStatusTextBlock.Text = "Type a memory first.";
                 return;
             }
 
+            SuppressWatcherEvents();
             _memoryStore.Add(text);
             NewMemoryTextBox.Clear();
-            RefreshMemories("Memory added.");
+            RefreshMemories();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            MemoryStatusTextBlock.Text = $"Add failed: {ex.Message}";
         }
-    }
-
-    private void OnRefreshClicked(object sender, RoutedEventArgs e)
-    {
-        RefreshMemories("Memories refreshed.");
     }
 
     private void OnDeleteClicked(object sender, RoutedEventArgs e)
@@ -105,12 +112,12 @@ public partial class MemoryWindow : Window
 
         try
         {
+            SuppressWatcherEvents();
             _memoryStore.Delete(selectedMemory.Id);
-            RefreshMemories("Memory deleted.");
+            RefreshMemories();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            MemoryStatusTextBlock.Text = $"Delete failed: {ex.Message}";
         }
     }
 
@@ -135,26 +142,21 @@ public partial class MemoryWindow : Window
 
         try
         {
+            SuppressWatcherEvents();
             _memoryStore.Clear();
-            RefreshMemories("Memories cleared.");
+            RefreshMemories();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            MemoryStatusTextBlock.Text = $"Clear failed: {ex.Message}";
         }
     }
 
-    private void OnMemorySelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void OnMemorySelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         DeleteMemoryButton.IsEnabled = MemoryListBox.SelectedItem is MemoryEntry;
     }
 
-    private void OnRefreshObservationsClicked(object sender, RoutedEventArgs e)
-    {
-        RefreshObservations();
-    }
-
-    private void OnTabChanged(object sender, SelectionChangedEventArgs e)
+    private void OnTabChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (e.Source is not System.Windows.Controls.TabControl)
         {
@@ -205,18 +207,17 @@ public partial class MemoryWindow : Window
 
         try
         {
+            SuppressWatcherEvents();
             _observationStore.Clear();
             _ambientDecisionStore.Clear();
             RefreshObservations();
-            ObservationsStatusTextBlock.Text = "Observations cleared.";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ObservationsStatusTextBlock.Text = $"Clear failed: {ex.Message}";
         }
     }
 
-    private void RefreshChatHistory(string successMessage)
+    private void RefreshChatHistory()
     {
         try
         {
@@ -224,9 +225,6 @@ public partial class MemoryWindow : Window
                 .Select(message => new ChatHistoryMessageView(message, _chatAudioStore.Exists(message.AudioFileName)))
                 .ToList();
             ChatHistoryListBox.ItemsSource = _chatMessages;
-            ChatStatusTextBlock.Text = _chatMessages.Count == 0
-                ? "No chat history yet."
-                : successMessage;
 
             if (_chatMessages.Count > 0)
             {
@@ -234,13 +232,12 @@ public partial class MemoryWindow : Window
                 ChatHistoryListBox.ScrollIntoView(_chatMessages[^1]);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ChatStatusTextBlock.Text = $"Load failed: {ex.Message}";
         }
     }
 
-    private void RefreshMemories(string successMessage)
+    private void RefreshMemories()
     {
         try
         {
@@ -248,9 +245,6 @@ public partial class MemoryWindow : Window
             MemoryListBox.ItemsSource = _memories;
             DeleteMemoryButton.IsEnabled = false;
             ClearMemoriesButton.IsEnabled = _memories.Count > 0;
-            MemoryStatusTextBlock.Text = _memories.Count == 0
-                ? "No memories yet."
-                : successMessage;
 
             if (_memories.Count > 0)
             {
@@ -258,9 +252,8 @@ public partial class MemoryWindow : Window
                 MemoryListBox.ScrollIntoView(_memories[^1]);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            MemoryStatusTextBlock.Text = $"Load failed: {ex.Message}";
         }
     }
 
@@ -270,9 +263,6 @@ public partial class MemoryWindow : Window
         {
             var observations = _observationStore.List();
             ObservationsListBox.ItemsSource = observations;
-            ObservationsStatusTextBlock.Text = observations.Count == 0
-                ? "No observations yet."
-                : $"{observations.Count} observation(s) recorded.";
 
             if (observations.Count > 0)
             {
@@ -280,10 +270,60 @@ public partial class MemoryWindow : Window
                 ObservationsListBox.ScrollIntoView(observations[^1]);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ObservationsStatusTextBlock.Text = $"Refresh failed: {ex.Message}";
         }
+    }
+
+    private void SuppressWatcherEvents()
+    {
+        _suppressWatcherEvents = true;
+        Dispatcher.BeginInvoke(new Action(() => _suppressWatcherEvents = false), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    private void OnChatHistoryFileChanged(object sender, FileSystemEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_suppressWatcherEvents)
+            {
+                RefreshChatHistory();
+            }
+        });
+    }
+
+    private void OnMemoriesFileChanged(object sender, FileSystemEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_suppressWatcherEvents)
+            {
+                RefreshMemories();
+            }
+        });
+    }
+
+    private void OnObservationsFileChanged(object sender, FileSystemEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_suppressWatcherEvents)
+            {
+                RefreshObservations();
+            }
+        });
+    }
+
+    private static FileSystemWatcher CreateWatcher(string directory, string fileName, FileSystemEventHandler handler)
+    {
+        Directory.CreateDirectory(directory);
+        var watcher = new FileSystemWatcher(directory, fileName)
+        {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+            EnableRaisingEvents = true
+        };
+        watcher.Changed += handler;
+        return watcher;
     }
 
     private sealed record ChatHistoryMessageView(ChatHistoryMessage Message, bool HasAudio)

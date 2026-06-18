@@ -38,6 +38,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 - Chat history, replay audio, and manually managed memories are separate local
   concepts.
+- Chat history and memories share `%LOCALAPPDATA%\DesktopPet\memory.db` as their
+  SQLite source of truth.
 - Saved chat history is the cross-request conversation source of truth.
   Regular and ambient message budgets are independently configurable from
   0–50, defaulting to 14 and 6.
@@ -46,9 +48,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Successful direct and ambient replies save the exact dynamic-variable
   snapshot sent to ElevenLabs. Chat History provides a local-only context
   inspector and live preview.
-- Manual memories are stored in local JSON and joined into
-  `memories_context`. Automatic capture, relevance retrieval, and Mem0 storage
-  are not implemented.
+- Manual memories are joined into `memories_context`. Automatic capture and
+  relevance retrieval are not implemented, so every saved memory is currently
+  included.
 
 ### Desktop context and ambient comments
 
@@ -100,9 +102,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   character state local.
 - Keep `IVoiceSynthesisService` small and the current provider boundaries unless
   they obstruct a concrete feature.
-- Treat local Mem0 as experimental behind one small REST boundary. Ask before
-  enabling it, never install Docker silently, commit no secrets, and keep its
-  dashboard outside the normal user flow.
+- Keep chat history and manually managed memories in one bundled SQLite
+  database while preserving their separate selection rules and UI surfaces.
 
 ## Privacy and Local Data
 
@@ -130,8 +131,6 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   budgets from real use.
 - Add a visible vision-analysis error counter for debugging.
 - Improve transcript timing if full-text-at-once remains too abrupt.
-- Add a tested, pinned localhost-only Mem0 Compose stack and one-time enable
-  flow with clear setup/repair errors.
 - Add automatic chat memory capture and retrieve only a few relevant memories
   per typed request.
 
@@ -144,6 +143,5 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   boundary.
 - Native Inochi2D experimentation, rig parameters, expressions, and mesh
   deformation.
-- Hosted Mem0 only if the local experiment proves useful.
 - Secondary vision analysis for uncertain observations and a user-initiated
   "what do you see?" mode.

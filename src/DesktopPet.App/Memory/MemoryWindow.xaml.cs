@@ -19,8 +19,6 @@ public partial class MemoryWindow : Window
     private readonly ObservationStore _observationStore;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly Func<UiSettings> _uiSettingsProvider;
-    private readonly FileSystemWatcher _chatHistoryWatcher;
-    private readonly FileSystemWatcher _memoriesWatcher;
     private readonly FileSystemWatcher _observationsWatcher;
     private readonly FileSystemWatcher _ambientDecisionsWatcher;
     private bool _suppressWatcherEvents;
@@ -54,10 +52,10 @@ public partial class MemoryWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "DesktopPet");
 
-        _chatHistoryWatcher = CreateWatcher(dataDirectory, "chat-history.json", OnChatHistoryFileChanged);
-        _memoriesWatcher = CreateWatcher(dataDirectory, "memories.json", OnMemoriesFileChanged);
         _observationsWatcher = CreateWatcher(dataDirectory, "observations.json", OnObservationsFileChanged);
         _ambientDecisionsWatcher = CreateWatcher(dataDirectory, "ambient-decisions.json", OnObservationsFileChanged);
+        _chatHistoryStore.Changed += OnChatHistoryChanged;
+        _memoryStore.Changed += OnMemoriesChanged;
 
         InitializeComponent();
         RefreshChatHistory();
@@ -68,8 +66,8 @@ public partial class MemoryWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _contextInspectorWindow?.Close();
-        _chatHistoryWatcher.Dispose();
-        _memoriesWatcher.Dispose();
+        _chatHistoryStore.Changed -= OnChatHistoryChanged;
+        _memoryStore.Changed -= OnMemoriesChanged;
         _observationsWatcher.Dispose();
         _ambientDecisionsWatcher.Dispose();
         base.OnClosed(e);
@@ -171,10 +169,8 @@ public partial class MemoryWindow : Window
                 return;
             }
 
-            SuppressWatcherEvents();
             _memoryStore.Add(text);
             NewMemoryTextBox.Clear();
-            RefreshMemories();
         }
         catch (Exception)
         {
@@ -190,9 +186,7 @@ public partial class MemoryWindow : Window
 
         try
         {
-            SuppressWatcherEvents();
             _memoryStore.Delete(selectedMemory.Id);
-            RefreshMemories();
         }
         catch (Exception)
         {
@@ -220,9 +214,7 @@ public partial class MemoryWindow : Window
 
         try
         {
-            SuppressWatcherEvents();
             _memoryStore.Clear();
-            RefreshMemories();
         }
         catch (Exception)
         {
@@ -367,25 +359,19 @@ public partial class MemoryWindow : Window
         Dispatcher.BeginInvoke(new Action(() => _suppressWatcherEvents = false), System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    private void OnChatHistoryFileChanged(object sender, FileSystemEventArgs e)
+    private void OnChatHistoryChanged(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            if (!_suppressWatcherEvents)
-            {
-                RefreshChatHistory();
-            }
+            RefreshChatHistory();
         });
     }
 
-    private void OnMemoriesFileChanged(object sender, FileSystemEventArgs e)
+    private void OnMemoriesChanged(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            if (!_suppressWatcherEvents)
-            {
-                RefreshMemories();
-            }
+            RefreshMemories();
         });
     }
 

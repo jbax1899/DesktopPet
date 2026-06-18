@@ -25,6 +25,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly HttpClient _httpClient;
     private readonly IChatService _chatService;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
+    private readonly DesktopPetDatabase _database;
     private readonly IMemoryStore _memoryStore;
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
@@ -64,14 +65,16 @@ public sealed class DesktopPetApplication : IDisposable
         _uiSettingsStore = new UiSettingsStore();
         _profileSettingsStore = new ProfileSettingsStore();
         _errorMessageStore = new CharacterErrorMessageStore();
+        _database = new DesktopPetDatabase();
+        _database.Initialize();
         _httpClient = new HttpClient();
         _chatService = new ElevenLabsAgentChatService(
             _httpClient,
             _elevenLabsSettingsStore.Load,
             _uiSettingsStore.Load);
         _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
-        _memoryStore = new LocalMemoryStore();
-        _chatHistoryStore = new LocalChatHistoryStore();
+        _memoryStore = new SqliteMemoryStore(_database);
+        _chatHistoryStore = new SqliteChatHistoryStore(_database);
         _chatAudioStore = new ChatAudioStore();
         _audioPlayer = new StreamingMp3AudioPlayer();
         _observationSettingsStore = new ObservationSettingsStore();

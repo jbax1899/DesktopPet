@@ -2,6 +2,8 @@ namespace DesktopPet.App.Memory;
 
 public interface IChatHistoryStore
 {
+    event EventHandler? Changed;
+
     IReadOnlyList<ChatHistoryMessage> List();
 
     ChatHistoryMessage Add(

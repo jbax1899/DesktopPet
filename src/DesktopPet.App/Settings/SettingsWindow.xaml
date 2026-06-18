@@ -273,6 +273,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <!-- Commentary segmented slider -->
                     <TextBlock Grid.Row="0" Grid.Column="0"
@@ -344,6 +345,42 @@
                                    Foreground="#FF64748B"
                                    FontSize="10"
                                    Text="How easily the vision model considers something interesting to analyze." />
+                    </StackPanel>
+
+                    <!-- Scan quality segmented slider -->
+                    <TextBlock Grid.Row="2" Grid.Column="0"
+                               Margin="0,8,12,0"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Text="Scan detail" />
+                    <StackPanel Grid.Row="2" Grid.Column="1"
+                                Orientation="Vertical">
+                        <UniformGrid Columns="3">
+                            <RadioButton x:Name="ScanQualityBriefRadioButton"
+                                         GroupName="ScanQuality"
+                                         Margin="0,0,4,0"
+                                         Content="Brief"
+                                         ToolTip="Quick summaries, lowest token cost."
+                                         Checked="OnScanQualityChanged" />
+                            <RadioButton x:Name="ScanQualityDetailedRadioButton"
+                                         GroupName="ScanQuality"
+                                         Margin="4,0"
+                                         Content="Detailed"
+                                         IsChecked="True"
+                                         ToolTip="Balanced detail with activity context."
+                                         Checked="OnScanQualityChanged" />
+                            <RadioButton x:Name="ScanQualityNarrativeRadioButton"
+                                         GroupName="ScanQuality"
+                                         Margin="4,0,0,0"
+                                         Content="Narrative"
+                                         ToolTip="Rich scene descriptions, gives Pebble more to comment on."
+                                         Checked="OnScanQualityChanged" />
+                        </UniformGrid>
+                        <TextBlock x:Name="ScanQualityLegendTextBlock"
+                                   Margin="2,4,0,0"
+                                   Foreground="#FF64748B"
+                                   FontSize="10"
+                                   Text="How much detail the vision model reports about each screenshot." />
                     </StackPanel>
                 </Grid>
 

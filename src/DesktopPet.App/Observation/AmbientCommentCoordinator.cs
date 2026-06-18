@@ -169,14 +169,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 return;
             }
 
-            candidate = CreateCandidate(change);
-            var finalDecision = _policy.Evaluate(candidate, DateTimeOffset.UtcNow, visionObservation);
-            if (!finalDecision.MaySpeak)
-            {
-                RecordObservation(change, visionObservation, thumbnailPath, finalDecision.Reason, spoke: false);
-                return;
-            }
-
             await using var audio = await _voiceSynthesisService.SynthesizeAsync(
                 new VoiceSynthesisRequest(comment),
                 cancellationToken);
@@ -185,7 +177,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 return;
             }
 
-            _overlayWindow.ShowTranscript(comment);
+            _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.ShowTranscript(comment));
             using var speaking = _characterStateController.BeginSpeaking();
             _activityState.SetSpeechActive(true);
             try
@@ -204,7 +196,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
             RecordObservation(change, visionObservation, thumbnailPath, AmbientDecisionReason.Eligible, spoke: true);
             await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-            _overlayWindow.HideTranscript();
+            _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.HideTranscript());
         }
         finally
         {
@@ -302,7 +294,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         if (visionObservation is not null)
         {
-            var interestScore = CalculateInterestScore(visionObservation);
+            var interestScore = AmbientCommentPolicy.CalculateInterestScore(visionObservation);
             var record = new ObservationRecord(
                 Id: Guid.NewGuid().ToString("N"),
                 CapturedAt: DateTimeOffset.UtcNow,
@@ -319,15 +311,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         }
     }
 
-    private static double CalculateInterestScore(VisionObservation observation)
-    {
-        return (observation.Novelty * 0.3)
-            + (observation.Relevance * 0.3)
-            + (observation.Confidence * 0.2)
-            + ((1.0 - observation.Sensitivity) * 0.1)
-            + ((1.0 - observation.InterruptionCost) * 0.1);
-    }
-
     private static ObservationOutcome MapOutcome(AmbientDecisionReason reason, bool spoke)
     {
         if (spoke) return ObservationOutcome.Spoken;
@@ -339,8 +322,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             AmbientDecisionReason.UserRequestActive => ObservationOutcome.UserBusy,
             AmbientDecisionReason.SpeechActive => ObservationOutcome.UserBusy,
             AmbientDecisionReason.UserRecentlyTyping => ObservationOutcome.UserBusy,
-            AmbientDecisionReason.StaleObservation => ObservationOutcome.Stale,
-            AmbientDecisionReason.ActiveApplicationChanged => ObservationOutcome.Stale,
             AmbientDecisionReason.PermissionRemoved => ObservationOutcome.Sensitive,
             _ => ObservationOutcome.BelowThreshold
         };
@@ -348,15 +329,11 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
     private AmbientCommentCandidate CreateCandidate(DesktopObservationChange change)
     {
-        var current = _observationCoordinator.RecentObservations.LastOrDefault();
-        var isCurrent = current is not null
-            && string.Equals(current.ApplicationName, change.Observation.ApplicationName, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(current.ActivityDescription, change.Observation.ActivityDescription, StringComparison.Ordinal);
         var permitted = _permissionService.Current.ApplicationRules.Any(rule =>
             !rule.IsDenied
             && rule.AllowMetadata
             && string.Equals(rule.DisplayName, change.Observation.ApplicationName, StringComparison.OrdinalIgnoreCase));
 
-        return new AmbientCommentCandidate(change, isCurrent, permitted);
+        return new AmbientCommentCandidate(change, permitted);
     }
 }

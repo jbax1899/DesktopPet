@@ -14,6 +14,13 @@ public enum VisionSensitivity
     High
 }
 
+public enum ScanQuality
+{
+    Brief,
+    Detailed,
+    Narrative
+}
+
 public sealed record ApplicationObservationRule(
     string ExecutablePath,
     string DisplayName,
@@ -27,6 +34,7 @@ public sealed record ObservationSettings(
     bool AmbientCommentsEnabled,
     CommentaryLevel CommentaryLevel,
     VisionSensitivity VisionSensitivity,
+    ScanQuality ScanQuality,
     int MinimumDwellTimeSeconds,
     int VisionAnalysisCooldownSeconds,
     IReadOnlyList<ApplicationObservationRule> ApplicationRules)
@@ -36,6 +44,7 @@ public sealed record ObservationSettings(
         AmbientCommentsEnabled: false,
         CommentaryLevel.Balanced,
         VisionSensitivity.Medium,
+        ScanQuality.Detailed,
         MinimumDwellTimeSeconds: 15,
         VisionAnalysisCooldownSeconds: 30,
         []);

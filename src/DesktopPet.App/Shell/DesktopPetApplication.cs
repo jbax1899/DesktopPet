@@ -74,9 +74,9 @@ public sealed class DesktopPetApplication : IDisposable
         _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
         _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
         _windowCaptureService = new WindowCaptureService(_observationPermissionService);
-        _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService);
-        _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
         _observationStore = new ObservationStore();
+        _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService, _observationStore);
+        _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
         _observationCoordinator = new DesktopObservationCoordinator(
             _foregroundWindowCollector,
             _observationPermissionService,

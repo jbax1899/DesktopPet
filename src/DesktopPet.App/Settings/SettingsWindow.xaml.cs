@@ -156,6 +156,19 @@ public partial class SettingsWindow : Window
                 break;
         }
 
+        switch (settings.ScanQuality)
+        {
+            case ScanQuality.Brief:
+                ScanQualityBriefRadioButton.IsChecked = true;
+                break;
+            case ScanQuality.Narrative:
+                ScanQualityNarrativeRadioButton.IsChecked = true;
+                break;
+            default:
+                ScanQualityDetailedRadioButton.IsChecked = true;
+                break;
+        }
+
         var rows = settings.ApplicationRules
             .Select(ApplicationRuleRow.FromRule)
             .ToDictionary(row => row.ExecutablePath, StringComparer.OrdinalIgnoreCase);
@@ -194,6 +207,11 @@ public partial class SettingsWindow : Window
                 : VisionLowRadioButton.IsChecked == true
                     ? VisionSensitivity.Low
                     : VisionSensitivity.Medium,
+            ScanQuality = ScanQualityNarrativeRadioButton.IsChecked == true
+                ? ScanQuality.Narrative
+                : ScanQualityBriefRadioButton.IsChecked == true
+                    ? ScanQuality.Brief
+                    : ScanQuality.Detailed,
             MinimumDwellTimeSeconds = current.MinimumDwellTimeSeconds,
             VisionAnalysisCooldownSeconds = current.VisionAnalysisCooldownSeconds,
             ApplicationRules = rules
@@ -228,6 +246,16 @@ public partial class SettingsWindow : Window
             : VisionHighRadioButton.IsChecked == true
                 ? "More things trigger analysis, including subtle changes."
                 : "Balanced interest threshold for most situations.";
+    }
+
+    private void OnScanQualityChanged(object sender, RoutedEventArgs e)
+    {
+        if (ScanQualityLegendTextBlock is null) return;
+        ScanQualityLegendTextBlock.Text = ScanQualityBriefRadioButton.IsChecked == true
+            ? "Quick summaries with minimal token usage."
+            : ScanQualityNarrativeRadioButton.IsChecked == true
+                ? "Rich scene descriptions that give Pebble more to comment on."
+                : "Balanced detail with activity context and notable elements.";
     }
 
     private static IEnumerable<ApplicationRuleRow> ListRunningApplications()

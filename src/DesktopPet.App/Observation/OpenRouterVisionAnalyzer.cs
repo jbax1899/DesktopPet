@@ -14,6 +14,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+    private const int ObservationHistoryCount = 5;
 
     private static readonly string AnalysisSchemaJson = """
     {
@@ -45,17 +46,20 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
     private readonly HttpClient _httpClient;
     private readonly Func<OpenRouterSettings> _settingsProvider;
     private readonly IObservationPermissionService? _permissionService;
+    private readonly ObservationStore? _observationStore;
     private readonly object _sync = new();
     private DateTimeOffset _lastAnalysisAt = DateTimeOffset.MinValue;
 
     public OpenRouterVisionAnalyzer(
         HttpClient httpClient,
         Func<OpenRouterSettings> settingsProvider,
-        IObservationPermissionService? permissionService = null)
+        IObservationPermissionService? permissionService = null,
+        ObservationStore? observationStore = null)
     {
         _httpClient = httpClient;
         _settingsProvider = settingsProvider;
         _permissionService = permissionService;
+        _observationStore = observationStore;
     }
 
     public bool IsAvailable
@@ -175,7 +179,9 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         }
 
         var base64Image = EncodeImageToBase64(image.Bitmap);
-        var systemPrompt = BuildDetailedSystemPrompt(request, recentObservations, lastSpokeAt);
+        var scanQuality = _permissionService?.Current.ScanQuality ?? ScanQuality.Detailed;
+        var observationHistory = GetObservationHistory();
+        var systemPrompt = BuildDetailedSystemPrompt(request, recentObservations, lastSpokeAt, scanQuality, observationHistory);
 
         using var timeout = new CancellationTokenSource(RequestTimeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
@@ -238,6 +244,27 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         return TimeSpan.FromSeconds(Math.Max(5, cooldownSeconds));
     }
 
+    private IReadOnlyList<ObservationRecord> GetObservationHistory()
+    {
+        if (_observationStore is null)
+        {
+            return [];
+        }
+
+        try
+        {
+            return _observationStore.List()
+                .OrderByDescending(r => r.CapturedAt)
+                .Take(ObservationHistoryCount)
+                .Reverse()
+                .ToArray();
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     private static string EncodeImageToBase64(Bitmap bitmap)
     {
         using var stream = new MemoryStream();
@@ -267,7 +294,9 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
     private static string BuildDetailedSystemPrompt(
         VisualAnalysisRequest request,
         IReadOnlyList<ReducedDesktopObservation> recentObservations,
-        DateTimeOffset? lastSpokeAt)
+        DateTimeOffset? lastSpokeAt,
+        ScanQuality scanQuality,
+        IReadOnlyList<ObservationRecord> observationHistory)
     {
         var parts = new List<string>
         {
@@ -290,6 +319,37 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         {
             var ago = DateTimeOffset.UtcNow - lastSpokeAt.Value;
             parts.Add($"Pebble last spoke: {FormatTimeAgo(ago)} ago");
+        }
+
+        if (observationHistory.Count > 0)
+        {
+            parts.Add("");
+            parts.Add("RECENT OBSERVATION HISTORY (most recent last):");
+            for (var i = 0; i < observationHistory.Count; i++)
+            {
+                var obs = observationHistory[i];
+                var timeAgo = FormatTimeAgo(DateTimeOffset.UtcNow - obs.CapturedAt);
+                parts.Add($"  [{timeAgo} ago] {obs.Analysis.Summary}");
+                if (obs.Analysis.NotableChanges.Count > 0)
+                {
+                    parts.Add($"    Notable: {string.Join("; ", obs.Analysis.NotableChanges.Take(2))}");
+                }
+            }
+            parts.Add("");
+            parts.Add("IMPORTANT: Do NOT repeat what has already been observed. Focus on what is NEW, CHANGED, or DIFFERENT since the last observation. If the scene is substantially the same, note what has progressed or evolved.");
+        }
+
+        switch (scanQuality)
+        {
+            case ScanQuality.Brief:
+                parts.Add("Produce a concise observation. Focus only on the most essential details — what the user is doing and the single most noteworthy element.");
+                break;
+            case ScanQuality.Narrative:
+                parts.Add("Produce a rich, narrative observation. Describe the scene like a story: what is the user engaged in, what is happening on screen, what elements stand out, what is the mood or energy of the activity, what might be happening next. Give Pebble something interesting to comment on.");
+                break;
+            default:
+                parts.Add("Produce a balanced observation. Describe the user's activity, notable on-screen elements, and anything Pebble might find interesting to comment on.");
+                break;
         }
 
         parts.Add("Analyze the screenshot and produce a structured observation.");

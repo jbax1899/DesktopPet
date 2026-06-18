@@ -76,6 +76,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Minimum dwell time gates window-change observations so rapid Alt-Tab switching is ignored (default 15s, adjustable).
 - Vision sensitivity (Low/Medium/High) controls the interest-score threshold for whether an observation is worth analyzing.
 - Commentary and vision sensitivity use segmented radio-button sliders with live legends in the Settings UI.
+- Scan quality (Brief/Detailed/Narrative) controls how much detail the vision model reports about each screenshot.
+- The vision analyzer receives the last 5 observation summaries as context to avoid repeating itself and focus on what is new or changed.
 - Ambient policy uses interest scoring from vision observations with soft speaking budgets per commentary level.
 - Desktop Pet Memories has an Observations tab showing card-based records with application, summary, interest score, confidence, and outcome.
 - Recent observation records persist to `observations.json` (capped at 200) for audit trail and tuning.
@@ -93,6 +95,8 @@ Configure `desktop_context` with a harmless fallback such as
 - Vision sensitivity and commentary level are independent axes: sensitivity controls what gets analyzed, commentary controls how often Pebble speaks.
 - Minimum dwell time prevents rapid window switching from generating noise and wasting API calls.
 - Commentary and vision sensitivity are segmented radio-button sliders with contextual legends.
+- Scan quality (Brief/Detailed/Narrative) controls the verbosity and narrative richness of vision observations.
+- Recent observation history is passed to the vision analyzer so it can describe what is new rather than repeating prior summaries.
 - Commentary mode creates pressure toward a general cadence via soft speaking budgets, not hard quotas.
 - Silence is a valid outcome; the pet should never say something uninteresting just to meet a quota.
 - Observation records persist to `observations.json` for audit trail and threshold tuning.
@@ -122,10 +126,10 @@ Configure `desktop_context` with a harmless fallback such as
 - Recent activity and comment decisions are consolidated in the Memories window instead of separate Screen Context windows.
 - The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and long-running activity.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
-- Ambient policy is local-first and rejects paused, disabled, stale, changed, busy, recently typed, full-screen, do-not-disturb, cooldown, hourly-limit, and duplicate candidates before generation.
+- Ambient policy is local-first and rejects paused, disabled, permission-removed, busy, recently typed, cooldown, hourly-limit, and duplicate candidates before generation. Turn cancellation suppresses speech if a newer change arrives during processing.
 - Quiet, Balanced, and Talkative profiles centralize initial cooldown and hourly limits.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
-- Ambient work has separate turn cancellation, is checked again before speech, and is cancelled when a user request starts.
+- Ambient work has separate turn cancellation and is cancelled when a user request starts.
 - Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from the Observations tab.
 - Screen Context settings now controls ambient enablement, do-not-disturb, and Quiet/Balanced/Talkative behavior independently from application permissions.
 - Durable memory remains manually managed through the existing Memories tab; observation history does not create memory proposals.
@@ -165,6 +169,7 @@ Configure `desktop_context` with a harmless fallback such as
 - The vision model receives recent observation context but never session identifiers or user credentials.
 - Test vision uses a locally generated image, not the user's actual desktop.
 - Observation records store the summary and scores but not the raw screenshot (v1).
+- Observation history context sent to the vision analyzer contains only prior summaries and timestamps, not raw data.
 
 ## Observation Follow-up
 

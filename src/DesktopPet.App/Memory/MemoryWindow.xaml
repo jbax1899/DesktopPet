@@ -263,7 +263,7 @@
                                                            Text="{Binding WindowTitle}" />
                                             </DockPanel>
 
-                                            <TextBlock Margin="0,4,0,0"
+                                            <TextBlock Margin="0,8,0,0"
                                                        Foreground="#334155"
                                                        Text="{Binding Analysis.Summary}"
                                                        TextWrapping="Wrap" />

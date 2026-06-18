@@ -47,7 +47,6 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly TrayController _trayController;
 
     private SettingsWindow? _settingsWindow;
-    private ObservationSettingsWindow? _observationSettingsWindow;
     private MemoryWindow? _memoryWindow;
     private GlobalHotkeyService? _chatHotkeyService;
 
@@ -141,7 +140,6 @@ public sealed class DesktopPetApplication : IDisposable
     public void Dispose()
     {
         _settingsWindow?.Close();
-        _observationSettingsWindow?.Close();
         _memoryWindow?.Close();
         _ambientCommentCoordinator.Dispose();
         _conversationOverlayWindow.Close();
@@ -164,25 +162,12 @@ public sealed class DesktopPetApplication : IDisposable
                 _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning,
-                ShowObservationSettings);
+                _observationPermissionService);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 
         _settingsWindow.Show();
         _settingsWindow.Activate();
-    }
-
-    private void ShowObservationSettings()
-    {
-        if (_observationSettingsWindow is null)
-        {
-            _observationSettingsWindow = new ObservationSettingsWindow(_observationPermissionService);
-            _observationSettingsWindow.Closed += (_, _) => _observationSettingsWindow = null;
-        }
-
-        _observationSettingsWindow.Owner = _settingsWindow;
-        _observationSettingsWindow.Show();
-        _observationSettingsWindow.Activate();
     }
 
     private void ShowMemories()

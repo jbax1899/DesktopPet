@@ -3,12 +3,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Desktop Pet Settings"
         Width="620"
-        Height="620"
+        Height="780"
         MinWidth="580"
-        MinHeight="460"
+        MinHeight="600"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="OnWindowPreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="SectionSeparator" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="#FFD0D0D0" />
+            <Setter Property="Margin" Value="0,12,0,14" />
+        </Style>
+    </Window.Resources>
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal"
@@ -21,19 +28,31 @@
                     Padding="10,4"
                     Click="OnSaveClicked"
                     Content="Save" />
-            <Button Margin="8,0,0,0"
-                    Padding="10,4"
-                    Click="OnScreenContextClicked"
-                    Content="Screen context..." />
         </StackPanel>
 
         <ScrollViewer Margin="0,0,0,16"
                       VerticalScrollBarVisibility="Auto">
             <Grid>
                 <Grid.RowDefinitions>
+                    <!-- ElevenLabs -->
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <!-- Separator -->
+                    <RowDefinition Height="Auto" />
+                    <!-- Profile -->
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <!-- Separator -->
+                    <RowDefinition Height="Auto" />
+                    <!-- Input -->
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <!-- Separator -->
+                    <RowDefinition Height="Auto" />
+                    <!-- Screen Context -->
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -46,6 +65,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
+                <!-- ═══ ElevenLabs ═══ -->
                 <TextBlock Grid.Row="0"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
@@ -74,52 +94,62 @@
 
                 <TextBlock Grid.Row="3"
                            Grid.Column="0"
-                           Margin="0,0,12,18"
+                           Margin="0,0,12,0"
                            VerticalAlignment="Center"
                            Text="Preferred voice ID" />
                 <TextBox x:Name="ElevenLabsVoiceIdTextBox"
                          Grid.Row="3"
                          Grid.Column="1"
-                         Margin="0,0,0,18" />
+                         Margin="0,0,0,0" />
 
-                <TextBlock Grid.Row="4"
+                <!-- ═══════════════════ -->
+                <Border Grid.Row="4" Grid.ColumnSpan="2"
+                        Style="{StaticResource SectionSeparator}" />
+
+                <!-- ═══ Profile ═══ -->
+                <TextBlock Grid.Row="5"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Profile" />
 
-                <TextBlock Grid.Row="5"
+                <TextBlock Grid.Row="6"
                            Grid.Column="0"
                            Margin="0,0,12,12"
                            VerticalAlignment="Center"
                            Text="Your name" />
                 <TextBox x:Name="UserNameTextBox"
-                         Grid.Row="5"
-                         Grid.Column="1"
-                         Margin="0,0,0,12" />
-
-                <TextBlock Grid.Row="6"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="Nickname" />
-                <TextBox x:Name="NicknameTextBox"
                          Grid.Row="6"
                          Grid.Column="1"
                          Margin="0,0,0,12" />
 
                 <TextBlock Grid.Row="7"
+                           Grid.Column="0"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center"
+                           Text="Nickname" />
+                <TextBox x:Name="NicknameTextBox"
+                         Grid.Row="7"
+                         Grid.Column="1"
+                         Margin="0,0,0,0" />
+
+                <!-- ═══════════════════ -->
+                <Border Grid.Row="8" Grid.ColumnSpan="2"
+                        Style="{StaticResource SectionSeparator}" />
+
+                <!-- ═══ Input ═══ -->
+                <TextBlock Grid.Row="9"
                            Grid.ColumnSpan="2"
                            Margin="0,0,0,10"
                            FontWeight="SemiBold"
                            Text="Input" />
 
-                <TextBlock Grid.Row="8"
+                <TextBlock Grid.Row="10"
                            Grid.Column="0"
                            Margin="0,0,12,0"
                            VerticalAlignment="Center"
                            Text="Chat shortcut" />
-                <StackPanel Grid.Row="8"
+                <StackPanel Grid.Row="10"
                             Grid.Column="1"
                             Orientation="Horizontal">
                     <Button x:Name="ChatShortcutButton"
@@ -131,6 +161,137 @@
                             Click="OnResetShortcutClicked"
                             Content="Reset" />
                 </StackPanel>
+
+                <!-- ═══════════════════ -->
+                <Border Grid.Row="11" Grid.ColumnSpan="2"
+                        Style="{StaticResource SectionSeparator}" />
+
+                <!-- ═══ Screen Context ═══ -->
+                <TextBlock Grid.Row="12"
+                           Grid.ColumnSpan="2"
+                           Margin="0,0,0,10"
+                           FontWeight="SemiBold"
+                           Text="Screen Context" />
+
+                <CheckBox x:Name="ObservationEnabledCheckBox"
+                          Grid.Row="13"
+                          Grid.ColumnSpan="2"
+                          Margin="0,0,0,8"
+                          FontWeight="SemiBold"
+                          Content="Enable screen context observation"
+                          ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
+
+                <StackPanel Grid.Row="14"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,6"
+                            Orientation="Horizontal">
+                    <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
+                              VerticalAlignment="Center"
+                              Content="Allow ambient comments"
+                              ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
+                    <CheckBox x:Name="DoNotDisturbCheckBox"
+                              Margin="18,0,0,0"
+                              VerticalAlignment="Center"
+                              Content="Do not disturb"
+                              ToolTip="Keep observing, but suppress ambient comments." />
+                    <TextBlock Margin="18,0,6,0"
+                               VerticalAlignment="Center"
+                               Text="Commentary:" />
+                    <ComboBox x:Name="CommentaryLevelComboBox"
+                              Width="120"
+                              ToolTip="Controls ambient-comment cooldown and hourly limits." />
+                </StackPanel>
+
+                <TextBlock Grid.Row="15"
+                           Grid.ColumnSpan="2"
+                           Margin="0,4,0,0"
+                           Foreground="#FF475569"
+                           Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."
+                           TextWrapping="Wrap" />
+
+                <TextBlock x:Name="VisionWarningTextBlock"
+                           Grid.Row="16"
+                           Grid.ColumnSpan="2"
+                           Margin="0,4,0,8"
+                           Foreground="#FF9A3412"
+                           Text="Vision analysis provider unavailable: vision permission can be saved, but no image will be captured or analyzed."
+                           TextWrapping="Wrap" />
+
+                <DataGrid x:Name="ApplicationsGrid"
+                          Grid.Row="17"
+                          Grid.ColumnSpan="2"
+                          MaxHeight="250"
+                          VerticalAlignment="Top"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          HeadersVisibility="Column"
+                          IsReadOnly="False"
+                          SelectionMode="Single">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="2*"
+                                            Binding="{Binding DisplayName}"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="Application"
+                                           ToolTip="Running or previously configured application." />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="3*"
+                                            Binding="{Binding ExecutablePath}"
+                                            IsReadOnly="True">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="Executable"
+                                           ToolTip="Executable path used to identify the application." />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Width="75"
+                                                CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Deny"
+                                           ToolTip="Block all screen context for this application." />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding IsDenied, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ToolTip="Block all screen context for this application." />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="100"
+                                                CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Metadata"
+                                           ToolTip="Allow window details, visible accessibility labels, and focused controls." />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding AllowMetadataAndStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ToolTip="Allow window details, visible accessibility labels, and focused controls." />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="90"
+                                                CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Vision"
+                                           ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
         </ScrollViewer>
     </DockPanel>

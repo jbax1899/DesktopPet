@@ -69,30 +69,6 @@
                        TextWrapping="Wrap" />
         </Border>
 
-        <Border x:Name="DesktopContextShell"
-                MaxWidth="520"
-                Padding="10,7"
-                Background="#E6F8FAFC"
-                BorderBrush="#FFCBD5E1"
-                BorderThickness="1"
-                CornerRadius="9"
-                IsHitTestVisible="True"
-                Visibility="Collapsed">
-            <StackPanel>
-                <Button HorizontalAlignment="Left"
-                        Padding="8,3"
-                        Click="OnDesktopContextClicked"
-                        Content="Desktop context used" />
-                <TextBlock x:Name="DesktopContextTextBlock"
-                           Margin="2,8,2,2"
-                           FontFamily="Segoe UI"
-                           FontSize="12"
-                           Foreground="#FF334155"
-                           TextWrapping="Wrap"
-                           Visibility="Collapsed" />
-            </StackPanel>
-        </Border>
-
         <Border x:Name="InputShell"
                 MinWidth="260"
                 MaxWidth="1120"

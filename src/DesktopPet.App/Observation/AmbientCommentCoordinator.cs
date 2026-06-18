@@ -9,6 +9,8 @@ namespace DesktopPet.App.Observation;
 
 internal sealed class AmbientCommentCoordinator : IDisposable
 {
+    private static readonly TimeSpan PageLoadCaptureDelay = TimeSpan.FromMilliseconds(200);
+
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientCommentPolicy _policy;
@@ -166,14 +168,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             _currentCancellation?.Dispose();
             _currentCancellation = new CancellationTokenSource();
             var cancellationToken = _currentCancellation.Token;
-            using var transcriptReset = cancellationToken.Register(static state =>
-            {
-                var overlay = (ConversationOverlayWindow)state!;
-                overlay.Dispatcher.Invoke(() => overlay.HideTranscript());
-            }, _overlayWindow);
 
-            var comment = await _generator.GenerateAsync(change, visionObservation, cancellationToken);
-            if (string.IsNullOrWhiteSpace(comment) || turnId != Volatile.Read(ref _turnId))
+            var generatedComment = await _generator.GenerateAsync(change, visionObservation, cancellationToken);
+            if (generatedComment is null || turnId != Volatile.Read(ref _turnId))
             {
                 if (turnId == Volatile.Read(ref _turnId))
                 {
@@ -182,6 +179,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 return;
             }
 
+            var comment = generatedComment.Text;
             await using var audio = await _voiceSynthesisService.SynthesizeAsync(
                 new VoiceSynthesisRequest(comment),
                 cancellationToken);
@@ -191,62 +189,83 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             }
 
             var historyMessage = TryAddHistoryMessage(comment);
+            if (historyMessage is not null && generatedComment.DesktopContext is not null)
+            {
+                _chatHistoryStore.SetDesktopContext(historyMessage.Id, generatedComment.DesktopContext);
+            }
+
             FileStream? cacheStream = null;
             string? audioFileName = null;
             var audioCacheSaved = false;
 
+            var transcriptVersion = await _overlayWindow.Dispatcher.InvokeAsync(
+                () => _overlayWindow.ShowTranscript(comment));
             try
             {
-                if (historyMessage is not null)
-                {
-                    try
-                    {
-                        audioFileName = _chatAudioStore.CreateAudioFileName(historyMessage.Id);
-                        cacheStream = _chatAudioStore.CreateAudioFile(audioFileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Ambient audio cache error: {ex.Message}");
-                        audioFileName = null;
-                    }
-                }
-
-                _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.ShowTranscript(comment));
-                using var speaking = _characterStateController.BeginSpeaking();
-                _activityState.SetSpeechActive(true);
                 try
                 {
-                    await _audioPlayer.PlayAsync(
-                        audio.AudioStream,
-                        audio.AudioFormat,
-                        cancellationToken,
-                        speaking.SetMouthOpen,
-                        cacheStream);
+                    if (historyMessage is not null)
+                    {
+                        try
+                        {
+                            audioFileName = _chatAudioStore.CreateAudioFileName(historyMessage.Id);
+                            cacheStream = _chatAudioStore.CreateAudioFile(audioFileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Ambient audio cache error: {ex.Message}");
+                            audioFileName = null;
+                        }
+                    }
+
+                    using var speaking = _characterStateController.BeginSpeaking();
+                    _activityState.SetSpeechActive(true);
+                    try
+                    {
+                        await _audioPlayer.PlayAsync(
+                            audio.AudioStream,
+                            audio.AudioFormat,
+                            cancellationToken,
+                            speaking.SetMouthOpen,
+                            cacheStream);
+                    }
+                    finally
+                    {
+                        _activityState.SetSpeechActive(false);
+                    }
+
+                    if (SaveCachedAudio(cacheStream, audioFileName, historyMessage?.Id))
+                    {
+                        cacheStream = null;
+                        audioCacheSaved = true;
+                    }
                 }
                 finally
                 {
-                    _activityState.SetSpeechActive(false);
+                    cacheStream?.Dispose();
+                    if (!audioCacheSaved)
+                    {
+                        _chatAudioStore.Delete(audioFileName);
+                    }
                 }
 
-                if (SaveCachedAudio(cacheStream, audioFileName, historyMessage?.Id))
+                try
                 {
-                    cacheStream = null;
-                    audioCacheSaved = true;
+                    _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
+                    RecordObservation(change, visionObservation, thumbnailPath, AmbientDecisionReason.Eligible, spoke: true);
                 }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Ambient observation record failed ({ex.GetType().Name}): {ex.Message}");
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
             }
             finally
             {
-                cacheStream?.Dispose();
-                if (!audioCacheSaved)
-                {
-                    _chatAudioStore.Delete(audioFileName);
-                }
+                await _overlayWindow.Dispatcher.InvokeAsync(
+                    () => _overlayWindow.HideTranscript(transcriptVersion));
             }
-
-            _policy.RecordSpoken(candidate, DateTimeOffset.UtcNow);
-            RecordObservation(change, visionObservation, thumbnailPath, AmbientDecisionReason.Eligible, spoke: true);
-            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
-            _overlayWindow.Dispatcher.Invoke(() => _overlayWindow.HideTranscript());
         }
         finally
         {
@@ -268,6 +287,16 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         try
         {
+            if (change.Type is DesktopObservationChangeType.ForegroundApplicationChanged
+                or DesktopObservationChangeType.WindowTitleChanged)
+            {
+                await Task.Delay(PageLoadCaptureDelay, cancellationToken);
+                if (turnId != Volatile.Read(ref _turnId))
+                {
+                    return null;
+                }
+            }
+
             var foregroundCollector = new ForegroundWindowCollector(_permissionService);
             var foregroundSnapshot = foregroundCollector.CollectPermittedMetadata();
             if (foregroundSnapshot is null)

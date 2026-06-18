@@ -1,15 +1,9 @@
-using System.Runtime.InteropServices;
-
 namespace DesktopPet.App.Observation;
 
 public enum DesktopObservationChangeType
 {
     ForegroundApplicationChanged,
     WindowTitleChanged,
-    DialogOrErrorAppeared,
-    DialogOrErrorDisappeared,
-    TaskCompleted,
-    UserReturned,
     CheckIn
 }
 
@@ -54,7 +48,6 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
     private ReducedDesktopObservation? _previous;
     private DateTimeOffset _activityStartedAt;
     private DateTimeOffset _lastCheckInAt;
-    private bool _wasIdle;
     private readonly Dictionary<string, DateTimeOffset> _lastStructuralInspection = new(StringComparer.OrdinalIgnoreCase);
 
     public DesktopObservationCoordinator(
@@ -152,7 +145,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
                 structuralDescription);
             Add(observation);
             ObservationAdded?.Invoke(this, observation);
-            foreach (var change in DetectChanges(_previous, observation, primaryChange))
+            foreach (var change in DetectChanges(observation, primaryChange))
             {
                 ChangeDetected?.Invoke(this, change);
             }
@@ -212,7 +205,6 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
     }
 
     private IEnumerable<DesktopObservationChange> DetectChanges(
-        ReducedDesktopObservation? previous,
         ReducedDesktopObservation current,
         DesktopObservationChangeType? primaryChange)
     {
@@ -221,29 +213,6 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
             yield return CreateChange(primaryChange.Value, current);
         }
 
-        var previousAttention = ContainsAttentionText(previous);
-        var currentAttention = ContainsAttentionText(current);
-        if (!previousAttention && currentAttention)
-        {
-            yield return CreateChange(DesktopObservationChangeType.DialogOrErrorAppeared, current);
-        }
-        else if (previousAttention && !currentAttention)
-        {
-            yield return CreateChange(DesktopObservationChangeType.DialogOrErrorDisappeared, current);
-        }
-
-        if (ContainsCompletionText(current) && !ContainsCompletionText(previous))
-        {
-            yield return CreateChange(DesktopObservationChangeType.TaskCompleted, current);
-        }
-
-        var isIdle = GetIdleDuration() >= TimeSpan.FromMinutes(5);
-        if (_wasIdle && !isIdle)
-        {
-            yield return CreateChange(DesktopObservationChangeType.UserReturned, current);
-        }
-
-        _wasIdle = isIdle;
         var checkInInterval = TimeSpan.FromMinutes(_permissionService.Current.CheckInMinutes);
         if (current.ObservedAt - _lastCheckInAt >= checkInInterval)
         {
@@ -289,50 +258,4 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         return new DesktopObservationChange(type, observation, topic);
     }
 
-    private static bool ContainsAttentionText(ReducedDesktopObservation? observation)
-    {
-        var text = $"{observation?.ActivityDescription} {observation?.StructuralDescription}";
-        return text.Contains("error", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("warning", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("dialog", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("failed", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ContainsCompletionText(ReducedDesktopObservation? observation)
-    {
-        var text = $"{observation?.ActivityDescription} {observation?.StructuralDescription}";
-        return text.Contains("complete", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("succeeded", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("finished", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("done", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static TimeSpan GetIdleDuration()
-    {
-        var info = new LastInputInfo
-        {
-            Size = (uint)Marshal.SizeOf<LastInputInfo>()
-        };
-        if (!NativeMethods.GetLastInputInfo(ref info))
-        {
-            return TimeSpan.Zero;
-        }
-
-        var elapsedMilliseconds = unchecked((uint)Environment.TickCount - info.Time);
-        return TimeSpan.FromMilliseconds(elapsedMilliseconds);
-    }
-
-    private static partial class NativeMethods
-    {
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static partial bool GetLastInputInfo(ref LastInputInfo info);
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct LastInputInfo
-    {
-        public uint Size;
-        public uint Time;
-    }
 }

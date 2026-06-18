@@ -58,6 +58,92 @@
                                                            FontSize="11"
                                                            Foreground="#6B7280"
                                                            Text="{Binding CreatedAtUtc, StringFormat='{}{0:g} UTC'}" />
+                                                <Button x:Name="DesktopContextButton"
+                                                        DockPanel.Dock="Right"
+                                                        Width="22"
+                                                        Height="22"
+                                                        Margin="10,0,0,0"
+                                                        Padding="0"
+                                                        Click="OnDesktopContextClicked"
+                                                        Content="i"
+                                                        FontFamily="Segoe UI"
+                                                        FontSize="12"
+                                                        FontWeight="Bold"
+                                                        Foreground="#475569"
+                                                        ToolTip="Show desktop context sent to ElevenLabs"
+                                                        ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                                        Visibility="Collapsed">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="InfoCircle"
+                                                                    Background="#F8FAFC"
+                                                                    BorderBrush="#94A3B8"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="11">
+                                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center" />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver"
+                                                                         Value="True">
+                                                                    <Setter TargetName="InfoCircle"
+                                                                            Property="Background"
+                                                                            Value="#E2E8F0" />
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused"
+                                                                         Value="True">
+                                                                    <Setter TargetName="InfoCircle"
+                                                                            Property="BorderBrush"
+                                                                            Value="#2563EB" />
+                                                                    <Setter TargetName="InfoCircle"
+                                                                            Property="BorderThickness"
+                                                                            Value="2" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu MaxWidth="460"
+                                                                     Padding="12"
+                                                                     Placement="Bottom"
+                                                                     StaysOpen="False">
+                                                            <StackPanel>
+                                                                <TextBlock FontSize="13"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="#0F172A"
+                                                                           Text="Desktop context sent to ElevenLabs" />
+                                                                <TextBlock Margin="0,3,0,10"
+                                                                           FontSize="11"
+                                                                           Foreground="#64748B"
+                                                                           Text="Reduced, permission-filtered context attached to this reply."
+                                                                           TextWrapping="Wrap" />
+                                                                <ItemsControl ItemsSource="{Binding DesktopContextFields}">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Grid Margin="0,0,0,7">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="105" />
+                                                                                    <ColumnDefinition Width="*" />
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <TextBlock Grid.Column="0"
+                                                                                           Margin="0,0,10,0"
+                                                                                           FontSize="12"
+                                                                                           FontWeight="SemiBold"
+                                                                                           Foreground="#475569"
+                                                                                           Text="{Binding Label}" />
+                                                                                <TextBlock Grid.Column="1"
+                                                                                           FontSize="12"
+                                                                                           Foreground="#1E293B"
+                                                                                           Text="{Binding Value}"
+                                                                                           TextWrapping="Wrap" />
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </StackPanel>
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
+                                                </Button>
                                                 <Button x:Name="PlayAudioButton"
                                                         DockPanel.Dock="Right"
                                                         Width="28"
@@ -94,6 +180,17 @@
                                                        Value="True" />
                                         </MultiDataTrigger.Conditions>
                                         <Setter TargetName="PlayAudioButton"
+                                                Property="Visibility"
+                                                Value="Visible" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsBot}"
+                                                       Value="True" />
+                                            <Condition Binding="{Binding HasDesktopContext}"
+                                                       Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="DesktopContextButton"
                                                 Property="Visibility"
                                                 Value="Visible" />
                                     </MultiDataTrigger>
@@ -224,12 +321,17 @@
                                                 <TextBlock DockPanel.Dock="Right"
                                                            FontSize="11"
                                                            Foreground="#64748B"
-                                                           Text="{Binding WindowTitle}" />
+                                                           Text="{Binding CapturedAt, StringFormat='{}{0:g}'}" />
                                             </DockPanel>
+
+                                            <TextBlock FontSize="11"
+                                                       Foreground="#64748B"
+                                                       Text="{Binding Activity}"
+                                                       TextWrapping="Wrap" />
 
                                             <TextBlock Margin="0,8,0,0"
                                                        Foreground="#334155"
-                                                       Text="{Binding Analysis.Summary}"
+                                                       Text="{Binding Summary}"
                                                        TextWrapping="Wrap" />
 
                                             <StackPanel Margin="0,4,0,0"
@@ -239,12 +341,9 @@
                                                          Margin="0,0,4,0"
                                                          VerticalAlignment="Center"
                                                          ToolTip="{Binding Outcome}" />
-                                                <TextBlock x:Name="SpokenAtText"
-                                                           FontSize="11"
+                                                <TextBlock FontSize="11"
                                                            Foreground="#64748B"
-                                                           Visibility="Collapsed">
-                                                    <Run Text="{Binding SpokenAt, StringFormat={}{0:g}}" />
-                                                </TextBlock>
+                                                           Text="{Binding Status}" />
                                             </StackPanel>
                                         </StackPanel>
 

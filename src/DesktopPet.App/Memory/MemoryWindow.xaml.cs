@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using DesktopPet.App.Observation;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace DesktopPet.App.Memory;
 
@@ -17,9 +18,11 @@ public partial class MemoryWindow : Window
     private readonly FileSystemWatcher _chatHistoryWatcher;
     private readonly FileSystemWatcher _memoriesWatcher;
     private readonly FileSystemWatcher _observationsWatcher;
+    private readonly FileSystemWatcher _ambientDecisionsWatcher;
     private bool _suppressWatcherEvents;
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
+    private List<ObservationListItemView> _observationItems = [];
 
     public MemoryWindow(
         IMemoryStore memoryStore,
@@ -45,6 +48,7 @@ public partial class MemoryWindow : Window
         _chatHistoryWatcher = CreateWatcher(dataDirectory, "chat-history.json", OnChatHistoryFileChanged);
         _memoriesWatcher = CreateWatcher(dataDirectory, "memories.json", OnMemoriesFileChanged);
         _observationsWatcher = CreateWatcher(dataDirectory, "observations.json", OnObservationsFileChanged);
+        _ambientDecisionsWatcher = CreateWatcher(dataDirectory, "ambient-decisions.json", OnObservationsFileChanged);
 
         InitializeComponent();
         RefreshChatHistory();
@@ -57,12 +61,13 @@ public partial class MemoryWindow : Window
         _chatHistoryWatcher.Dispose();
         _memoriesWatcher.Dispose();
         _observationsWatcher.Dispose();
+        _ambientDecisionsWatcher.Dispose();
         base.OnClosed(e);
     }
 
     private async void OnPlayAudioClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is not System.Windows.Controls.Button { Tag: ChatHistoryMessage message })
+        if (sender is not WpfButton { Tag: ChatHistoryMessage message })
         {
             return;
         }
@@ -81,6 +86,18 @@ public partial class MemoryWindow : Window
         {
             RefreshChatHistory();
         }
+    }
+
+    private void OnDesktopContextClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not WpfButton { ContextMenu: { } contextMenu } button)
+        {
+            return;
+        }
+
+        contextMenu.DataContext = button.DataContext;
+        contextMenu.PlacementTarget = button;
+        contextMenu.IsOpen = true;
     }
 
     private void OnAddClicked(object sender, RoutedEventArgs e)
@@ -182,11 +199,10 @@ public partial class MemoryWindow : Window
         }
         else if (selectedIndex == 2)
         {
-            var observations = ObservationsListBox.ItemsSource as IReadOnlyList<ObservationRecord>;
-            if (observations is { Count: > 0 })
+            if (_observationItems.Count > 0)
             {
                 ObservationsListBox.UpdateLayout();
-                ObservationsListBox.ScrollIntoView(observations[^1]);
+                ObservationsListBox.ScrollIntoView(_observationItems[^1]);
             }
         }
     }
@@ -261,13 +277,22 @@ public partial class MemoryWindow : Window
     {
         try
         {
-            var observations = _observationStore.List();
-            ObservationsListBox.ItemsSource = observations;
+            var visualObservations = _observationStore.List();
+            var ambientDecisions = _ambientDecisionStore.List()
+                .Where(decision => !HasMatchingVisualObservation(decision, visualObservations))
+                .Select(ObservationListItemView.FromAmbientDecision);
 
-            if (observations.Count > 0)
+            _observationItems = visualObservations
+                .Select(ObservationListItemView.FromVisualObservation)
+                .Concat(ambientDecisions)
+                .OrderBy(item => item.CapturedAt)
+                .ToList();
+            ObservationsListBox.ItemsSource = _observationItems;
+
+            if (_observationItems.Count > 0)
             {
                 ObservationsListBox.UpdateLayout();
-                ObservationsListBox.ScrollIntoView(observations[^1]);
+                ObservationsListBox.ScrollIntoView(_observationItems[^1]);
             }
         }
         catch (Exception)
@@ -323,11 +348,25 @@ public partial class MemoryWindow : Window
             EnableRaisingEvents = true
         };
         watcher.Changed += handler;
+        watcher.Created += handler;
+        watcher.Deleted += handler;
         return watcher;
+    }
+
+    private static bool HasMatchingVisualObservation(
+        AmbientDecisionRecord decision,
+        IReadOnlyList<ObservationRecord> visualObservations)
+    {
+        var application = ObservationListItemView.ExtractApplication(decision.Observation);
+        return visualObservations.Any(observation =>
+            string.Equals(observation.Application, application, StringComparison.OrdinalIgnoreCase)
+            && Math.Abs((observation.CapturedAt - decision.CreatedAt).TotalSeconds) <= 5);
     }
 
     private sealed record ChatHistoryMessageView(ChatHistoryMessage Message, bool HasAudio)
     {
+        private static readonly char[] LineSeparators = ['\r', '\n'];
+
         public string Text => Message.Text;
 
         public DateTime CreatedAtUtc => Message.CreatedAtUtc;
@@ -335,5 +374,134 @@ public partial class MemoryWindow : Window
         public bool IsUser => Message.Role == ChatHistoryRole.User;
 
         public bool IsBot => Message.Role == ChatHistoryRole.Bot;
+
+        public string? DesktopContext => Message.DesktopContext;
+
+        public bool HasDesktopContext => !string.IsNullOrWhiteSpace(DesktopContext);
+
+        public IReadOnlyList<DesktopContextField> DesktopContextFields =>
+            string.IsNullOrWhiteSpace(DesktopContext)
+                ? []
+                : DesktopContext
+                    .Split(LineSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(ToDesktopContextField)
+                    .ToArray();
+
+        private static DesktopContextField ToDesktopContextField(string line)
+        {
+            var separatorIndex = line.IndexOf(':');
+            return separatorIndex <= 0
+                ? new DesktopContextField("Context", line)
+                : new DesktopContextField(
+                    line[..separatorIndex].Trim(),
+                    line[(separatorIndex + 1)..].Trim());
+        }
+    }
+
+    private sealed record DesktopContextField(string Label, string Value);
+
+    private sealed record ObservationListItemView(
+        string Application,
+        string? Activity,
+        string Summary,
+        string Status,
+        DateTimeOffset CapturedAt,
+        ObservationOutcome Outcome,
+        string? ThumbnailPath)
+    {
+        public static ObservationListItemView FromVisualObservation(ObservationRecord observation)
+        {
+            return new ObservationListItemView(
+                observation.Application,
+                observation.WindowTitle,
+                observation.Analysis.Summary,
+                FormatOutcome(observation.Outcome),
+                observation.CapturedAt,
+                observation.Outcome,
+                observation.ThumbnailPath);
+        }
+
+        public static ObservationListItemView FromAmbientDecision(AmbientDecisionRecord decision)
+        {
+            var application = ExtractApplication(decision.Observation);
+            return new ObservationListItemView(
+                application,
+                "Metadata observation",
+                ExtractSummary(decision.Observation),
+                decision.Spoke
+                    ? "Spoke"
+                    : $"Stayed quiet: {FormatReason(decision.Reason)}",
+                decision.CreatedAt,
+                MapOutcome(decision),
+                null);
+        }
+
+        public static string ExtractApplication(string description)
+        {
+            var separatorIndex = description.IndexOf(':');
+            return separatorIndex > 0
+                ? description[..separatorIndex].Trim()
+                : "Desktop";
+        }
+
+        private static string ExtractSummary(string description)
+        {
+            var separatorIndex = description.IndexOf(':');
+            return separatorIndex >= 0 && separatorIndex + 1 < description.Length
+                ? description[(separatorIndex + 1)..].Trim()
+                : description;
+        }
+
+        private static ObservationOutcome MapOutcome(AmbientDecisionRecord decision)
+        {
+            if (decision.Spoke)
+            {
+                return ObservationOutcome.Spoken;
+            }
+
+            return decision.Reason switch
+            {
+                AmbientDecisionReason.CooldownActive => ObservationOutcome.Cooldown,
+                AmbientDecisionReason.DuplicateTopic => ObservationOutcome.Duplicate,
+                AmbientDecisionReason.UserRequestActive => ObservationOutcome.UserBusy,
+                AmbientDecisionReason.SpeechActive => ObservationOutcome.UserBusy,
+                AmbientDecisionReason.UserRecentlyTyping => ObservationOutcome.UserBusy,
+                AmbientDecisionReason.PermissionRemoved => ObservationOutcome.Sensitive,
+                _ => ObservationOutcome.BelowThreshold
+            };
+        }
+
+        private static string FormatOutcome(ObservationOutcome outcome)
+        {
+            return outcome switch
+            {
+                ObservationOutcome.BelowThreshold => "Stayed quiet: below threshold",
+                ObservationOutcome.Cooldown => "Stayed quiet: cooldown active",
+                ObservationOutcome.Duplicate => "Stayed quiet: duplicate topic",
+                ObservationOutcome.UserBusy => "Stayed quiet: user busy",
+                ObservationOutcome.Stale => "Stayed quiet: stale",
+                ObservationOutcome.Sensitive => "Stayed quiet: permission or sensitivity",
+                _ => "Spoke"
+            };
+        }
+
+        private static string FormatReason(AmbientDecisionReason reason)
+        {
+            return reason switch
+            {
+                AmbientDecisionReason.ObservationPaused => "observation paused",
+                AmbientDecisionReason.AmbientDisabled => "ambient comments disabled",
+                AmbientDecisionReason.PermissionRemoved => "permission removed",
+                AmbientDecisionReason.UserRequestActive => "user request active",
+                AmbientDecisionReason.SpeechActive => "speech already active",
+                AmbientDecisionReason.UserRecentlyTyping => "user recently typing",
+                AmbientDecisionReason.CooldownActive => "cooldown active",
+                AmbientDecisionReason.DuplicateTopic => "duplicate topic",
+                AmbientDecisionReason.GeneratorChoseSilence => "generator chose silence",
+                AmbientDecisionReason.GenerationFailed => "generation failed",
+                AmbientDecisionReason.BelowThreshold => "below threshold",
+                _ => "eligible"
+            };
+        }
     }
 }

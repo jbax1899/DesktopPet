@@ -136,7 +136,7 @@ public sealed class ConversationController : IDisposable
             try
             {
                 var desktopContext = await _desktopContextProvider.GetCurrentContextAsync(CancellationToken.None);
-                _overlayWindow.ShowDesktopContext(DesktopContextFormatter.Format(desktopContext.Context));
+                var formattedContext = DesktopContextFormatter.Format(desktopContext.Context);
                 var reply = await _chatService.ReplyAsync(
                     new ChatRequest(
                         message,
@@ -146,6 +146,10 @@ public sealed class ConversationController : IDisposable
                         GetRecentObservations()),
                     CancellationToken.None);
                 var botMessage = TryAddHistoryMessage(ChatHistoryRole.Bot, reply.Text);
+                if (botMessage is not null && formattedContext is not null)
+                {
+                    _chatHistoryStore.SetDesktopContext(botMessage.Id, formattedContext);
+                }
                 audio = await _voiceSynthesisService.SynthesizeAsync(new VoiceSynthesisRequest(reply.Text), CancellationToken.None);
 
                 if (turnId != Volatile.Read(ref _newestSubmittedTurnId))
@@ -200,11 +204,16 @@ public sealed class ConversationController : IDisposable
             }
 
             _activeTranscriptTurnId = turnId;
-            _overlayWindow.ShowTranscript(transcript);
+            var transcriptVersion = _overlayWindow.ShowTranscript(transcript);
 
             _currentPlaybackCancellation?.Dispose();
             _currentPlaybackCancellation = new CancellationTokenSource();
-            _currentPlaybackTask = PlaySpeechAsync(turnId, audio, botMessageId, _currentPlaybackCancellation.Token);
+            _currentPlaybackTask = PlaySpeechAsync(
+                turnId,
+                transcriptVersion,
+                audio,
+                botMessageId,
+                _currentPlaybackCancellation.Token);
             playbackStarted = true;
         }
         finally
@@ -220,6 +229,7 @@ public sealed class ConversationController : IDisposable
 
     private async Task PlaySpeechAsync(
         int turnId,
+        long transcriptVersion,
         VoiceSynthesisResult audio,
         string? botMessageId,
         CancellationToken cancellationToken)
@@ -271,7 +281,7 @@ public sealed class ConversationController : IDisposable
                     audioCacheSaved = true;
                 }
 
-                await HideTranscriptAfterHoldAsync(turnId, cancellationToken);
+                await HideTranscriptAfterHoldAsync(turnId, transcriptVersion, cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -282,7 +292,7 @@ public sealed class ConversationController : IDisposable
                 {
                     ShowError(ex, PetErrorCode.PlaybackFailed);
                     _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
-                    await HideTranscriptAfterHoldAsync(turnId, cancellationToken);
+                    await HideTranscriptAfterHoldAsync(turnId, transcriptVersion, cancellationToken);
                 }
             }
             finally
@@ -292,16 +302,22 @@ public sealed class ConversationController : IDisposable
                 {
                     _chatAudioStore.Delete(audioFileName);
                 }
+
+                await _overlayWindow.Dispatcher.InvokeAsync(
+                    () => _overlayWindow.HideTranscript(transcriptVersion));
             }
         }
     }
 
-    private async Task HideTranscriptAfterHoldAsync(int turnId, CancellationToken cancellationToken)
+    private async Task HideTranscriptAfterHoldAsync(
+        int turnId,
+        long transcriptVersion,
+        CancellationToken cancellationToken)
     {
         await Task.Delay(TranscriptHoldAfterSpeech, cancellationToken);
         if (turnId == Volatile.Read(ref _activeTranscriptTurnId))
         {
-            _overlayWindow.HideTranscript();
+            _overlayWindow.HideTranscript(transcriptVersion);
         }
     }
 

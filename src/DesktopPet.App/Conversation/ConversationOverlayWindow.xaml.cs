@@ -35,6 +35,7 @@ public partial class ConversationOverlayWindow : Window
     private string _fullTranscript = string.Empty;
     private int _visibleTranscriptCharacters;
     private double _transcriptCharacterBudget;
+    private long _transcriptVersion;
     private bool _isShowingSubmittedMessage;
     private bool _isSubmitting;
 
@@ -94,8 +95,9 @@ public partial class ConversationOverlayWindow : Window
 
     public bool IsInputVisible => IsVisible && InputShell.Visibility == Visibility.Visible;
 
-    public void ShowTranscript(string text)
+    public long ShowTranscript(string text)
     {
+        var transcriptVersion = ++_transcriptVersion;
         _lastPetBounds = _petBoundsProvider();
         MoveToRelevantScreen(_lastPetBounds);
         if (!IsVisible)
@@ -113,6 +115,7 @@ public partial class ConversationOverlayWindow : Window
         ErrorShell.Visibility = Visibility.Collapsed;
         ArrangeOverlay();
         _transcriptTimer.Start();
+        return transcriptVersion;
     }
 
     public void HideTranscript()
@@ -121,26 +124,18 @@ public partial class ConversationOverlayWindow : Window
         TranscriptShell.Visibility = Visibility.Collapsed;
     }
 
+    public void HideTranscript(long transcriptVersion)
+    {
+        if (transcriptVersion == _transcriptVersion)
+        {
+            HideTranscript();
+        }
+    }
+
     public void ShowError(string message)
     {
         ErrorTextBlock.Text = message;
         ErrorShell.Visibility = Visibility.Visible;
-        ArrangeOverlay();
-    }
-
-    public void ShowDesktopContext(string? context)
-    {
-        if (string.IsNullOrWhiteSpace(context))
-        {
-            DesktopContextShell.Visibility = Visibility.Collapsed;
-            DesktopContextTextBlock.Text = string.Empty;
-            DesktopContextTextBlock.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        DesktopContextTextBlock.Text = context;
-        DesktopContextTextBlock.Visibility = Visibility.Collapsed;
-        DesktopContextShell.Visibility = Visibility.Visible;
         ArrangeOverlay();
     }
 
@@ -240,14 +235,6 @@ public partial class ConversationOverlayWindow : Window
         ArrangeOverlay();
     }
 
-    private void OnDesktopContextClicked(object sender, RoutedEventArgs e)
-    {
-        DesktopContextTextBlock.Visibility = DesktopContextTextBlock.Visibility == Visibility.Visible
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-        ArrangeOverlay();
-    }
-
     private void OnTranscriptTimerTick(object? sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_fullTranscript))
@@ -327,13 +314,6 @@ public partial class ConversationOverlayWindow : Window
             System.Windows.Controls.Canvas.SetTop(ErrorShell, Math.Max(0, System.Windows.Controls.Canvas.GetTop(InputShell) - ErrorShell.DesiredSize.Height - ErrorGap));
         }
 
-        if (DesktopContextShell.Visibility == Visibility.Visible)
-        {
-            DesktopContextShell.Measure(new System.Windows.Size(520, double.PositiveInfinity));
-            System.Windows.Controls.Canvas.SetLeft(DesktopContextShell, 18);
-            System.Windows.Controls.Canvas.SetTop(DesktopContextShell, 18);
-        }
-
         if (TranscriptShell.Visibility != Visibility.Visible)
         {
             return;
@@ -377,8 +357,7 @@ public partial class ConversationOverlayWindow : Window
 
     private bool IsScreenPointInteractive(System.Windows.Point screenPoint)
     {
-        return IsPointOverElement(InputShell, screenPoint)
-            || IsPointOverElement(DesktopContextShell, screenPoint);
+        return IsPointOverElement(InputShell, screenPoint);
     }
 
     private static bool IsPointOverElement(FrameworkElement element, System.Windows.Point screenPoint)

@@ -11,4 +11,5 @@ public sealed record ChatHistoryMessage(
     ChatHistoryRole Role,
     string Text,
     DateTime CreatedAtUtc,
-    string? AudioFileName = null);
+    string? AudioFileName = null,
+    string? DesktopContext = null);

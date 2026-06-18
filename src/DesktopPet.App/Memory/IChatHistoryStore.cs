@@ -7,4 +7,6 @@ public interface IChatHistoryStore
     ChatHistoryMessage Add(ChatHistoryRole role, string text);
 
     void SetAudioFileName(string id, string audioFileName);
+
+    void SetDesktopContext(string id, string? desktopContext);
 }

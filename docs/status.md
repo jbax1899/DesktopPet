@@ -59,7 +59,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Audio playback streams MP3 frames through NAudio with full-frame HTTP reads, a larger startup buffer for stream stability, a short output-drain guard to avoid clipping the tail, and completed bot-reply MP3 caching for replay.
 - Plain JSON credential storage is temporary and should not be treated as secure.
 - Memory window has a Chat History tab plus the existing Memories tab.
-- Chat history stores user attempts and Agent replies in local JSON, with bot audio cached as local MP3 files when playback completes.
+- Chat history stores user attempts and Agent replies in local JSON, with the reduced desktop context used for each typed or ambient bot reply and cached bot audio when available.
 - Memory management UI exists with a local JSON-backed list, manual add, refresh, delete one, and clear all.
 - All manually stored memories are currently joined into one `memories_context` dynamic variable for each chat turn; relevance filtering is not implemented.
 - `IChatService`, `IVoiceSynthesisService`, and `StreamingMp3AudioPlayer` are good enough for smoke testing.
@@ -71,6 +71,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Background observation keeps short-lived reduced state, detects meaningful changes, and can produce sparse ambient comments when enabled.
 - Window capture is implemented in memory using PrintWindow, downscaled to 1280x720. Images are never written to disk.
 - OpenRouter vision analysis captures permitted window screenshots, converts to base64, and sends to the selected vision model with structured output.
+- Foreground application and window-title triggers wait 200 ms before capture so newly loaded page content has a moment to render; periodic check-ins capture immediately.
 - The vision model produces `VisionObservation` records with summary, novelty, relevance, confidence, sensitivity, interruption cost, and possible comment topics.
 - Vision analysis enforces a configurable minimum interval between OpenRouter requests (default 30s, adjustable in settings).
 - Minimum dwell time gates window-change observations so rapid Alt-Tab switching is ignored (default 15s, adjustable).
@@ -79,7 +80,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Scan quality (Brief/Detailed/Narrative) controls how much detail the vision model reports about each screenshot.
 - The vision analyzer receives the last 5 observation summaries as context to avoid repeating itself and focus on what is new or changed.
 - Ambient policy uses interest scoring from vision observations with soft speaking budgets per commentary level.
-- Desktop Pet Memories has an Observations tab showing card-based records with application, summary, interest score, confidence, and outcome.
+- Desktop Pet Memories has an Observations tab showing one chronological card list for rich visual observations and metadata-only ambient decisions.
 - Recent observation records persist to `observations.json` (capped at 200) for audit trail and tuning.
 - ElevenLabs diagnostics report safe event and variable names without logging provider values, Agent IDs, replies, or full exceptions.
 
@@ -97,7 +98,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Commentary and vision sensitivity are segmented radio-button sliders with contextual legends showing actual timing values.
 - Scan quality (Brief/Detailed/Narrative) controls the verbosity and narrative richness of vision observations.
 - Recent observation history is passed to the vision analyzer so it can describe what is new rather than repeating prior summaries.
-- Commentary level sets cooldown, duplicate window, and check-in interval directly; vision-based observations skip the duplicate check since interest scoring handles novelty. Check-in events periodically re-evaluate the current app so the pet can comment on sustained activity.
+- Commentary level sets cooldown, duplicate window, and check-in interval directly; vision-based observations skip the duplicate check since interest scoring handles novelty. Ambient analysis is triggered only by stable foreground/window-title changes and periodic check-ins that re-evaluate sustained activity.
 - Silence is a valid outcome; the pet should never say something uninteresting just to meet a quota.
 - Observation records persist to `observations.json` for audit trail and threshold tuning.
 - Do not interrupt current speech until a newer submitted message has both reply text and TTS audio ready.
@@ -106,7 +107,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Keep the existing chat and voice interfaces unless they get in the way; `IVoiceSynthesisService` should stay small.
 - Keep desktop observation separate from durable memories and add it to chat as distinct optional per-turn context.
 - Only `DesktopContextFormatter` converts reduced context into provider text; it enforces field and total-length limits.
-- Desktop context must not be added to chat-history, memory, audio-cache, settings, error, or diagnostic models.
+- Reduced desktop context is stored only on the corresponding bot chat-history message so the user can inspect what informed that reply; it remains excluded from durable memories, audio metadata, settings, errors, and diagnostics.
 - `DesktopPetApplication` constructs and disposes observation and ambient services.
 - `ConversationController` should request already permission-filtered, reduced desktop context when building a turn.
 - Windows collectors must not call ElevenLabs. The ElevenLabs service must not inspect Windows. The conversation window must not contain observation code.
@@ -117,20 +118,22 @@ Configure `desktop_context` with a harmless fallback such as
 - Settings opens a Screen Context Privacy window that merges saved rules with visible running applications, explains each access level, and uses direct one-click permission checkboxes.
 - A Win32 foreground-window collector can now return permitted metadata while keeping handles, process IDs, paths, and exact bounds inside the observation layer.
 - Opening typed chat prepares the permitted foreground application; submission reduces it to application name, bounded title activity, visibility, and approximate active duration.
-- Reduced context is sent as `desktop_context` and the conversation overlay exposes the exact same text through a temporary clickable disclosure.
+- Reduced context is sent as `desktop_context`; the corresponding bot message persists that exact text and exposes a labeled display from a circular info button in Chat History.
 - A bounded UI Automation collector is available for permitted active windows, with depth, node, text, timeout, off-screen, and password-field limits.
 - Typed context now reduces useful focused-control and visible-label data when structural access succeeds; unsupported, empty, and timed-out inspection falls back to metadata.
 - A permission-rechecking window-capture service can produce a downscaled in-memory bitmap for a visible, non-minimized foreground window; images are never written to disk.
 - Visual analysis is behind `IVisualContextAnalyzer`; the current unavailable implementation prevents capture until a provider is deliberately selected.
 - A cancellable background coordinator polls permitted metadata every two seconds off the UI thread and retains only the latest 50 reduced observations for at most 30 minutes.
 - Recent activity and comment decisions are consolidated in the Memories window instead of separate Screen Context windows.
-- The observation coordinator emits reduced meaningful changes for application/title transitions, attention states, completion states, idle return, and periodic check-ins on sustained activity.
+- The observation coordinator emits reduced meaningful changes only for stable application/title transitions and periodic check-ins on sustained activity. Error keywords, completion keywords, scrolling, typing, and idle return are not ambient triggers.
 - Structural inspection is attempted only for meaningful changes and at most once every ten seconds per application.
 - Ambient policy is local-first and rejects paused, disabled, permission-removed, busy, recently typed, cooldown, and duplicate (metadata-only) candidates before generation. Turn cancellation suppresses speech if a newer change arrives during processing. Vision-based observations skip the duplicate check since interest scoring handles novelty.
 - Quiet, Balanced, and Talkative profiles map to cooldown (10/5/2 min), duplicate window (20/15/10 min), and check-in interval (10/5/3 min) values directly.
 - Eligible changes can now request one short ElevenLabs comment from reduced context, then reuse local TTS, transcript, mouth animation, and playback.
 - Ambient work has separate turn cancellation and is cancelled when a user request starts.
-- Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records and clearable from the Observations tab.
+- Recent ambient decisions persist as reduced descriptions plus spoke/stayed-quiet reason codes, capped at 100 records, shown alongside visual records without duplicate cards, and clearable from the Observations tab.
+- Transcript display uses an ownership version so cancelled or failed typed, replayed, and ambient playback always cleans up its own transcript without hiding a newer one.
+- Transcript overlay operations (`ShowTranscript`/`HideTranscript`) are marshaled to the UI dispatcher to prevent cross-thread WPF access errors.
 - Screen Context settings now controls ambient enablement, cooldown, and duplicate window independently from application permissions.
 - Durable memory remains manually managed through the existing Memories tab; observation history does not create memory proposals.
 - Local policy decides whether an ambient observation deserves speech. Silence is the normal result.
@@ -157,7 +160,7 @@ Configure `desktop_context` with a harmless fallback such as
 - Keep metadata or structural inspection and visual capture as separate permissions.
 - Keep exact coordinates and other raw behavior data local unless the model needs them.
 - Reduce raw observations to compact context before sending them to an LLM.
-- Do not write desktop context to chat history, memories, audio metadata, debug logs, or user-visible exception messages.
+- Store only the bounded, reduced desktop context on its corresponding bot chat-history message; do not write raw desktop observations to chat history, memories, audio metadata, debug logs, or user-visible exception messages.
 - Show the user what desktop context was used for a turn.
 - Persist global controls and explicit application allow or deny rules in the separate observation settings store.
 
@@ -175,7 +178,7 @@ Configure `desktop_context` with a harmless fallback such as
 
 - Manually smoke-test permissions, scaling, multiple monitors, UI Automation timeouts, shutdown, and user-chat interruption.
 - Select a vision provider before enabling visual capture or analysis.
-- Tune ambient cooldowns, check-in intervals, and change heuristics from real use while keeping silence as the normal outcome.
+- Tune ambient cooldowns, check-in intervals, and window-change dwell behavior from real use while keeping silence as the normal outcome.
 - Keep auditing logs and local JSON files whenever observation models change.
 
 ## Near-Term Work

@@ -2,9 +2,14 @@ using DesktopPet.App.Cloud;
 
 namespace DesktopPet.App.Observation;
 
+public sealed record AmbientCommentResult(string Text, string? DesktopContext);
+
 public interface IAmbientCommentGenerator
 {
-    Task<string?> GenerateAsync(DesktopObservationChange change, VisionObservation? visionObservation, CancellationToken cancellationToken);
+    Task<AmbientCommentResult?> GenerateAsync(
+        DesktopObservationChange change,
+        VisionObservation? visionObservation,
+        CancellationToken cancellationToken);
 }
 
 internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
@@ -20,18 +25,13 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         _observationStore = observationStore;
     }
 
-    public async Task<string?> GenerateAsync(
+    public async Task<AmbientCommentResult?> GenerateAsync(
         DesktopObservationChange change,
         VisionObservation? visionObservation,
         CancellationToken cancellationToken)
     {
         var observation = change.Observation;
-        var context = new DesktopTurnContext(
-            observation.ApplicationName,
-            observation.ActivityDescription,
-            null,
-            observation.Capabilities,
-            observation.StructuralDescription);
+        var context = CreateDesktopContext(change);
 
         var prompt = BuildPrompt(observation, visionObservation);
         var history = GetRecentObservations();
@@ -47,7 +47,18 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         return string.Equals(text, "SILENCE", StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(text)
             ? null
-            : text;
+            : new AmbientCommentResult(text, DesktopContextFormatter.Format(context));
+    }
+
+    private static DesktopTurnContext CreateDesktopContext(DesktopObservationChange change)
+    {
+        var observation = change.Observation;
+        return new DesktopTurnContext(
+            observation.ApplicationName,
+            observation.ActivityDescription,
+            null,
+            observation.Capabilities,
+            observation.StructuralDescription);
     }
 
     private IReadOnlyList<ObservationRecord> GetRecentObservations()

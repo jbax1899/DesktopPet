@@ -68,6 +68,27 @@ public sealed class LocalChatHistoryStore : IChatHistoryStore
         SaveAll(messages);
     }
 
+    public void SetDesktopContext(string id, string? desktopContext)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        var messages = LoadAll();
+        var index = messages.FindIndex(message => message.Id == id);
+        if (index < 0)
+        {
+            return;
+        }
+
+        messages[index] = messages[index] with
+        {
+            DesktopContext = desktopContext
+        };
+        SaveAll(messages);
+    }
+
     private List<ChatHistoryMessage> LoadAll()
     {
         if (!File.Exists(_historyFilePath))

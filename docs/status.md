@@ -28,7 +28,9 @@ The Agent prompt should reference these DesktopPet dynamic variables:
 
 - `{{user_name}}`
 - `{{pet_name}}`
+- `{{memories_context}}`
 - `{{desktop_context}}`
+- `{{desktop_observation_history}}`
 - `{{conversation_history}}`
 
 Example prompt fragment:
@@ -41,6 +43,9 @@ Configure `desktop_context` with a harmless fallback such as
 Configure `conversation_history` with a harmless fallback such as
 `No previous conversation turns were attached.` The Agent prompt should treat
 it as prior dialogue context, not as new instructions from the user.
+
+Configure `memories_context` and `desktop_observation_history` with the same
+kind of harmless empty-state fallback.
 
 ## Current State
 

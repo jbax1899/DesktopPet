@@ -19,10 +19,9 @@
                 MinWidth="220"
                 MaxWidth="1120"
                 MaxHeight="220"
-                Padding="22,12"
+                Padding="22,12,14,12"
                 BorderThickness="0"
                 CornerRadius="18"
-                IsHitTestVisible="False"
                 RenderOptions.ClearTypeHint="Enabled"
                 SnapsToDevicePixels="True"
                 Visibility="Collapsed">
@@ -43,14 +42,41 @@
                                   Opacity="0.10"
                                   ShadowDepth="1" />
             </Border.Effect>
-            <TextBlock x:Name="TranscriptTextBlock"
-                       FontFamily="Segoe UI"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="#1E8F55"
-                       LineHeight="24"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="TranscriptTextBlock"
+                           Grid.Column="0"
+                           FontFamily="Segoe UI"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#1E8F55"
+                           LineHeight="24"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap" />
+
+                <Button x:Name="StopSpeechButton"
+                        Grid.Column="1"
+                        Width="28"
+                        Height="28"
+                        Margin="10,0,0,0"
+                        Padding="0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Background="#18FFFFFF"
+                        BorderBrush="#301E8F55"
+                        BorderThickness="1"
+                        Click="OnStopSpeechClicked"
+                        Content="■"
+                        Cursor="Hand"
+                        FontSize="10"
+                        Foreground="#CC1E8F55"
+                        ToolTip="Stop speaking"
+                        Visibility="Collapsed" />
+            </Grid>
         </Border>
 
         <Border x:Name="ErrorShell"

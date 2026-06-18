@@ -48,6 +48,7 @@ it as prior dialogue context, not as new instructions from the user.
 - Notification-area icon exposes Show, Hide, Click through, Settings, and Exit.
 - Right-click action pad exposes Chat, Memories, Settings, and a disabled microphone placeholder.
 - Conversation overlay handles typed input, submitted-message state, transcript display, content-sized chat bubbles, and basic dismissal behavior.
+- Speech playback exposes a small stop control on the active transcript for direct replies, ambient comments, and cached replay.
 - Global chat shortcut is configurable and defaults to Ctrl+Space.
 - Click-through uses Win32 extended window styles.
 - Runtime loads `Assets/bug.inp` into a WPF-layered visual prototype.
@@ -191,7 +192,6 @@ it as prior dialogue context, not as new instructions from the user.
 
 ## Near-Term Work
 
-- Keep a simple stop/interruption path so speech can be cancelled.
 - Add a more polished transcript timing path if full-text-at-once feels too abrupt.
 - Keep the TTS request path small and fixed to `eleven_v3`.
 - Add local Mem0 Compose files with pinned published images once the exact image and routes are tested.

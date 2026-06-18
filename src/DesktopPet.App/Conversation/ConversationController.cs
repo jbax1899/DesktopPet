@@ -69,6 +69,7 @@ public sealed class ConversationController : IDisposable
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
         _overlayWindow.UserInputActivity += OnUserInputActivity;
+        _overlayWindow.StopSpeechRequested += OnStopSpeechRequested;
     }
 
     public async Task ReplayCachedSpeechAsync(ChatHistoryMessage message)
@@ -106,6 +107,7 @@ public sealed class ConversationController : IDisposable
 
         _overlayWindow.MessageSubmitted -= OnMessageSubmitted;
         _overlayWindow.UserInputActivity -= OnUserInputActivity;
+        _overlayWindow.StopSpeechRequested -= OnStopSpeechRequested;
         _currentPlaybackCancellation?.Cancel();
         _currentPlaybackCancellation?.Dispose();
         _playbackGate.Dispose();
@@ -120,6 +122,11 @@ public sealed class ConversationController : IDisposable
     private void OnUserInputActivity(object? sender, EventArgs e)
     {
         _ambientActivityState.RecordUserInput();
+    }
+
+    private void OnStopSpeechRequested(object? sender, EventArgs e)
+    {
+        _currentPlaybackCancellation?.Cancel();
     }
 
     private async Task SubmitAsync(string message)
@@ -267,6 +274,8 @@ public sealed class ConversationController : IDisposable
                 using (var speaking = _characterStateController.BeginSpeaking())
                 {
                     _ambientActivityState.SetSpeechActive(true);
+                    await _overlayWindow.Dispatcher.InvokeAsync(
+                        () => _overlayWindow.SetSpeechPlaying(transcriptVersion, isPlaying: true));
                     try
                     {
                         await _audioPlayer.PlayAsync(
@@ -279,6 +288,8 @@ public sealed class ConversationController : IDisposable
                     finally
                     {
                         _ambientActivityState.SetSpeechActive(false);
+                        await _overlayWindow.Dispatcher.InvokeAsync(
+                            () => _overlayWindow.SetSpeechPlaying(transcriptVersion, isPlaying: false));
                     }
                 }
 

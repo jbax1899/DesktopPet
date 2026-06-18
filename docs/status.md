@@ -107,8 +107,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 ## Privacy and Local Data
 
-- Credentials currently use plain local JSON and should not be considered
-  securely stored.
+- Provider API keys are encrypted with Windows DPAPI for the current user and
+  stored separately from readable provider settings.
 - Observation settings default to paused and are stored separately in
   `%LOCALAPPDATA%\DesktopPet\observation-settings.json`.
 - OpenRouter vision uses zero-data-retention routing by default. Test Vision

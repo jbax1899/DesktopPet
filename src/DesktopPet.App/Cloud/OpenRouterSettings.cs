@@ -1,6 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace DesktopPet.App.Cloud;
 
 public sealed record OpenRouterSettings(
-    string? ApiKey,
+    [property: JsonIgnore] string? ApiKey,
     string? VisionModelId,
     bool RequireZeroRetention = true);

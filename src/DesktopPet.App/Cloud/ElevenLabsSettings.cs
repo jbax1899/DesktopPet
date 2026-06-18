@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace DesktopPet.App.Cloud;
 
 public sealed record ElevenLabsSettings(
-    string? ElevenLabsApiKey,
+    [property: JsonIgnore] string? ElevenLabsApiKey,
     string? ElevenLabsAgentId,
     string? ElevenLabsVoiceId,
     IReadOnlyList<ElevenLabsPronunciationDictionaryLocator>? PronunciationDictionaries = null,

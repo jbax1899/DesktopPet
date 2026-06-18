@@ -77,10 +77,10 @@
                            Margin="0,0,12,12"
                            VerticalAlignment="Center"
                            Text="ElevenLabs API key" />
-                <TextBox x:Name="ElevenLabsApiKeyTextBox"
-                         Grid.Row="1"
-                         Grid.Column="1"
-                         Margin="0,0,0,12" />
+                <PasswordBox x:Name="ElevenLabsApiKeyPasswordBox"
+                             Grid.Row="1"
+                             Grid.Column="1"
+                             Margin="0,0,0,12" />
 
                 <TextBlock Grid.Row="2"
                            Grid.Column="0"

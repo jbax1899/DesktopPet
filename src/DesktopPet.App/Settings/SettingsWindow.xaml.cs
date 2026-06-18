@@ -52,7 +52,7 @@ public partial class SettingsWindow : Window
         try
         {
             _elevenLabsSettingsStore.Save(new ElevenLabsSettings(
-                ToNullIfWhiteSpace(ElevenLabsApiKeyTextBox.Text),
+                ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password),
                 ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
                 ToNullIfWhiteSpace(ElevenLabsVoiceIdTextBox.Text)));
 
@@ -83,7 +83,7 @@ public partial class SettingsWindow : Window
     private void LoadSettings()
     {
         var settings = _elevenLabsSettingsStore.Load();
-        ElevenLabsApiKeyTextBox.Text = settings.ElevenLabsApiKey ?? string.Empty;
+        ElevenLabsApiKeyPasswordBox.Password = settings.ElevenLabsApiKey ?? string.Empty;
         ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
         ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
 

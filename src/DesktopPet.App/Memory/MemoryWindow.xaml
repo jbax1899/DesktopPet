@@ -346,6 +346,13 @@
                                                        Text="{Binding Summary}"
                                                        TextWrapping="Wrap" />
 
+                                            <TextBlock Margin="0,5,0,0"
+                                                       FontSize="11"
+                                                       Foreground="#475569"
+                                                       Text="{Binding Excerpt}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding ExcerptVisibility}" />
+
                                             <StackPanel Margin="0,4,0,0"
                                                         Orientation="Horizontal">
                                                 <Ellipse x:Name="OutcomeDot"
@@ -387,6 +394,9 @@
                                     <DataTrigger Binding="{Binding Outcome}" Value="Sensitive">
                                         <Setter TargetName="OutcomeDot" Property="Fill" Value="#EF4444" />
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding Outcome}" Value="Recorded">
+                                        <Setter TargetName="OutcomeDot" Property="Fill" Value="#14B8A6" />
+                                    </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -398,7 +408,7 @@
                                 Padding="10,4"
                                 Click="OnClearObservationsClicked"
                                 Content="Clear all"
-                                ToolTip="Clear all observation records." />
+                                ToolTip="Clear visual, ambient, and audio observations plus temporary audio transcripts." />
                     </Grid>
                 </Grid>
             </TabItem>

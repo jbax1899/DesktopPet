@@ -247,6 +247,137 @@
                             Content="Reset" />
                 </StackPanel>
 
+                <!-- ═══ Ambient Audio ═══ -->
+                <StackPanel Grid.Row="17"
+                            Grid.ColumnSpan="2"
+                            Margin="0,18,0,0">
+                    <TextBlock Margin="0,0,0,10"
+                               FontWeight="SemiBold"
+                               Text="Ambient Audio Capture" />
+                    <TextBlock Margin="0,0,0,10"
+                               FontSize="11"
+                               Foreground="#FF64748B"
+                               Text="Raw audio is never saved. Full transcripts stay in memory temporarily; only reduced observations and optional short excerpts are stored."
+                               TextWrapping="Wrap" />
+                    <CheckBox x:Name="AmbientAudioEnabledCheckBox"
+                              Margin="0,0,0,8"
+                              FontWeight="SemiBold"
+                              Content="Enable ambient audio capture"
+                              ToolTip="Master switch for temporary in-memory audio capture. No raw audio is written to disk." />
+                    <CheckBox x:Name="MicrophoneCaptureEnabledCheckBox"
+                              Margin="16,0,0,6"
+                              Content="Capture the default microphone" />
+                    <CheckBox x:Name="SystemAudioCaptureEnabledCheckBox"
+                              Margin="16,0,0,10"
+                              Content="Capture the default system output" />
+                    <CheckBox x:Name="AudioAnalysisEnabledCheckBox"
+                              Margin="0,0,0,8"
+                              FontWeight="SemiBold"
+                              Content="Analyze completed audio segments"
+                              ToolTip="Send only completed activity-gated segments to the selected OpenRouter audio model." />
+                    <TextBlock Margin="16,0,0,8"
+                               FontSize="11"
+                               Foreground="#FF64748B"
+                               Text="Audio observations are visible in Memories → Observations. They are not sent to Agent chat context and do not trigger commentary."
+                               TextWrapping="Wrap" />
+                    <Grid Margin="16,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="OpenRouter audio model" />
+                        <ComboBox x:Name="OpenRouterAudioModelComboBox"
+                                  Grid.Column="1"
+                                  DisplayMemberPath="Name"
+                                  ToolTip="Only models advertising audio input and structured output are listed." />
+                    </Grid>
+
+                    <Expander Margin="0,0,0,10"
+                              Header="Audio analysis advanced">
+                        <Grid Margin="16,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="PersistMicrophoneExcerptCheckBox"
+                                      Grid.Row="0"
+                                      Grid.ColumnSpan="2"
+                                      Margin="0,0,0,6"
+                                      Content="Persist microphone transcript excerpts" />
+                            <CheckBox x:Name="PersistSystemAudioExcerptCheckBox"
+                                      Grid.Row="1"
+                                      Grid.ColumnSpan="2"
+                                      Margin="0,0,0,8"
+                                      Content="Persist system-audio transcript excerpts" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Transcript retention (minutes)" />
+                            <TextBox x:Name="TranscriptRetentionMinutesTextBox"
+                                     Grid.Row="2" Grid.Column="1"
+                                     Style="{StaticResource AdvancedNumberTextBox}" />
+                            <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
+                            <TextBox x:Name="StoredAudioObservationCountTextBox"
+                                     Grid.Row="3" Grid.Column="1" Margin="0,6,0,0"
+                                     Style="{StaticResource AdvancedNumberTextBox}" />
+                            <TextBlock Grid.Row="4" Margin="0,6,0,0" VerticalAlignment="Center" Text="Minimum confidence (0–1)" />
+                            <TextBox x:Name="MinimumAudioConfidenceTextBox"
+                                     Grid.Row="4" Grid.Column="1" Margin="0,6,0,0"
+                                     Width="74"
+                                     HorizontalContentAlignment="Right"
+                                     Padding="4,2" />
+                            <TextBlock Grid.Row="5" Margin="0,6,0,0" VerticalAlignment="Center" Text="Request timeout (seconds)" />
+                            <TextBox x:Name="AudioAnalysisTimeoutSecondsTextBox"
+                                     Grid.Row="5" Grid.Column="1" Margin="0,6,0,0"
+                                     Style="{StaticResource AdvancedNumberTextBox}" />
+                        </Grid>
+                    </Expander>
+
+                    <Border Padding="10"
+                            Background="#FFF8FAFC"
+                            BorderBrush="#FFE2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="5">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold"
+                                       Text="Live diagnostics" />
+                            <TextBlock Margin="0,3,0,8"
+                                       FontSize="11"
+                                       Foreground="#FF64748B"
+                                       Text="Completed segments are discarded after analysis. Diagnostics never include audio, transcripts, or provider response bodies."
+                                       TextWrapping="Wrap" />
+                            <TextBlock FontWeight="SemiBold"
+                                       Text="Microphone" />
+                            <TextBlock x:Name="MicrophoneDiagnosticTextBlock"
+                                       Margin="0,2,0,8"
+                                       FontSize="11"
+                                       Foreground="#FF475569"
+                                       TextWrapping="Wrap" />
+                            <TextBlock FontWeight="SemiBold"
+                                       Text="System audio" />
+                            <TextBlock x:Name="SystemAudioDiagnosticTextBlock"
+                                       Margin="0,2,0,0"
+                                       FontSize="11"
+                                       Foreground="#FF475569"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Margin="0,8,0,0"
+                                       FontWeight="SemiBold"
+                                       Text="Analysis" />
+                            <TextBlock x:Name="AnalysisDiagnosticTextBlock"
+                                       Margin="0,2,0,0"
+                                       FontSize="11"
+                                       Foreground="#FF475569"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
                 <!-- ═══════════════════ -->
                 <Border Grid.Row="18" Grid.ColumnSpan="2"
                         Style="{StaticResource SectionSeparator}" />

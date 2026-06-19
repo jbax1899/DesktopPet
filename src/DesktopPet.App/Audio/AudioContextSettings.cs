@@ -1,0 +1,49 @@
+namespace DesktopPet.App.Audio;
+
+public sealed record AudioContextSettings(
+    bool Enabled,
+    bool MicrophoneEnabled,
+    bool SystemAudioEnabled,
+    bool AnalysisEnabled,
+    bool PersistMicrophoneTranscriptExcerpt,
+    bool PersistSystemAudioTranscriptExcerpt,
+    int TranscriptRetentionMinutes,
+    int StoredObservationCount,
+    double MinimumAnalysisConfidence,
+    int AnalysisTimeoutSeconds)
+{
+    public AudioContextSettings(bool enabled, bool microphoneEnabled, bool systemAudioEnabled)
+        : this(
+            enabled,
+            microphoneEnabled,
+            systemAudioEnabled,
+            Default.AnalysisEnabled,
+            Default.PersistMicrophoneTranscriptExcerpt,
+            Default.PersistSystemAudioTranscriptExcerpt,
+            Default.TranscriptRetentionMinutes,
+            Default.StoredObservationCount,
+            Default.MinimumAnalysisConfidence,
+            Default.AnalysisTimeoutSeconds)
+    {
+    }
+
+    public static AudioContextSettings Default { get; } = new(
+        Enabled: false,
+        MicrophoneEnabled: false,
+        SystemAudioEnabled: false,
+        AnalysisEnabled: false,
+        PersistMicrophoneTranscriptExcerpt: false,
+        PersistSystemAudioTranscriptExcerpt: true,
+        TranscriptRetentionMinutes: 5,
+        StoredObservationCount: 100,
+        MinimumAnalysisConfidence: 0.60,
+        AnalysisTimeoutSeconds: 45);
+
+    public AudioContextSettings Normalize() => this with
+    {
+        TranscriptRetentionMinutes = Math.Clamp(TranscriptRetentionMinutes, 1, 60),
+        StoredObservationCount = Math.Clamp(StoredObservationCount, 1, 1000),
+        MinimumAnalysisConfidence = Math.Clamp(MinimumAnalysisConfidence, 0, 1),
+        AnalysisTimeoutSeconds = Math.Clamp(AnalysisTimeoutSeconds, 5, 180)
+    };
+}

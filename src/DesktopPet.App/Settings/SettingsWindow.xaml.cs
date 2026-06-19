@@ -5,6 +5,8 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
+using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Errors;
 using DesktopPet.App.Observation;
@@ -20,6 +22,10 @@ public partial class SettingsWindow : Window
     private readonly CreditInfoService _creditInfoService;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
+    private readonly AudioContextSettingsStore _audioContextSettingsStore;
+    private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
+    private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
+    private readonly AudioObservationStore _audioObservationStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
     private readonly Func<PetError?> _getHotkeyWarning;
@@ -29,6 +35,8 @@ public partial class SettingsWindow : Window
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly ObservableCollection<ApplicationRuleRow> _observationRows = [];
     private readonly ObservableCollection<OpenRouterModelInfo> _visionModels = [];
+    private readonly ObservableCollection<OpenRouterModelInfo> _audioModels = [];
+    private readonly DispatcherTimer _audioDiagnosticsTimer;
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
     private bool _isRecordingShortcut;
     private bool _loadingObservationSettings;
@@ -42,6 +50,10 @@ public partial class SettingsWindow : Window
         CreditInfoService creditInfoService,
         UiSettingsStore uiSettingsStore,
         ProfileSettingsStore profileSettingsStore,
+        AudioContextSettingsStore audioContextSettingsStore,
+        AudioCaptureCoordinator audioCaptureCoordinator,
+        AudioAnalysisCoordinator audioAnalysisCoordinator,
+        AudioObservationStore audioObservationStore,
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
         Func<PetError?> getHotkeyWarning,
@@ -57,6 +69,10 @@ public partial class SettingsWindow : Window
         _creditInfoService = creditInfoService;
         _uiSettingsStore = uiSettingsStore;
         _profileSettingsStore = profileSettingsStore;
+        _audioContextSettingsStore = audioContextSettingsStore;
+        _audioCaptureCoordinator = audioCaptureCoordinator;
+        _audioAnalysisCoordinator = audioAnalysisCoordinator;
+        _audioObservationStore = audioObservationStore;
         _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
         _getHotkeyWarning = getHotkeyWarning;
@@ -66,11 +82,27 @@ public partial class SettingsWindow : Window
         _observationCoordinator = observationCoordinator;
 
         InitializeComponent();
+        _audioDiagnosticsTimer = new DispatcherTimer(
+            TimeSpan.FromMilliseconds(500),
+            DispatcherPriority.Background,
+            OnAudioDiagnosticsTick,
+            Dispatcher);
         ApplicationsGrid.ItemsSource = _observationRows;
         OpenRouterVisionModelComboBox.ItemsSource = _visionModels;
+        OpenRouterAudioModelComboBox.ItemsSource = _audioModels;
         LoadSettings();
         _ = LoadVisionModelsAsync();
+        _ = LoadAudioModelsAsync();
         _ = LoadCreditsAsync();
+        RefreshAudioDiagnostics();
+        _audioDiagnosticsTimer.Start();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _audioDiagnosticsTimer.Stop();
+        _audioDiagnosticsTimer.Tick -= OnAudioDiagnosticsTick;
+        base.OnClosed(e);
     }
 
     private void OnSaveClicked(object sender, RoutedEventArgs e)
@@ -106,14 +138,33 @@ public partial class SettingsWindow : Window
             });
 
             var selectedModel = OpenRouterVisionModelComboBox.SelectedItem as OpenRouterModelInfo;
+            var selectedAudioModel = OpenRouterAudioModelComboBox.SelectedItem as OpenRouterModelInfo;
+            var currentOpenRouterSettings = _openRouterSettingsStore.Load();
             _openRouterSettingsStore.Save(new OpenRouterSettings(
                 ToNullIfWhiteSpace(OpenRouterApiKeyPasswordBox.Password),
-                ToNullIfWhiteSpace(selectedModel?.Id),
+                ToNullIfWhiteSpace(selectedModel?.Id) ?? currentOpenRouterSettings.VisionModelId,
+                ToNullIfWhiteSpace(selectedAudioModel?.Id) ?? currentOpenRouterSettings.AudioAnalysisModelId,
                 OpenRouterRequireZdrCheckBox.IsChecked == true));
 
             _profileSettingsStore.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
+
+            var audioSettings = new AudioContextSettings(
+                AmbientAudioEnabledCheckBox.IsChecked == true,
+                MicrophoneCaptureEnabledCheckBox.IsChecked == true,
+                SystemAudioCaptureEnabledCheckBox.IsChecked == true,
+                AudioAnalysisEnabledCheckBox.IsChecked == true,
+                PersistMicrophoneExcerptCheckBox.IsChecked == true,
+                PersistSystemAudioExcerptCheckBox.IsChecked == true,
+                ClampInt(TranscriptRetentionMinutesTextBox.Text, 1, 60, 5),
+                ClampInt(StoredAudioObservationCountTextBox.Text, 1, 1000, 100),
+                ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
+                ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45));
+            _audioContextSettingsStore.Save(audioSettings);
+            _audioCaptureCoordinator.ApplySettings(audioSettings);
+            _audioObservationStore.ApplyRetentionLimit();
+            RefreshAudioDiagnostics();
 
             var uiSettings = currentUiSettings with
             {
@@ -156,6 +207,18 @@ public partial class SettingsWindow : Window
         UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
         NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
 
+        var audioSettings = _audioContextSettingsStore.Load();
+        AmbientAudioEnabledCheckBox.IsChecked = audioSettings.Enabled;
+        MicrophoneCaptureEnabledCheckBox.IsChecked = audioSettings.MicrophoneEnabled;
+        SystemAudioCaptureEnabledCheckBox.IsChecked = audioSettings.SystemAudioEnabled;
+        AudioAnalysisEnabledCheckBox.IsChecked = audioSettings.AnalysisEnabled;
+        PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
+        PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
+        TranscriptRetentionMinutesTextBox.Text = audioSettings.TranscriptRetentionMinutes.ToString();
+        StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
+        MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
+        AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();
+
         var uiSettings = _uiSettingsStore.Load();
         _selectedChatShortcut = uiSettings.ChatShortcut;
         var historySettings = uiSettings.GetEffectiveChatHistoryContext();
@@ -170,6 +233,87 @@ public partial class SettingsWindow : Window
         }
 
         LoadObservationSettings();
+    }
+
+    private void OnAudioDiagnosticsTick(object? sender, EventArgs e)
+    {
+        RefreshAudioDiagnostics();
+    }
+
+    private void RefreshAudioDiagnostics()
+    {
+        if (MicrophoneDiagnosticTextBlock is null || SystemAudioDiagnosticTextBlock is null)
+        {
+            return;
+        }
+
+        MicrophoneDiagnosticTextBlock.Text = FormatAudioDiagnostic(
+            _audioCaptureCoordinator.GetDiagnostic(AudioSourceKind.Microphone));
+        SystemAudioDiagnosticTextBlock.Text = FormatAudioDiagnostic(
+            _audioCaptureCoordinator.GetDiagnostic(AudioSourceKind.SystemAudio));
+        AnalysisDiagnosticTextBlock.Text = FormatAnalysisDiagnostic(
+            _audioAnalysisCoordinator.Diagnostic);
+    }
+
+    private static string FormatAudioDiagnostic(AudioSourceDiagnostic diagnostic)
+    {
+        var details = new List<string>
+        {
+            diagnostic.State.ToString()
+        };
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.DeviceName))
+        {
+            details.Add(diagnostic.DeviceName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.Format))
+        {
+            details.Add(diagnostic.Format);
+        }
+
+        details.Add($"level {diagnostic.CurrentLevel:P0}");
+        details.Add($"active {diagnostic.ActiveSegmentDuration.TotalSeconds:0.0}s");
+        details.Add($"{diagnostic.CompletedCount} completed");
+        details.Add($"{diagnostic.DiscardedCount} discarded");
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.LastError))
+        {
+            details.Add($"error: {diagnostic.LastError}");
+        }
+
+        return string.Join(" · ", details);
+    }
+
+    private static string FormatAnalysisDiagnostic(AudioAnalysisDiagnostic diagnostic)
+    {
+        var state = !diagnostic.Enabled
+            ? "Disabled"
+            : !diagnostic.AnalyzerAvailable
+                ? "Unavailable"
+                : diagnostic.RequestActive
+                    ? "Analyzing"
+                    : "Ready";
+        var details = new List<string>
+        {
+            state,
+            $"{diagnostic.QueueDepth} queued",
+            $"{diagnostic.SuccessfulCount} successful",
+            $"{diagnostic.FailureCount} failed",
+            $"{diagnostic.DroppedCount} dropped"
+        };
+
+        if (diagnostic.LastSuccessAt.HasValue)
+        {
+            details.Add($"last success {diagnostic.LastSuccessAt.Value.LocalDateTime:g}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.LastSafeFailure))
+        {
+            details.Add(diagnostic.LastSafeFailure);
+        }
+
+        return string.Join(" · ", details);
     }
 
     private void LoadObservationSettings()
@@ -337,6 +481,13 @@ public partial class SettingsWindow : Window
         return fallback;
     }
 
+    private static double ClampDouble(string text, double min, double max, double fallback)
+    {
+        return double.TryParse(text, out var value)
+            ? Math.Clamp(value, min, max)
+            : fallback;
+    }
+
     private void OnCommentaryLevelChanged(object sender, RoutedEventArgs e)
     {
         if (CommentaryLegendTextBlock is null) return;
@@ -499,6 +650,33 @@ public partial class SettingsWindow : Window
         catch (Exception)
         {
             OpenRouterModelCapabilitiesText.Text = "Failed to load vision models. Check your API key and connection.";
+        }
+    }
+
+    private async Task LoadAudioModelsAsync()
+    {
+        var settings = _openRouterSettingsStore.Load();
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            return;
+        }
+
+        var models = await _openRouterModelsService.GetAudioModelsAsync(CancellationToken.None);
+        _audioModels.Clear();
+        foreach (var model in models)
+        {
+            _audioModels.Add(model);
+        }
+
+        var selected = _audioModels.FirstOrDefault(model =>
+            string.Equals(model.Id, settings.AudioAnalysisModelId, StringComparison.OrdinalIgnoreCase));
+        if (selected is not null)
+        {
+            OpenRouterAudioModelComboBox.SelectedItem = selected;
+        }
+        else if (_audioModels.Count > 0)
+        {
+            OpenRouterAudioModelComboBox.SelectedIndex = 0;
         }
     }
 

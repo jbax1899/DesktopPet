@@ -12,7 +12,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   profile, memory, conversation, temporal, and reduced desktop context through
   dynamic variables.
 - **OpenRouter** optionally analyzes permitted screenshots into structured
-  `VisionObservation` records. Raw screenshots are never sent to ElevenLabs.
+  `VisionObservation` records and completed activity-gated audio segments into
+  reduced `AudioObservation` records. Raw screenshots and audio are never sent
+  to ElevenLabs.
 - Provider calls stay behind small interfaces. Windows collectors do not call
   providers, and provider services do not inspect Windows directly.
 
@@ -82,6 +84,34 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Ambient visual observations can save local JPEG thumbnails for inspection.
   Clearing observations also removes those thumbnails.
 
+### Ambient audio capture prototype
+
+- Ambient audio capture is separately opt-in and supports the default
+  microphone and default system-output loopback device.
+- NAudio capture is reduced to a mono in-memory analysis stream. Local activity
+  gating uses a short pre-roll, rejects brief spikes, closes segments after
+  silence, and force-closes continuous segments at 20 seconds.
+- Audio analysis is separately disabled by default. When enabled, completed
+  segments enter a bounded sequential queue with one active OpenRouter request
+  and at most two waiting segments. Capture continues if analysis is disabled,
+  unavailable, rejected, or fails.
+- The selected OpenRouter model must advertise audio input and structured
+  output. Mono samples are converted to PCM16 WAV in memory and sent through
+  the chat-completions `input_audio` block with zero-data-retention routing
+  when configured.
+- Full transcripts exist only in a memory-only working buffer with five-minute
+  default retention. Reduced observations are stored in
+  `%LOCALAPPDATA%\DesktopPet\audio-observations.json`, default to 100 records,
+  and appear in the Memories window's Observations tab with source, detected
+  kind, summary, confidence, optional excerpt, and transcript-retention status.
+- Microphone transcript excerpts default off; system-audio excerpts default
+  on. Persisted excerpts are one line and capped at 160 characters. Failed or
+  low-confidence analysis is diagnostics-only.
+- Audio observations are not injected into chat, used for commentary, or
+  promoted to durable memory in this phase.
+- Clearing observations also clears reduced audio observations, queued audio
+  analysis work, and the memory-only transcript buffer.
+
 ## Durable Decisions
 
 - Keep OpenRouter as the observation/interpretation layer, ElevenLabs as the
@@ -125,6 +155,12 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Full captured screenshots are transient. Optional observation thumbnails,
   reduced observation records, chat history, memories, settings, and cached
   audio are stored under `%LOCALAPPDATA%\DesktopPet`.
+- Raw microphone and system-loopback audio is never written to disk. Active
+  segment buffers, queued PCM, temporary transcripts, and diagnostic metadata
+  are cleared on disable or shutdown.
+- Persisted audio observations contain reduced summaries, event labels, and
+  optional bounded excerpts only. They do not contain full transcripts, PCM,
+  sample arrays, device names, provider bodies, or transient policy scores.
 - Do not persist full UI Automation trees, credentials, raw screenshots, or raw
   Windows identifiers in history, memory, diagnostics, or user-visible errors.
 - Users can inspect and clear observations, inspect context used for replies,
@@ -141,6 +177,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Improve transcript timing if full-text-at-once remains too abrupt.
 - Add automatic chat memory capture and retrieve only a few relevant memories
   per typed request.
+- Decide whether reduced audio observations should become optional chat context
+  or ambient-comment candidates. Any commentary path must reuse the existing
+  ambient policy and cooldown.
 
 ## Later Work
 

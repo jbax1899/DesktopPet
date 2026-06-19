@@ -34,5 +34,6 @@ public enum ObservationOutcome
     Duplicate,
     UserBusy,
     Stale,
-    Sensitive
+    Sensitive,
+    Recorded
 }

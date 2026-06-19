@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
@@ -17,6 +18,8 @@ public partial class MemoryWindow : Window
     private readonly IDesktopObservationCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
     private readonly ObservationStore _observationStore;
+    private readonly AudioObservationStore _audioObservationStore;
+    private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly Func<UiSettings> _uiSettingsProvider;
     private readonly FileSystemWatcher _observationsWatcher;
@@ -35,6 +38,8 @@ public partial class MemoryWindow : Window
         IDesktopObservationCoordinator observationCoordinator,
         AmbientDecisionStore ambientDecisionStore,
         ObservationStore observationStore,
+        AudioObservationStore audioObservationStore,
+        AudioAnalysisCoordinator audioAnalysisCoordinator,
         Func<ProfileSettings> profileSettingsProvider,
         Func<UiSettings> uiSettingsProvider)
     {
@@ -45,6 +50,8 @@ public partial class MemoryWindow : Window
         _observationCoordinator = observationCoordinator;
         _ambientDecisionStore = ambientDecisionStore;
         _observationStore = observationStore;
+        _audioObservationStore = audioObservationStore;
+        _audioAnalysisCoordinator = audioAnalysisCoordinator;
         _profileSettingsProvider = profileSettingsProvider;
         _uiSettingsProvider = uiSettingsProvider;
 
@@ -56,6 +63,7 @@ public partial class MemoryWindow : Window
         _ambientDecisionsWatcher = CreateWatcher(dataDirectory, "ambient-decisions.json", OnObservationsFileChanged);
         _chatHistoryStore.Changed += OnChatHistoryChanged;
         _memoryStore.Changed += OnMemoriesChanged;
+        _audioObservationStore.Changed += OnAudioObservationsChanged;
 
         InitializeComponent();
         RefreshChatHistory();
@@ -68,6 +76,7 @@ public partial class MemoryWindow : Window
         _contextInspectorWindow?.Close();
         _chatHistoryStore.Changed -= OnChatHistoryChanged;
         _memoryStore.Changed -= OnMemoriesChanged;
+        _audioObservationStore.Changed -= OnAudioObservationsChanged;
         _observationsWatcher.Dispose();
         _ambientDecisionsWatcher.Dispose();
         base.OnClosed(e);
@@ -279,6 +288,7 @@ public partial class MemoryWindow : Window
             SuppressWatcherEvents();
             _observationStore.Clear();
             _ambientDecisionStore.Clear();
+            _audioAnalysisCoordinator.ClearObservations();
             RefreshObservations();
         }
         catch (Exception)
@@ -340,10 +350,13 @@ public partial class MemoryWindow : Window
             var ambientDecisions = _ambientDecisionStore.List()
                 .Where(decision => !HasMatchingVisualObservation(decision, visualObservations))
                 .Select(ObservationListItemView.FromAmbientDecision);
+            var audioObservations = _audioObservationStore.List()
+                .Select(ObservationListItemView.FromAudioObservation);
 
             _observationItems = visualObservations
                 .Select(ObservationListItemView.FromVisualObservation)
                 .Concat(ambientDecisions)
+                .Concat(audioObservations)
                 .OrderBy(item => item.CapturedAt)
                 .ToList();
             ObservationsListBox.ItemsSource = _observationItems;
@@ -379,6 +392,11 @@ public partial class MemoryWindow : Window
         {
             RefreshMemories();
         });
+    }
+
+    private void OnAudioObservationsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(RefreshObservations);
     }
 
     private void OnObservationsFileChanged(object sender, FileSystemEventArgs e)
@@ -461,8 +479,12 @@ public partial class MemoryWindow : Window
         string Status,
         DateTimeOffset CapturedAt,
         ObservationOutcome Outcome,
-        string? ThumbnailPath)
+        string? ThumbnailPath,
+        string? Excerpt)
     {
+        public Visibility ExcerptVisibility =>
+            string.IsNullOrWhiteSpace(Excerpt) ? Visibility.Collapsed : Visibility.Visible;
+
         public static ObservationListItemView FromVisualObservation(ObservationRecord observation)
         {
             return new ObservationListItemView(
@@ -472,7 +494,8 @@ public partial class MemoryWindow : Window
                 FormatOutcome(observation.Outcome),
                 observation.CapturedAt,
                 observation.Outcome,
-                observation.ThumbnailPath);
+                observation.ThumbnailPath,
+                null);
         }
 
         public static ObservationListItemView FromAmbientDecision(AmbientDecisionRecord decision)
@@ -487,7 +510,33 @@ public partial class MemoryWindow : Window
                     : $"Stayed quiet: {FormatReason(decision.Reason)}",
                 decision.CreatedAt,
                 MapOutcome(decision),
+                null,
                 null);
+        }
+
+        public static ObservationListItemView FromAudioObservation(AudioObservation observation)
+        {
+            var source = observation.Source == AudioSourceKind.Microphone
+                ? "Microphone audio"
+                : "System audio";
+            var transcriptStatus = !observation.TranscriptExpiresAt.HasValue
+                ? "No full transcript retained"
+                : observation.TranscriptExpiresAt.Value <= DateTimeOffset.UtcNow
+                    ? "Temporary full transcript expired"
+                    : $"Temporary full transcript expires by {observation.TranscriptExpiresAt.Value.LocalDateTime:g}; also clears on disable, clear, or restart";
+            var excerpt = string.IsNullOrWhiteSpace(observation.TranscriptExcerpt)
+                ? null
+                : $"Excerpt: {observation.TranscriptExcerpt}";
+
+            return new ObservationListItemView(
+                source,
+                $"{observation.DetectedKind} · {observation.Confidence:P0} confidence",
+                observation.Summary,
+                transcriptStatus,
+                observation.CreatedAt,
+                ObservationOutcome.Recorded,
+                null,
+                excerpt);
         }
 
         public static string ExtractApplication(string description)
@@ -535,6 +584,7 @@ public partial class MemoryWindow : Window
                 ObservationOutcome.UserBusy => "Stayed quiet: user busy",
                 ObservationOutcome.Stale => "Stayed quiet: stale",
                 ObservationOutcome.Sensitive => "Stayed quiet: permission or sensitivity",
+                ObservationOutcome.Recorded => "Recorded",
                 _ => "Spoke"
             };
         }

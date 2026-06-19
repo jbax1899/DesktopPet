@@ -50,6 +50,6 @@ public sealed class OpenRouterSettingsStore
 
     private static OpenRouterSettings EmptySettings()
     {
-        return new OpenRouterSettings(null, null);
+        return new OpenRouterSettings(null, null, null);
     }
 }

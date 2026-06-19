@@ -1,3 +1,4 @@
+using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Conversation;
 using DesktopPet.App.Errors;
@@ -22,6 +23,12 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly OpenRouterSettingsStore _openRouterSettingsStore;
     private readonly UiSettingsStore _uiSettingsStore;
     private readonly ProfileSettingsStore _profileSettingsStore;
+    private readonly AudioContextSettingsStore _audioContextSettingsStore;
+    private readonly TranscriptWorkingBuffer _transcriptWorkingBuffer;
+    private readonly AudioObservationStore _audioObservationStore;
+    private readonly IAudioSegmentAnalyzer _audioSegmentAnalyzer;
+    private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
+    private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly HttpClient _httpClient;
     private readonly IChatService _chatService;
@@ -65,10 +72,36 @@ public sealed class DesktopPetApplication : IDisposable
         _openRouterSettingsStore = new OpenRouterSettingsStore();
         _uiSettingsStore = new UiSettingsStore();
         _profileSettingsStore = new ProfileSettingsStore();
+        _audioContextSettingsStore = new AudioContextSettingsStore();
         _errorMessageStore = new CharacterErrorMessageStore();
         _database = new DesktopPetDatabase();
         _database.Initialize();
         _httpClient = new HttpClient();
+        _transcriptWorkingBuffer = new TranscriptWorkingBuffer(
+            () => TimeSpan.FromMinutes(
+                _audioContextSettingsStore.Load().Normalize().TranscriptRetentionMinutes));
+        _audioObservationStore = new AudioObservationStore(
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DesktopPet",
+                "audio-observations.json"),
+            () => _audioContextSettingsStore.Load().Normalize().StoredObservationCount);
+        _audioSegmentAnalyzer = new OpenRouterAudioSegmentAnalyzer(
+            _httpClient,
+            _openRouterSettingsStore.Load,
+            _audioContextSettingsStore.Load);
+        _audioAnalysisCoordinator = new AudioAnalysisCoordinator(
+            _audioSegmentAnalyzer,
+            _transcriptWorkingBuffer,
+            _audioObservationStore);
+        _audioCaptureCoordinator = new AudioCaptureCoordinator(
+            kind => kind switch
+            {
+                AudioSourceKind.Microphone => new MicrophoneCaptureSource(),
+                AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind))
+            },
+            _audioAnalysisCoordinator);
         _chatService = new ElevenLabsAgentChatService(
             _httpClient,
             _elevenLabsSettingsStore.Load,
@@ -174,6 +207,7 @@ public sealed class DesktopPetApplication : IDisposable
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
         ApplyUiSettings(uiSettings);
         _observationCoordinator.Start();
+        _audioCaptureCoordinator.ApplySettings(_audioContextSettingsStore.Load());
     }
 
     public void Dispose()
@@ -184,6 +218,8 @@ public sealed class DesktopPetApplication : IDisposable
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
         _observationCoordinator.Dispose();
+        _audioCaptureCoordinator.Dispose();
+        _audioAnalysisCoordinator.Dispose();
         _chatHotkeyService?.Dispose();
         _trayController.Dispose();
         _audioPlayer.Dispose();
@@ -202,6 +238,10 @@ public sealed class DesktopPetApplication : IDisposable
                 _creditInfoService,
                 _uiSettingsStore,
                 _profileSettingsStore,
+                _audioContextSettingsStore,
+                _audioCaptureCoordinator,
+                _audioAnalysisCoordinator,
+                _audioObservationStore,
                 _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning,
@@ -228,6 +268,8 @@ public sealed class DesktopPetApplication : IDisposable
                 _observationCoordinator,
                 _ambientDecisionStore,
                 _observationStore,
+                _audioObservationStore,
+                _audioAnalysisCoordinator,
                 _profileSettingsStore.Load,
                 _uiSettingsStore.Load);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;

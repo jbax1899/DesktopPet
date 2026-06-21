@@ -4,7 +4,7 @@ namespace DesktopPet.App.Audio;
 
 public sealed class AudioAnalysisCoordinator : IDisposable
 {
-    internal const int MaximumQueuedSegments = 2;
+    internal const int MaximumQueuedSegments = 4;
 
     private readonly object _sync = new();
     private readonly IAudioSegmentAnalyzer _analyzer;
@@ -299,7 +299,7 @@ public sealed class AudioAnalysisCoordinator : IDisposable
     private static AudioAnalysisOptions CreateAnalysisOptions(AudioContextSettings settings)
     {
         return new AudioAnalysisOptions(
-            MaximumTranscriptCharacters: 1200);
+            MaximumTranscriptCharacters: 0);
     }
 
     private List<CompletedAudioSegment> DrainQueue()

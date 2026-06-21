@@ -50,7 +50,8 @@ public sealed class AudioContextSettingsStore
             ReadInt(root, nameof(AudioContextSettings.StoredObservationCount), defaults.StoredObservationCount),
             ReadDouble(root, nameof(AudioContextSettings.MinimumAnalysisConfidence), defaults.MinimumAnalysisConfidence),
             ReadInt(root, nameof(AudioContextSettings.AnalysisTimeoutSeconds), defaults.AnalysisTimeoutSeconds),
-            ReadInt(root, nameof(AudioContextSettings.TranscriptVerbosityLevel), defaults.TranscriptVerbosityLevel))
+            ReadInt(root, nameof(AudioContextSettings.TranscriptVerbosityLevel), defaults.TranscriptVerbosityLevel),
+            ReadInt(root, nameof(AudioContextSettings.MaximumSegmentDurationSeconds), defaults.MaximumSegmentDurationSeconds))
             .Normalize();
     }
 

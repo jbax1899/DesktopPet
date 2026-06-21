@@ -3,14 +3,14 @@ namespace DesktopPet.App.Audio;
 internal sealed class AudioSegmentBuffer
 {
     internal const double ActivityThreshold = 0.02;
-    internal static readonly TimeSpan ActivityGate = TimeSpan.FromMilliseconds(500);
-    internal static readonly TimeSpan PreRollDuration = TimeSpan.FromMilliseconds(250);
-    internal static readonly TimeSpan TrailingSilenceDuration = TimeSpan.FromMilliseconds(1500);
+    internal static readonly TimeSpan ActivityGate = TimeSpan.FromMilliseconds(750);
+    internal static readonly TimeSpan PreRollDuration = TimeSpan.FromMilliseconds(500);
+    internal static readonly TimeSpan TrailingSilenceDuration = TimeSpan.FromSeconds(3);
     internal static readonly TimeSpan MinimumActiveDuration = TimeSpan.FromSeconds(1);
-    internal static readonly TimeSpan MaximumSegmentDuration = TimeSpan.FromSeconds(20);
     internal const int MaximumDiagnostics = 20;
 
     private readonly AudioSourceKind _source;
+    private TimeSpan _maximumSegmentDuration;
     private readonly Queue<float> _preRoll = new();
     private readonly List<float> _pending = [];
     private readonly List<float> _segment = [];
@@ -25,9 +25,10 @@ internal sealed class AudioSegmentBuffer
     private double _sumSquares;
     private double _peak;
 
-    public AudioSegmentBuffer(AudioSourceKind source)
+    public AudioSegmentBuffer(AudioSourceKind source, TimeSpan? maximumSegmentDuration = null)
     {
         _source = source;
+        _maximumSegmentDuration = maximumSegmentDuration ?? TimeSpan.FromSeconds(30);
     }
 
     public bool HasActiveSegment => _segment.Count > 0;
@@ -42,6 +43,11 @@ internal sealed class AudioSegmentBuffer
             : TimeSpan.FromSeconds((double)_segment.Count / _sampleRate);
 
     public IReadOnlyList<AudioSegmentDiagnostic> RecentDiagnostics => _recent.ToArray();
+
+    public void UpdateMaximumDuration(TimeSpan maximumSegmentDuration)
+    {
+        _maximumSegmentDuration = maximumSegmentDuration;
+    }
 
     public AudioSegmentProcessingResult ProcessSamples(
         ReadOnlySpan<float> samples,
@@ -67,7 +73,7 @@ internal sealed class AudioSegmentBuffer
         if (_segment.Count > 0)
         {
             AppendSegment(samples, active);
-            if (_segment.Count >= SamplesFor(MaximumSegmentDuration))
+            if (_segment.Count >= SamplesFor(_maximumSegmentDuration))
             {
                 (diagnostic, completedSegment) = CloseSegment(
                     capturedAt,

@@ -365,6 +365,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="220" />
@@ -403,6 +404,13 @@
                             <TextBox x:Name="AudioAnalysisTimeoutSecondsTextBox"
                                      Grid.Row="6" Grid.Column="1" Margin="0,6,0,0"
                                      Style="{StaticResource AdvancedNumberTextBox}" />
+                            <TextBlock Grid.Row="7" Margin="0,6,0,0" VerticalAlignment="Center"
+                                       Text="Max segment duration (seconds)"
+                                       ToolTip="Maximum length of a single audio segment before it is sent for transcription. Longer values capture more continuous speech but use more memory." />
+                            <TextBox x:Name="MaxSegmentDurationSecondsTextBox"
+                                     Grid.Row="7" Grid.Column="1" Margin="0,6,0,0"
+                                     Style="{StaticResource AdvancedNumberTextBox}"
+                                     ToolTip="Maximum length of a single audio segment (5–60 seconds). Default is 30." />
                         </Grid>
                     </Expander>
 

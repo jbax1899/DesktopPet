@@ -44,14 +44,17 @@ public sealed class AudioCaptureCoordinator : IDisposable
     public void ApplySettings(AudioContextSettings settings)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var maxDuration = TimeSpan.FromSeconds(settings.MaximumSegmentDurationSeconds);
         lock (_sync)
         {
             ApplySource(
                 _sessions[AudioSourceKind.Microphone],
-                settings.Enabled && settings.MicrophoneEnabled);
+                settings.Enabled && settings.MicrophoneEnabled,
+                maxDuration);
             ApplySource(
                 _sessions[AudioSourceKind.SystemAudio],
-                settings.Enabled && settings.SystemAudioEnabled);
+                settings.Enabled && settings.SystemAudioEnabled,
+                maxDuration);
         }
 
         _analysisCoordinator?.ApplySettings(settings);
@@ -111,7 +114,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
         _silenceTimer.Dispose();
     }
 
-    private void ApplySource(SourceSession session, bool enabled)
+    private void ApplySource(SourceSession session, bool enabled, TimeSpan maxDuration)
     {
         if (!enabled)
         {
@@ -125,6 +128,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
 
         StopSource(session, clearDiagnostics: false);
+        session.SegmentBuffer.UpdateMaximumDuration(maxDuration);
         session.State = AudioCaptureState.Starting;
         session.LastError = null;
 
@@ -374,10 +378,10 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
     private sealed class SourceSession
     {
-        public SourceSession(AudioSourceKind kind)
+        public SourceSession(AudioSourceKind kind, TimeSpan? maximumSegmentDuration = null)
         {
             Kind = kind;
-            SegmentBuffer = new AudioSegmentBuffer(kind);
+            SegmentBuffer = new AudioSegmentBuffer(kind, maximumSegmentDuration);
         }
 
         public AudioSourceKind Kind { get; }

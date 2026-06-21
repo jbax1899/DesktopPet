@@ -12,7 +12,8 @@ public sealed record AudioContextSettings(
     int StoredObservationCount,
     double MinimumAnalysisConfidence,
     int AnalysisTimeoutSeconds,
-    int TranscriptVerbosityLevel)
+    int TranscriptVerbosityLevel,
+    int MaximumSegmentDurationSeconds)
 {
     public AudioContextSettings(bool enabled, bool microphoneEnabled, bool systemAudioEnabled)
         : this(
@@ -27,7 +28,8 @@ public sealed record AudioContextSettings(
             Default.StoredObservationCount,
             Default.MinimumAnalysisConfidence,
             Default.AnalysisTimeoutSeconds,
-            Default.TranscriptVerbosityLevel)
+            Default.TranscriptVerbosityLevel,
+            Default.MaximumSegmentDurationSeconds)
     {
     }
 
@@ -43,7 +45,8 @@ public sealed record AudioContextSettings(
         StoredObservationCount: 100,
         MinimumAnalysisConfidence: 0.60,
         AnalysisTimeoutSeconds: 45,
-        TranscriptVerbosityLevel: 5);
+        TranscriptVerbosityLevel: 5,
+        MaximumSegmentDurationSeconds: 30);
 
     public AudioContextSettings Normalize() => this with
     {
@@ -52,6 +55,7 @@ public sealed record AudioContextSettings(
         StoredObservationCount = Math.Clamp(StoredObservationCount, 1, 1000),
         MinimumAnalysisConfidence = Math.Clamp(MinimumAnalysisConfidence, 0, 1),
         AnalysisTimeoutSeconds = Math.Clamp(AnalysisTimeoutSeconds, 5, 180),
-        TranscriptVerbosityLevel = Math.Clamp(TranscriptVerbosityLevel, 1, 10)
+        TranscriptVerbosityLevel = Math.Clamp(TranscriptVerbosityLevel, 1, 10),
+        MaximumSegmentDurationSeconds = Math.Clamp(MaximumSegmentDurationSeconds, 5, 60)
     };
 }

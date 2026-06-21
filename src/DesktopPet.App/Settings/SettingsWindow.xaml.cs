@@ -160,7 +160,8 @@ public partial class SettingsWindow : Window
                 ClampInt(StoredAudioObservationCountTextBox.Text, 1, 1000, 100),
                 ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
                 ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45),
-                (int)TranscriptVerbositySlider.Value);
+                (int)TranscriptVerbositySlider.Value,
+                ClampInt(MaxSegmentDurationSecondsTextBox.Text, 5, 60, 30));
             _audioContextSettingsStore.Save(audioSettings);
             _audioCaptureCoordinator.ApplySettings(audioSettings);
             _audioObservationStore.ApplyRetentionLimit();
@@ -221,6 +222,7 @@ public partial class SettingsWindow : Window
         AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();
         TranscriptVerbositySlider.Value = audioSettings.TranscriptVerbosityLevel;
         TranscriptVerbosityValueText.Text = audioSettings.TranscriptVerbosityLevel.ToString();
+        MaxSegmentDurationSecondsTextBox.Text = audioSettings.MaximumSegmentDurationSeconds.ToString();
 
         var uiSettings = _uiSettingsStore.Load();
         _selectedChatShortcut = uiSettings.ChatShortcut;

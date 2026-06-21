@@ -152,7 +152,7 @@ public partial class SettingsWindow : Window
                 AudioAnalysisEnabledCheckBox.IsChecked == true,
                 PersistMicrophoneExcerptCheckBox.IsChecked == true,
                 PersistSystemAudioExcerptCheckBox.IsChecked == true,
-                ClampInt(TranscriptRetentionMinutesTextBox.Text, 1, 60, 5),
+                ClampInt(TranscriptRetentionSecondsTextBox.Text, 1, 3600, 300),
                 ClampInt(StoredAudioObservationCountTextBox.Text, 1, 1000, 100),
                 ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
                 ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45));
@@ -209,7 +209,7 @@ public partial class SettingsWindow : Window
         AudioAnalysisEnabledCheckBox.IsChecked = audioSettings.AnalysisEnabled;
         PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
         PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
-        TranscriptRetentionMinutesTextBox.Text = audioSettings.TranscriptRetentionMinutes.ToString();
+        TranscriptRetentionSecondsTextBox.Text = audioSettings.TranscriptRetentionSeconds.ToString();
         StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
         MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
         AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();

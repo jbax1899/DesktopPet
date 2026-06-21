@@ -18,12 +18,12 @@ public partial class SettingsWindow
         AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
         CaptureScreenshotOnChatSendCheckBox.IsChecked = settings.CaptureScreenshotOnChatSend;
         SetCommentaryPreset(ObservationSettingLimits.MatchPreset(
-            settings.CooldownMinutes,
-            settings.CheckInMinutes,
-            settings.DuplicateWindowMinutes));
-        CooldownMinutesTextBox.Text = settings.CooldownMinutes.ToString();
-        CheckInMinutesTextBox.Text = settings.CheckInMinutes.ToString();
-        DuplicateWindowMinutesTextBox.Text = settings.DuplicateWindowMinutes.ToString();
+            settings.CooldownSeconds,
+            settings.CheckInSeconds,
+            settings.DuplicateWindowSeconds));
+        CooldownSecondsTextBox.Text = settings.CooldownSeconds.ToString();
+        CheckInSecondsTextBox.Text = settings.CheckInSeconds.ToString();
+        DuplicateWindowSecondsTextBox.Text = settings.DuplicateWindowSeconds.ToString();
         RecentTypingQuietSecondsTextBox.Text = settings.RecentTypingQuietSeconds.ToString();
         NoveltyWeightTextBox.Text = settings.NoveltyWeightPercent.ToString("0.##");
         RelevanceWeightTextBox.Text = settings.RelevanceWeightPercent.ToString("0.##");
@@ -40,7 +40,7 @@ public partial class SettingsWindow
         ObservationContextDepthTextBox.Text = settings.ObservationContextDepth.ToString();
         CommentTopicLimitTextBox.Text = settings.CommentTopicLimit.ToString();
         RecentObservationCountTextBox.Text = settings.RecentObservationCount.ToString();
-        RecentObservationAgeTextBox.Text = settings.RecentObservationAgeMinutes.ToString();
+        RecentObservationAgeSecondsTextBox.Text = settings.RecentObservationAgeSeconds.ToString();
         StoredObservationCountTextBox.Text = settings.StoredObservationCount.ToString();
         StoredDecisionCountTextBox.Text = settings.StoredAmbientDecisionCount.ToString();
         CommentThresholdSlider.Value = settings.CommentThresholdPercent;
@@ -106,9 +106,9 @@ public partial class SettingsWindow
             ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
             AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
             CaptureScreenshotOnChatSend = CaptureScreenshotOnChatSendCheckBox.IsChecked == true,
-            CooldownMinutes = ParseInt(CooldownMinutesTextBox, current.CooldownMinutes),
-            DuplicateWindowMinutes = ParseInt(DuplicateWindowMinutesTextBox, current.DuplicateWindowMinutes),
-            CheckInMinutes = ParseInt(CheckInMinutesTextBox, current.CheckInMinutes),
+            CooldownSeconds = ParseInt(CooldownSecondsTextBox, current.CooldownSeconds),
+            DuplicateWindowSeconds = ParseInt(DuplicateWindowSecondsTextBox, current.DuplicateWindowSeconds),
+            CheckInSeconds = ParseInt(CheckInSecondsTextBox, current.CheckInSeconds),
             CommentThresholdPercent = ParseInt(CommentThresholdTextBox, current.CommentThresholdPercent),
             NoveltyWeightPercent = weights[0],
             RelevanceWeightPercent = weights[1],
@@ -131,7 +131,7 @@ public partial class SettingsWindow
             ObservationContextDepth = ParseInt(ObservationContextDepthTextBox, current.ObservationContextDepth),
             CommentTopicLimit = ParseInt(CommentTopicLimitTextBox, current.CommentTopicLimit),
             RecentObservationCount = ParseInt(RecentObservationCountTextBox, current.RecentObservationCount),
-            RecentObservationAgeMinutes = ParseInt(RecentObservationAgeTextBox, current.RecentObservationAgeMinutes),
+            RecentObservationAgeSeconds = ParseInt(RecentObservationAgeSecondsTextBox, current.RecentObservationAgeSeconds),
             StoredObservationCount = ParseInt(StoredObservationCountTextBox, current.StoredObservationCount),
             StoredAmbientDecisionCount = ParseInt(StoredDecisionCountTextBox, current.StoredAmbientDecisionCount),
             ApplicationRules = rules
@@ -150,22 +150,22 @@ public partial class SettingsWindow
     {
         var preset = GetSelectedCommentaryPreset();
         var custom = preset == CommentaryPreset.Custom;
-        CooldownMinutesTextBox.IsEnabled = custom;
-        CheckInMinutesTextBox.IsEnabled = custom;
-        DuplicateWindowMinutesTextBox.IsEnabled = custom;
+        CooldownSecondsTextBox.IsEnabled = custom;
+        CheckInSecondsTextBox.IsEnabled = custom;
+        DuplicateWindowSecondsTextBox.IsEnabled = custom;
         if (!custom && populateValues)
         {
             var timing = ObservationSettingLimits.GetPreset(preset);
-            CooldownMinutesTextBox.Text = timing.CooldownMinutes.ToString();
-            CheckInMinutesTextBox.Text = timing.CheckInMinutes.ToString();
-            DuplicateWindowMinutesTextBox.Text = timing.DuplicateWindowMinutes.ToString();
+            CooldownSecondsTextBox.Text = timing.CooldownSeconds.ToString();
+            CheckInSecondsTextBox.Text = timing.CheckInSeconds.ToString();
+            DuplicateWindowSecondsTextBox.Text = timing.DuplicateWindowSeconds.ToString();
         }
 
         CommentaryLegendTextBlock.Text = custom
             ? "Use the exact timing values in Advanced."
-            : $"Comments every ~{ObservationSettingLimits.GetPreset(preset).CooldownMinutes} min; "
-                + $"checks every {ObservationSettingLimits.GetPreset(preset).CheckInMinutes} min; "
-                + $"duplicates suppressed for {ObservationSettingLimits.GetPreset(preset).DuplicateWindowMinutes} min.";
+            : $"Comments every ~{ObservationSettingLimits.GetPreset(preset).CooldownSeconds} sec; "
+                + $"checks every {ObservationSettingLimits.GetPreset(preset).CheckInSeconds} sec; "
+                + $"duplicates suppressed for {ObservationSettingLimits.GetPreset(preset).DuplicateWindowSeconds} sec.";
     }
 
     private CommentaryPreset GetSelectedCommentaryPreset() =>

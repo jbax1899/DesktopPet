@@ -48,6 +48,9 @@ public sealed class ObservationSettingsTests
         Assert.AreEqual(70, settings.CommentThresholdPercent);
         Assert.AreEqual(25, settings.MinimumDwellTimeSeconds);
         Assert.AreEqual(45, settings.VisionAnalysisCooldownSeconds);
+        Assert.AreEqual(600, settings.CooldownSeconds);
+        Assert.AreEqual(1200, settings.DuplicateWindowSeconds);
+        Assert.AreEqual(600, settings.CheckInSeconds);
         Assert.AreEqual(ObservationSettings.Default.PollIntervalSeconds, settings.PollIntervalSeconds);
         Assert.IsTrue(settings.CaptureScreenshotOnChatSend);
         Assert.AreEqual(100d, settings.InterestWeightTotal, 0.001);
@@ -60,7 +63,7 @@ public sealed class ObservationSettingsTests
         var store = new ObservationSettingsStore(path);
         store.Save(ObservationSettings.Default with
         {
-            CooldownMinutes = -1,
+            CooldownSeconds = -1,
             CommentThresholdPercent = 150,
             PollIntervalSeconds = 0,
             MaximumScreenshotWidth = 99999,
@@ -70,7 +73,7 @@ public sealed class ObservationSettingsTests
 
         var loaded = store.Load();
 
-        Assert.AreEqual(ObservationSettingLimits.MinimumCooldownMinutes, loaded.CooldownMinutes);
+        Assert.AreEqual(ObservationSettingLimits.MinimumCooldownSeconds, loaded.CooldownSeconds);
         Assert.AreEqual(100, loaded.CommentThresholdPercent);
         Assert.AreEqual(ObservationSettingLimits.MinimumPollIntervalSeconds, loaded.PollIntervalSeconds);
         Assert.AreEqual(ObservationSettingLimits.MaximumScreenshotWidth, loaded.MaximumScreenshotWidth);
@@ -113,16 +116,16 @@ public sealed class ObservationSettingsTests
     {
         Assert.AreEqual(
             CommentaryPreset.Talkative,
-            ObservationSettingLimits.MatchPreset(2, 3, 10));
+            ObservationSettingLimits.MatchPreset(120, 180, 600));
         Assert.AreEqual(
             CommentaryPreset.Balanced,
-            ObservationSettingLimits.MatchPreset(5, 5, 15));
+            ObservationSettingLimits.MatchPreset(300, 300, 900));
         Assert.AreEqual(
             CommentaryPreset.Quiet,
-            ObservationSettingLimits.MatchPreset(10, 10, 20));
+            ObservationSettingLimits.MatchPreset(600, 600, 1200));
         Assert.AreEqual(
             CommentaryPreset.Custom,
-            ObservationSettingLimits.MatchPreset(5, 6, 15));
+            ObservationSettingLimits.MatchPreset(300, 301, 900));
     }
 
     [TestMethod]
@@ -134,8 +137,8 @@ public sealed class ObservationSettingsTests
         {
             ObservationEnabled = true,
             AmbientCommentsEnabled = true,
-            CooldownMinutes = 1,
-            DuplicateWindowMinutes = 15,
+            CooldownSeconds = 60,
+            DuplicateWindowSeconds = 900,
             CommentThresholdPercent = 60,
             NoveltyWeightPercent = 100,
             RelevanceWeightPercent = 0,

@@ -11,7 +11,7 @@ public sealed class TranscriptWorkingBuffer
         Func<TimeSpan>? retentionProvider = null,
         TimeProvider? timeProvider = null)
     {
-        _retentionProvider = retentionProvider ?? (() => TimeSpan.FromMinutes(5));
+        _retentionProvider = retentionProvider ?? (() => TimeSpan.FromSeconds(300));
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 

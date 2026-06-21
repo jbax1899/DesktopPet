@@ -43,7 +43,8 @@ public sealed class AudioCaptureTests
         var path = Path.Combine(_directory, "audio-context-settings.json");
         File.WriteAllText(path, """
         {
-          "Enabled": true
+          "Enabled": true,
+          "TranscriptRetentionMinutes": 5
         }
         """);
 
@@ -53,7 +54,7 @@ public sealed class AudioCaptureTests
         Assert.IsFalse(settings.MicrophoneEnabled);
         Assert.IsFalse(settings.SystemAudioEnabled);
         Assert.IsFalse(settings.AnalysisEnabled);
-        Assert.AreEqual(5, settings.TranscriptRetentionMinutes);
+        Assert.AreEqual(300, settings.TranscriptRetentionSeconds);
         Assert.AreEqual(100, settings.StoredObservationCount);
         Assert.AreEqual(0.60, settings.MinimumAnalysisConfidence);
     }

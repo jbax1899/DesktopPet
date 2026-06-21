@@ -318,8 +318,8 @@
                                       Grid.ColumnSpan="2"
                                       Margin="0,0,0,8"
                                       Content="Persist system-audio transcript excerpts" />
-                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Transcript retention (minutes)" />
-                            <TextBox x:Name="TranscriptRetentionMinutesTextBox"
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Transcript retention (seconds)" />
+                            <TextBox x:Name="TranscriptRetentionSecondsTextBox"
                                      Grid.Row="2" Grid.Column="1"
                                      Style="{StaticResource AdvancedNumberTextBox}" />
                             <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
@@ -404,19 +404,19 @@
                         <RadioButton x:Name="CommentaryQuietRadioButton"
                                      GroupName="Commentary"
                                      Content="Quiet"
-                                     ToolTip="At least 10 minutes between comments, 10-minute check-ins, and 20-minute duplicate suppression."
+                                     ToolTip="At least 600 seconds between comments, 600-second check-ins, and 1,200-second duplicate suppression."
                                      ToolTipService.ShowsToolTipOnKeyboardFocus="True"
                                      Checked="OnCommentaryLevelChanged" />
                         <RadioButton x:Name="CommentaryBalancedRadioButton"
                                      GroupName="Commentary"
                                      Content="Balanced"
-                                     ToolTip="At least 5 minutes between comments, 5-minute check-ins, and 15-minute duplicate suppression."
+                                     ToolTip="At least 300 seconds between comments, 300-second check-ins, and 900-second duplicate suppression."
                                      ToolTipService.ShowsToolTipOnKeyboardFocus="True"
                                      Checked="OnCommentaryLevelChanged" />
                         <RadioButton x:Name="CommentaryTalkativeRadioButton"
                                      GroupName="Commentary"
                                      Content="Talkative"
-                                     ToolTip="At least 2 minutes between comments, 3-minute check-ins, and 10-minute duplicate suppression."
+                                     ToolTip="At least 120 seconds between comments, 180-second check-ins, and 600-second duplicate suppression."
                                      ToolTipService.ShowsToolTipOnKeyboardFocus="True"
                                      Checked="OnCommentaryLevelChanged" />
                         <RadioButton x:Name="CommentaryCustomRadioButton"
@@ -482,9 +482,9 @@
                         <StackPanel Margin="12,8,0,4">
                             <TextBlock FontWeight="SemiBold" Text="Commentary" />
                             <UniformGrid Columns="2" Margin="0,6,0,0">
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (minutes)" /><TextBox x:Name="CooldownMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (minutes)" /><TextBox x:Name="CheckInMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (minutes)" /><TextBox x:Name="DuplicateWindowMinutesTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (seconds)" /><TextBox x:Name="CooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (seconds)" /><TextBox x:Name="CheckInSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
+                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (seconds)" /><TextBox x:Name="DuplicateWindowSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
                                 <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
                                 <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
                                 <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
@@ -520,7 +520,7 @@
                             <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Retention" />
                             <UniformGrid Columns="2" Margin="0,6,0,0">
                                 <StackPanel Margin="0,0,12,6"><TextBlock Text="Recent observations in memory" /><TextBox x:Name="RecentObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum reduced foreground observations retained in memory for detecting changes and supplying recent activity." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (minutes)" /><TextBox x:Name="RecentObservationAgeTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
+                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (seconds)" /><TextBox x:Name="RecentObservationAgeSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
                                 <StackPanel Margin="0,0,12,6"><TextBlock Text="Stored visual observations" /><TextBox x:Name="StoredObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum visual observation records retained on disk. Lowering this deletes the oldest records and their thumbnails on Save." /></StackPanel>
                                 <StackPanel Margin="0,0,0,6"><TextBlock Text="Stored ambient decisions" /><TextBox x:Name="StoredDecisionCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum ambient policy decision records retained on disk. Lowering this removes the oldest records on Save." /></StackPanel>
                             </UniformGrid>

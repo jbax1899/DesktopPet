@@ -41,7 +41,11 @@ public sealed class AudioContextSettingsStore
             Read(root, nameof(AudioContextSettings.AnalysisEnabled), defaults.AnalysisEnabled),
             Read(root, nameof(AudioContextSettings.PersistMicrophoneTranscriptExcerpt), defaults.PersistMicrophoneTranscriptExcerpt),
             Read(root, nameof(AudioContextSettings.PersistSystemAudioTranscriptExcerpt), defaults.PersistSystemAudioTranscriptExcerpt),
-            ReadInt(root, nameof(AudioContextSettings.TranscriptRetentionMinutes), defaults.TranscriptRetentionMinutes),
+            ReadDurationSeconds(
+                root,
+                nameof(AudioContextSettings.TranscriptRetentionSeconds),
+                "TranscriptRetentionMinutes",
+                defaults.TranscriptRetentionSeconds),
             ReadInt(root, nameof(AudioContextSettings.StoredObservationCount), defaults.StoredObservationCount),
             ReadDouble(root, nameof(AudioContextSettings.MinimumAnalysisConfidence), defaults.MinimumAnalysisConfidence),
             ReadInt(root, nameof(AudioContextSettings.AnalysisTimeoutSeconds), defaults.AnalysisTimeoutSeconds))
@@ -61,6 +65,27 @@ public sealed class AudioContextSettingsStore
         return root.TryGetProperty(name, out var value) && value.TryGetInt32(out var result)
             ? result
             : fallback;
+    }
+
+    private static int ReadDurationSeconds(
+        JsonElement root,
+        string secondsName,
+        string legacyMinutesName,
+        int fallback)
+    {
+        if (root.TryGetProperty(secondsName, out var secondsValue)
+            && secondsValue.TryGetInt32(out var seconds))
+        {
+            return seconds;
+        }
+
+        if (root.TryGetProperty(legacyMinutesName, out var minutesValue)
+            && minutesValue.TryGetInt32(out var minutes))
+        {
+            return (int)Math.Clamp((long)minutes * 60, int.MinValue, int.MaxValue);
+        }
+
+        return fallback;
     }
 
     private static double ReadDouble(JsonElement root, string name, double fallback)

@@ -59,14 +59,14 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
         lock (_sync)
         {
             Prune(now, settings);
-            var cooldown = TimeSpan.FromMinutes(settings.CooldownMinutes);
+            var cooldown = TimeSpan.FromSeconds(settings.CooldownSeconds);
 
             if (_spokenAt.Count > 0 && now - _spokenAt[^1] < cooldown)
             {
                 return Reject(AmbientDecisionReason.CooldownActive);
             }
 
-            var duplicateWindow = TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
+            var duplicateWindow = TimeSpan.FromSeconds(settings.DuplicateWindowSeconds);
             if (_topics.TryGetValue(candidate.Change.TopicKey, out var lastTopic)
                 && now - lastTopic < duplicateWindow)
             {
@@ -119,7 +119,7 @@ internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
         var spokenCutoff = now - TimeSpan.FromHours(1);
         _spokenAt.RemoveAll(item => item < spokenCutoff);
 
-        var topicCutoff = now - TimeSpan.FromMinutes(settings.DuplicateWindowMinutes);
+        var topicCutoff = now - TimeSpan.FromSeconds(settings.DuplicateWindowSeconds);
         foreach (var key in _topics.Where(pair => pair.Value < topicCutoff).Select(pair => pair.Key).ToArray())
         {
             _topics.Remove(key);

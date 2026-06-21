@@ -79,8 +79,8 @@ public sealed class DesktopPetApplication : IDisposable
         _database.Initialize();
         _httpClient = new HttpClient();
         _transcriptWorkingBuffer = new TranscriptWorkingBuffer(
-            () => TimeSpan.FromMinutes(
-                _audioContextSettingsStore.Load().Normalize().TranscriptRetentionMinutes));
+            () => TimeSpan.FromSeconds(
+                _audioContextSettingsStore.Load().Normalize().TranscriptRetentionSeconds));
         _audioObservationStore = new AudioObservationStore(
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

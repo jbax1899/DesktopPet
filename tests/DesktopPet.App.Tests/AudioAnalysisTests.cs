@@ -143,12 +143,12 @@ public sealed class AudioAnalysisTests
     public void TranscriptBufferExpiresAndNewInstanceStartsEmpty()
     {
         var clock = new MutableTimeProvider(DateTimeOffset.UtcNow);
-        var buffer = new TranscriptWorkingBuffer(() => TimeSpan.FromMinutes(5), clock);
+        var buffer = new TranscriptWorkingBuffer(() => TimeSpan.FromSeconds(300), clock);
         using var segment = CreateSegment();
         buffer.Add(segment, "temporary transcript", 0.9);
 
         Assert.HasCount(1, buffer.List());
-        clock.Advance(TimeSpan.FromMinutes(5));
+        clock.Advance(TimeSpan.FromSeconds(300));
         Assert.IsEmpty(buffer.List());
         Assert.IsEmpty(new TranscriptWorkingBuffer().List());
     }

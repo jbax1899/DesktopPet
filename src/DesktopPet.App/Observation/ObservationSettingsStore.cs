@@ -47,9 +47,9 @@ public sealed class ObservationSettingsStore
 
         return settings with
         {
-            CooldownMinutes = Math.Clamp(settings.CooldownMinutes, ObservationSettingLimits.MinimumCooldownMinutes, ObservationSettingLimits.MaximumCooldownMinutes),
-            DuplicateWindowMinutes = Math.Clamp(settings.DuplicateWindowMinutes, ObservationSettingLimits.MinimumDuplicateWindowMinutes, ObservationSettingLimits.MaximumDuplicateWindowMinutes),
-            CheckInMinutes = Math.Clamp(settings.CheckInMinutes, ObservationSettingLimits.MinimumCheckInMinutes, ObservationSettingLimits.MaximumCheckInMinutes),
+            CooldownSeconds = Math.Clamp(settings.CooldownSeconds, ObservationSettingLimits.MinimumCooldownSeconds, ObservationSettingLimits.MaximumCooldownSeconds),
+            DuplicateWindowSeconds = Math.Clamp(settings.DuplicateWindowSeconds, ObservationSettingLimits.MinimumDuplicateWindowSeconds, ObservationSettingLimits.MaximumDuplicateWindowSeconds),
+            CheckInSeconds = Math.Clamp(settings.CheckInSeconds, ObservationSettingLimits.MinimumCheckInSeconds, ObservationSettingLimits.MaximumCheckInSeconds),
             CommentThresholdPercent = Math.Clamp(settings.CommentThresholdPercent, ObservationSettingLimits.MinimumCommentThresholdPercent, ObservationSettingLimits.MaximumCommentThresholdPercent),
             NoveltyWeightPercent = Math.Clamp(settings.NoveltyWeightPercent, 0, 100),
             RelevanceWeightPercent = Math.Clamp(settings.RelevanceWeightPercent, 0, 100),
@@ -67,7 +67,7 @@ public sealed class ObservationSettingsStore
             ObservationContextDepth = Math.Clamp(settings.ObservationContextDepth, ObservationSettingLimits.MinimumObservationContextDepth, ObservationSettingLimits.MaximumObservationContextDepth),
             CommentTopicLimit = Math.Clamp(settings.CommentTopicLimit, ObservationSettingLimits.MinimumCommentTopicLimit, ObservationSettingLimits.MaximumCommentTopicLimit),
             RecentObservationCount = Math.Clamp(settings.RecentObservationCount, ObservationSettingLimits.MinimumRecentObservationCount, ObservationSettingLimits.MaximumRecentObservationCount),
-            RecentObservationAgeMinutes = Math.Clamp(settings.RecentObservationAgeMinutes, ObservationSettingLimits.MinimumRecentObservationAgeMinutes, ObservationSettingLimits.MaximumRecentObservationAgeMinutes),
+            RecentObservationAgeSeconds = Math.Clamp(settings.RecentObservationAgeSeconds, ObservationSettingLimits.MinimumRecentObservationAgeSeconds, ObservationSettingLimits.MaximumRecentObservationAgeSeconds),
             StoredObservationCount = Math.Clamp(settings.StoredObservationCount, ObservationSettingLimits.MinimumStoredObservationCount, ObservationSettingLimits.MaximumStoredObservationCount),
             StoredAmbientDecisionCount = Math.Clamp(settings.StoredAmbientDecisionCount, ObservationSettingLimits.MinimumStoredDecisionCount, ObservationSettingLimits.MaximumStoredDecisionCount),
             ApplicationRules = rules
@@ -88,9 +88,21 @@ public sealed class ObservationSettingsStore
             Read(root, nameof(ObservationSettings.ObservationEnabled), defaults.ObservationEnabled),
             Read(root, nameof(ObservationSettings.AmbientCommentsEnabled), defaults.AmbientCommentsEnabled),
             Read(root, nameof(ObservationSettings.CaptureScreenshotOnChatSend), defaults.CaptureScreenshotOnChatSend),
-            Read(root, nameof(ObservationSettings.CooldownMinutes), defaults.CooldownMinutes),
-            Read(root, nameof(ObservationSettings.DuplicateWindowMinutes), defaults.DuplicateWindowMinutes),
-            Read(root, nameof(ObservationSettings.CheckInMinutes), defaults.CheckInMinutes),
+            ReadDurationSeconds(
+                root,
+                nameof(ObservationSettings.CooldownSeconds),
+                "CooldownMinutes",
+                defaults.CooldownSeconds),
+            ReadDurationSeconds(
+                root,
+                nameof(ObservationSettings.DuplicateWindowSeconds),
+                "DuplicateWindowMinutes",
+                defaults.DuplicateWindowSeconds),
+            ReadDurationSeconds(
+                root,
+                nameof(ObservationSettings.CheckInSeconds),
+                "CheckInMinutes",
+                defaults.CheckInSeconds),
             threshold,
             Read(root, nameof(ObservationSettings.NoveltyWeightPercent), defaults.NoveltyWeightPercent),
             Read(root, nameof(ObservationSettings.RelevanceWeightPercent), defaults.RelevanceWeightPercent),
@@ -109,7 +121,11 @@ public sealed class ObservationSettingsStore
             Read(root, nameof(ObservationSettings.ObservationContextDepth), defaults.ObservationContextDepth),
             Read(root, nameof(ObservationSettings.CommentTopicLimit), defaults.CommentTopicLimit),
             Read(root, nameof(ObservationSettings.RecentObservationCount), defaults.RecentObservationCount),
-            Read(root, nameof(ObservationSettings.RecentObservationAgeMinutes), defaults.RecentObservationAgeMinutes),
+            ReadDurationSeconds(
+                root,
+                nameof(ObservationSettings.RecentObservationAgeSeconds),
+                "RecentObservationAgeMinutes",
+                defaults.RecentObservationAgeSeconds),
             Read(root, nameof(ObservationSettings.StoredObservationCount), defaults.StoredObservationCount),
             Read(root, nameof(ObservationSettings.StoredAmbientDecisionCount), defaults.StoredAmbientDecisionCount),
             rules));
@@ -144,5 +160,26 @@ public sealed class ObservationSettingsStore
         }
 
         return value.Deserialize<T>(JsonOptions) ?? fallback;
+    }
+
+    private static int ReadDurationSeconds(
+        JsonElement root,
+        string secondsName,
+        string legacyMinutesName,
+        int fallback)
+    {
+        if (root.TryGetProperty(secondsName, out var secondsValue)
+            && secondsValue.TryGetInt32(out var seconds))
+        {
+            return seconds;
+        }
+
+        if (root.TryGetProperty(legacyMinutesName, out var minutesValue)
+            && minutesValue.TryGetInt32(out var minutes))
+        {
+            return (int)Math.Clamp((long)minutes * 60, int.MinValue, int.MaxValue);
+        }
+
+        return fallback;
     }
 }

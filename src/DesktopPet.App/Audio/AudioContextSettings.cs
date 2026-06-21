@@ -7,7 +7,7 @@ public sealed record AudioContextSettings(
     bool AnalysisEnabled,
     bool PersistMicrophoneTranscriptExcerpt,
     bool PersistSystemAudioTranscriptExcerpt,
-    int TranscriptRetentionMinutes,
+    int TranscriptRetentionSeconds,
     int StoredObservationCount,
     double MinimumAnalysisConfidence,
     int AnalysisTimeoutSeconds)
@@ -20,7 +20,7 @@ public sealed record AudioContextSettings(
             Default.AnalysisEnabled,
             Default.PersistMicrophoneTranscriptExcerpt,
             Default.PersistSystemAudioTranscriptExcerpt,
-            Default.TranscriptRetentionMinutes,
+            Default.TranscriptRetentionSeconds,
             Default.StoredObservationCount,
             Default.MinimumAnalysisConfidence,
             Default.AnalysisTimeoutSeconds)
@@ -34,14 +34,14 @@ public sealed record AudioContextSettings(
         AnalysisEnabled: false,
         PersistMicrophoneTranscriptExcerpt: false,
         PersistSystemAudioTranscriptExcerpt: true,
-        TranscriptRetentionMinutes: 5,
+        TranscriptRetentionSeconds: 300,
         StoredObservationCount: 100,
         MinimumAnalysisConfidence: 0.60,
         AnalysisTimeoutSeconds: 45);
 
     public AudioContextSettings Normalize() => this with
     {
-        TranscriptRetentionMinutes = Math.Clamp(TranscriptRetentionMinutes, 1, 60),
+        TranscriptRetentionSeconds = Math.Clamp(TranscriptRetentionSeconds, 1, 3600),
         StoredObservationCount = Math.Clamp(StoredObservationCount, 1, 1000),
         MinimumAnalysisConfidence = Math.Clamp(MinimumAnalysisConfidence, 0, 1),
         AnalysisTimeoutSeconds = Math.Clamp(AnalysisTimeoutSeconds, 5, 180)

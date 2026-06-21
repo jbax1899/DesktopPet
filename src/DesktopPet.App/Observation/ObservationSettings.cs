@@ -15,18 +15,18 @@ public enum CommentaryPreset
     Custom
 }
 
-public sealed record CommentaryTiming(int CooldownMinutes, int CheckInMinutes, int DuplicateWindowMinutes);
+public sealed record CommentaryTiming(int CooldownSeconds, int CheckInSeconds, int DuplicateWindowSeconds);
 
 public static class ObservationSettingLimits
 {
     public const int MinimumCommentThresholdPercent = 0;
     public const int MaximumCommentThresholdPercent = 100;
-    public const int MinimumCooldownMinutes = 1;
-    public const int MaximumCooldownMinutes = 120;
-    public const int MinimumCheckInMinutes = 1;
-    public const int MaximumCheckInMinutes = 120;
-    public const int MinimumDuplicateWindowMinutes = 1;
-    public const int MaximumDuplicateWindowMinutes = 240;
+    public const int MinimumCooldownSeconds = 1;
+    public const int MaximumCooldownSeconds = 7200;
+    public const int MinimumCheckInSeconds = 1;
+    public const int MaximumCheckInSeconds = 7200;
+    public const int MinimumDuplicateWindowSeconds = 1;
+    public const int MaximumDuplicateWindowSeconds = 14400;
     public const int MinimumRecentTypingQuietSeconds = 0;
     public const int MaximumRecentTypingQuietSeconds = 60;
     public const int MinimumPollIntervalSeconds = 1;
@@ -51,8 +51,8 @@ public static class ObservationSettingLimits
     public const int MaximumCommentTopicLimit = 10;
     public const int MinimumRecentObservationCount = 1;
     public const int MaximumRecentObservationCount = 500;
-    public const int MinimumRecentObservationAgeMinutes = 1;
-    public const int MaximumRecentObservationAgeMinutes = 1440;
+    public const int MinimumRecentObservationAgeSeconds = 1;
+    public const int MaximumRecentObservationAgeSeconds = 86400;
     public const int MinimumStoredObservationCount = 1;
     public const int MaximumStoredObservationCount = 5000;
     public const int MinimumStoredDecisionCount = 1;
@@ -60,19 +60,19 @@ public static class ObservationSettingLimits
 
     public static CommentaryTiming GetPreset(CommentaryPreset preset) => preset switch
     {
-        CommentaryPreset.Talkative => new(2, 3, 10),
-        CommentaryPreset.Quiet => new(10, 10, 20),
-        _ => new(5, 5, 15)
+        CommentaryPreset.Talkative => new(120, 180, 600),
+        CommentaryPreset.Quiet => new(600, 600, 1200),
+        _ => new(300, 300, 900)
     };
 
-    public static CommentaryPreset MatchPreset(int cooldownMinutes, int checkInMinutes, int duplicateWindowMinutes)
+    public static CommentaryPreset MatchPreset(int cooldownSeconds, int checkInSeconds, int duplicateWindowSeconds)
     {
         foreach (var preset in new[] { CommentaryPreset.Talkative, CommentaryPreset.Balanced, CommentaryPreset.Quiet })
         {
             var timing = GetPreset(preset);
-            if (timing.CooldownMinutes == cooldownMinutes
-                && timing.CheckInMinutes == checkInMinutes
-                && timing.DuplicateWindowMinutes == duplicateWindowMinutes)
+            if (timing.CooldownSeconds == cooldownSeconds
+                && timing.CheckInSeconds == checkInSeconds
+                && timing.DuplicateWindowSeconds == duplicateWindowSeconds)
             {
                 return preset;
             }
@@ -94,9 +94,9 @@ public sealed record ObservationSettings(
     bool ObservationEnabled,
     bool AmbientCommentsEnabled,
     bool CaptureScreenshotOnChatSend,
-    int CooldownMinutes,
-    int DuplicateWindowMinutes,
-    int CheckInMinutes,
+    int CooldownSeconds,
+    int DuplicateWindowSeconds,
+    int CheckInSeconds,
     int CommentThresholdPercent,
     double NoveltyWeightPercent,
     double RelevanceWeightPercent,
@@ -115,7 +115,7 @@ public sealed record ObservationSettings(
     int ObservationContextDepth,
     int CommentTopicLimit,
     int RecentObservationCount,
-    int RecentObservationAgeMinutes,
+    int RecentObservationAgeSeconds,
     int StoredObservationCount,
     int StoredAmbientDecisionCount,
     IReadOnlyList<ApplicationObservationRule> ApplicationRules)
@@ -124,9 +124,9 @@ public sealed record ObservationSettings(
         ObservationEnabled: false,
         AmbientCommentsEnabled: false,
         CaptureScreenshotOnChatSend: true,
-        CooldownMinutes: 5,
-        DuplicateWindowMinutes: 15,
-        CheckInMinutes: 5,
+        CooldownSeconds: 300,
+        DuplicateWindowSeconds: 900,
+        CheckInSeconds: 300,
         CommentThresholdPercent: 50,
         NoveltyWeightPercent: 37.5,
         RelevanceWeightPercent: 37.5,
@@ -145,7 +145,7 @@ public sealed record ObservationSettings(
         ObservationContextDepth: 5,
         CommentTopicLimit: 2,
         RecentObservationCount: 50,
-        RecentObservationAgeMinutes: 30,
+        RecentObservationAgeSeconds: 1800,
         StoredObservationCount: 200,
         StoredAmbientDecisionCount: 100,
         []);

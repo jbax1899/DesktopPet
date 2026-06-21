@@ -82,7 +82,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         lock (_sync)
         {
             var settings = _permissionService.Current;
-            var cutoff = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(settings.RecentObservationAgeMinutes);
+            var cutoff = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(settings.RecentObservationAgeSeconds);
             _recent.RemoveAll(item => item.ObservedAt < cutoff);
             if (_recent.Count > settings.RecentObservationCount)
             {
@@ -172,7 +172,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
         lock (_sync)
         {
             var settings = _permissionService.Current;
-            var cutoff = observation.ObservedAt - TimeSpan.FromMinutes(settings.RecentObservationAgeMinutes);
+            var cutoff = observation.ObservedAt - TimeSpan.FromSeconds(settings.RecentObservationAgeSeconds);
             _recent.RemoveAll(item => item.ObservedAt < cutoff);
             _recent.Add(observation);
             if (_recent.Count > settings.RecentObservationCount)
@@ -227,7 +227,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
             yield return CreateChange(primaryChange.Value, current);
         }
 
-        var checkInInterval = TimeSpan.FromMinutes(_permissionService.Current.CheckInMinutes);
+        var checkInInterval = TimeSpan.FromSeconds(_permissionService.Current.CheckInSeconds);
         if (current.ObservedAt - _lastCheckInAt >= checkInInterval)
         {
             _lastCheckInAt = current.ObservedAt;

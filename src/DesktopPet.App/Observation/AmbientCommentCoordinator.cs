@@ -1,9 +1,6 @@
-using System.IO;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Conversation;
 using DesktopPet.App.Memory;
-using DesktopPet.App.Overlay;
-using DesktopPet.App.Voice;
 
 namespace DesktopPet.App.Observation;
 
@@ -14,14 +11,12 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private readonly IAmbientCommentPolicy _policy;
     private readonly IAmbientCommentGenerator _generator;
     private readonly IVoiceSynthesisService _voiceSynthesisService;
-    private readonly StreamingMp3AudioPlayer _audioPlayer;
+    private readonly SpeechPlayback _speechPlayback;
     private readonly ConversationOverlayWindow _overlayWindow;
-    private readonly ICharacterStateController _characterStateController;
     private readonly IAmbientActivityState _activityState;
     private readonly AmbientDecisionStore _decisionStore;
     private readonly ObservationStore _observationStore;
     private readonly IChatHistoryStore _chatHistoryStore;
-    private readonly ChatAudioStore _chatAudioStore;
     private readonly IWindowCaptureService? _windowCaptureService;
     private readonly IVisualContextAnalyzer? _visualAnalyzer;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -36,14 +31,12 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         IAmbientCommentPolicy policy,
         IAmbientCommentGenerator generator,
         IVoiceSynthesisService voiceSynthesisService,
-        StreamingMp3AudioPlayer audioPlayer,
+        SpeechPlayback speechPlayback,
         ConversationOverlayWindow overlayWindow,
-        ICharacterStateController characterStateController,
         IAmbientActivityState activityState,
         AmbientDecisionStore decisionStore,
         ObservationStore observationStore,
         IChatHistoryStore chatHistoryStore,
-        ChatAudioStore chatAudioStore,
         IWindowCaptureService? windowCaptureService = null,
         IVisualContextAnalyzer? visualAnalyzer = null)
     {
@@ -52,14 +45,12 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         _policy = policy;
         _generator = generator;
         _voiceSynthesisService = voiceSynthesisService;
-        _audioPlayer = audioPlayer;
+        _speechPlayback = speechPlayback;
         _overlayWindow = overlayWindow;
-        _characterStateController = characterStateController;
         _activityState = activityState;
         _decisionStore = decisionStore;
         _observationStore = observationStore;
         _chatHistoryStore = chatHistoryStore;
-        _chatAudioStore = chatAudioStore;
         _windowCaptureService = windowCaptureService;
         _visualAnalyzer = visualAnalyzer;
 
@@ -196,60 +187,11 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 _chatHistoryStore.SetContextSnapshot(historyMessage.Id, generatedComment.ContextSnapshot);
             }
 
-            FileStream? cacheStream = null;
-            string? audioFileName = null;
-            var audioCacheSaved = false;
-
             var transcriptVersion = await _overlayWindow.Dispatcher.InvokeAsync(
                 () => _overlayWindow.ShowTranscript(comment));
             try
             {
-                try
-                {
-                    if (historyMessage is not null)
-                    {
-                        try
-                        {
-                            audioFileName = _chatAudioStore.CreateAudioFileName(historyMessage.Id);
-                            cacheStream = _chatAudioStore.CreateAudioFile(audioFileName);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Ambient audio cache error: {ex.Message}");
-                            audioFileName = null;
-                        }
-                    }
-
-                    using var speaking = _characterStateController.BeginSpeaking();
-                    _activityState.SetSpeechActive(true);
-                    try
-                    {
-                        await _audioPlayer.PlayAsync(
-                            audio.AudioStream,
-                            audio.AudioFormat,
-                            cancellationToken,
-                            speaking.SetMouthOpen,
-                            cacheStream);
-                    }
-                    finally
-                    {
-                        _activityState.SetSpeechActive(false);
-                    }
-
-                    if (SaveCachedAudio(cacheStream, audioFileName, historyMessage?.Id))
-                    {
-                        cacheStream = null;
-                        audioCacheSaved = true;
-                    }
-                }
-                finally
-                {
-                    cacheStream?.Dispose();
-                    if (!audioCacheSaved)
-                    {
-                        _chatAudioStore.Delete(audioFileName);
-                    }
-                }
+                await _speechPlayback.PlayAsync(audio, historyMessage?.Id, cancellationToken);
 
                 try
                 {
@@ -437,28 +379,4 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         }
     }
 
-    private bool SaveCachedAudio(
-        FileStream? cacheStream,
-        string? audioFileName,
-        string? historyMessageId)
-    {
-        if (cacheStream is null
-            || string.IsNullOrWhiteSpace(audioFileName)
-            || string.IsNullOrWhiteSpace(historyMessageId))
-        {
-            return false;
-        }
-
-        try
-        {
-            cacheStream.Dispose();
-            _chatHistoryStore.SetAudioFileName(historyMessageId, audioFileName);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Ambient audio cache finalize error: {ex.Message}");
-            return false;
-        }
-    }
 }

@@ -38,6 +38,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
     private readonly StreamingMp3AudioPlayer _audioPlayer;
+    private readonly SpeechPlayback _speechPlayback;
     private readonly ForegroundDesktopContextProvider _desktopContextProvider;
     private readonly ObservationSettingsStore _observationSettingsStore;
     private readonly IObservationPermissionService _observationPermissionService;
@@ -160,6 +161,12 @@ public sealed class DesktopPetApplication : IDisposable
             StartSpeak),
             SaveOverlayPosition);
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
+        _speechPlayback = new SpeechPlayback(
+            _audioPlayer,
+            _overlayWindow,
+            _ambientActivityState,
+            _chatHistoryStore,
+            _chatAudioStore);
         _conversationController = new ConversationController(
             _conversationOverlayWindow,
             _chatService,
@@ -167,7 +174,7 @@ public sealed class DesktopPetApplication : IDisposable
             _chatHistoryStore,
             _chatAudioStore,
             _profileSettingsStore.Load,
-            _audioPlayer,
+            _speechPlayback,
             _overlayWindow,
             _errorMessageStore,
             _memoryStore,
@@ -181,14 +188,12 @@ public sealed class DesktopPetApplication : IDisposable
             _ambientCommentPolicy,
             _ambientCommentGenerator,
             _voiceSynthesisService,
-            _audioPlayer,
+            _speechPlayback,
             _conversationOverlayWindow,
-            _overlayWindow,
             _ambientActivityState,
             _ambientDecisionStore,
             _observationStore,
             _chatHistoryStore,
-            _chatAudioStore,
             _windowCaptureService,
             _visualContextAnalyzer);
         _trayController = new TrayController(

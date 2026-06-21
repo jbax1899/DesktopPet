@@ -20,6 +20,7 @@ public partial class MemoryWindow : Window
     private readonly ObservationStore _observationStore;
     private readonly AudioObservationStore _audioObservationStore;
     private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
+    private readonly IObservationPermissionService _observationPermissionService;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly Func<UiSettings> _uiSettingsProvider;
     private readonly FileSystemWatcher _observationsWatcher;
@@ -40,6 +41,7 @@ public partial class MemoryWindow : Window
         ObservationStore observationStore,
         AudioObservationStore audioObservationStore,
         AudioAnalysisCoordinator audioAnalysisCoordinator,
+        IObservationPermissionService observationPermissionService,
         Func<ProfileSettings> profileSettingsProvider,
         Func<UiSettings> uiSettingsProvider)
     {
@@ -52,6 +54,7 @@ public partial class MemoryWindow : Window
         _observationStore = observationStore;
         _audioObservationStore = audioObservationStore;
         _audioAnalysisCoordinator = audioAnalysisCoordinator;
+        _observationPermissionService = observationPermissionService;
         _profileSettingsProvider = profileSettingsProvider;
         _uiSettingsProvider = uiSettingsProvider;
 
@@ -118,7 +121,7 @@ public partial class MemoryWindow : Window
             : string.Join("\n", memories.Select(memory => memory.Text));
         var observations = _observationStore.List()
             .OrderByDescending(record => record.CapturedAt)
-            .Take(5)
+            .Take(_observationPermissionService.Current.ObservationContextDepth)
             .ToArray();
         var request = new ChatRequest(
             string.Empty,

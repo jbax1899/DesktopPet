@@ -133,7 +133,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
     {
         if (visionObservation is null)
         {
-            return "Give one short, playful, in-character comment about what the user is doing right now. You are a desktop pet — be curious, observant, and opinionated. Never reply SILENCE.";
+            return "Give one short, playful, in-character comment about what the user is doing right now. You are a desktop pet — be curious, observant, and opinionated. If there is nothing worth saying, reply exactly SILENCE.";
         }
 
         var parts = new List<string>
@@ -148,7 +148,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
                 _permissionService.Current.CommentTopicLimit))}");
         }
 
-        parts.Add("Give one short, playful, in-character comment as a desktop pet. Be curious and opinionated. Never reply SILENCE.");
+        parts.Add("Give one short, playful, in-character comment as a desktop pet. Be curious and opinionated. If there is nothing worth saying, reply exactly SILENCE.");
 
         return string.Join(" ", parts);
     }

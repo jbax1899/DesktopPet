@@ -270,6 +270,7 @@ public sealed class DesktopPetApplication : IDisposable
                 _observationStore,
                 _audioObservationStore,
                 _audioAnalysisCoordinator,
+                _observationPermissionService,
                 _profileSettingsStore.Load,
                 _uiSettingsStore.Load);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;

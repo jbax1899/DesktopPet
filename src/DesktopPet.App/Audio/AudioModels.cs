@@ -148,7 +148,9 @@ public sealed record AudioAnalysisResponse(
 public sealed record AudioAnalysisOptions(
     bool RequestTranscript,
     int MaximumSummaryCharacters = 240,
-    int MaximumEventLabels = 5);
+    int MaximumEventLabels = 5,
+    AudioTranscriptDetail TranscriptDetail = AudioTranscriptDetail.Detailed,
+    int MaximumTranscriptCharacters = 1200);
 
 public interface IAudioSegmentAnalyzer
 {

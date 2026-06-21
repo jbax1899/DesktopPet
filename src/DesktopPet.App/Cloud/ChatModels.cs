@@ -10,6 +10,7 @@ public sealed record ChatRequest(
     string? MemoriesContext = null,
     DesktopTurnContext? DesktopContext = null,
     IReadOnlyList<ObservationRecord>? ObservationHistory = null,
-    IReadOnlyList<ChatHistoryMessage>? ConversationHistory = null);
+    IReadOnlyList<ChatHistoryMessage>? ConversationHistory = null,
+    string? AudioObservationHistory = null);
 
 public sealed record ChatReply(string Text, AgentContextSnapshot? ContextSnapshot = null);

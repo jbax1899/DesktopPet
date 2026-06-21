@@ -186,7 +186,7 @@ public sealed class AudioAnalysisCoordinator : IDisposable
             {
                 var response = await _analyzer.AnalyzeAsync(
                     currentSegment,
-                    new AudioAnalysisOptions(RequestTranscript: true),
+                    CreateAnalysisOptions(settings),
                     cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessResponse(currentSegment, response, settings);
@@ -299,6 +299,31 @@ public sealed class AudioAnalysisCoordinator : IDisposable
             _failureCount++;
             _lastSafeFailure = message;
         }
+    }
+
+    private static AudioAnalysisOptions CreateAnalysisOptions(AudioContextSettings settings)
+    {
+        return settings.TranscriptDetail switch
+        {
+            AudioTranscriptDetail.Brief => new AudioAnalysisOptions(
+                RequestTranscript: false,
+                MaximumSummaryCharacters: 160,
+                MaximumEventLabels: 3,
+                TranscriptDetail: AudioTranscriptDetail.Brief,
+                MaximumTranscriptCharacters: 0),
+            AudioTranscriptDetail.Transcript => new AudioAnalysisOptions(
+                RequestTranscript: true,
+                MaximumSummaryCharacters: 400,
+                MaximumEventLabels: 5,
+                TranscriptDetail: AudioTranscriptDetail.Transcript,
+                MaximumTranscriptCharacters: 4000),
+            _ => new AudioAnalysisOptions(
+                RequestTranscript: true,
+                MaximumSummaryCharacters: 260,
+                MaximumEventLabels: 5,
+                TranscriptDetail: AudioTranscriptDetail.Detailed,
+                MaximumTranscriptCharacters: 1200)
+        };
     }
 
     private List<CompletedAudioSegment> DrainQueue()

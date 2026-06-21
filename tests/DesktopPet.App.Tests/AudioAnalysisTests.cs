@@ -323,25 +323,116 @@ public sealed class AudioAnalysisTests
     }
 
     [TestMethod]
-    public void AgentContextDoesNotReadPersistedAudioObservations()
+    public void AudioHistoryFormatterRespectsDetailAndSensitivity()
     {
-        const string privateSummary = "audio-summary-that-must-not-enter-agent-context";
-        var store = new AudioObservationStore(Path.Combine(_directory, "observations.json"));
-        store.Add(CreateObservation("audio", DateTimeOffset.UtcNow) with
+        var now = DateTimeOffset.UtcNow;
+        var normal = CreateObservation("normal", now) with
         {
-            Summary = privateSummary,
-            TranscriptExcerpt = "short excerpt"
-        });
+            Summary = "A project discussion",
+            TranscriptExcerpt = "persisted excerpt"
+        };
+        var privateConversation = CreateObservation("private", now.AddSeconds(-1)) with
+        {
+            Summary = "A private conversation",
+            Sensitivity = AudioSensitivity.PrivateConversation,
+            TranscriptExcerpt = "private words"
+        };
+        var sensitive = CreateObservation("sensitive", now.AddSeconds(-2)) with
+        {
+            Summary = "A password was spoken",
+            Sensitivity = AudioSensitivity.Sensitive,
+            TranscriptExcerpt = "secret"
+        };
+        var transcripts = new[]
+        {
+            new TranscriptWorkingChunk(
+                "chunk",
+                normal.SegmentId,
+                normal.Source,
+                normal.StartedAt,
+                normal.EndedAt,
+                "temporary detailed transcript",
+                0.9,
+                now.AddMinutes(5))
+        };
+
+        var brief = AudioObservationHistoryFormatter.Format(
+            [normal, privateConversation, sensitive],
+            transcripts,
+            AudioTranscriptDetail.Brief,
+            contextDepth: 5,
+            now);
+        var detailed = AudioObservationHistoryFormatter.Format(
+            [normal, privateConversation, sensitive],
+            transcripts,
+            AudioTranscriptDetail.Detailed,
+            contextDepth: 5,
+            now);
+
+        Assert.IsNotNull(brief);
+        StringAssert.Contains(brief, "A project discussion");
+        Assert.IsFalse(brief.Contains("temporary detailed transcript", StringComparison.Ordinal));
+        Assert.IsFalse(brief.Contains("A password was spoken", StringComparison.Ordinal));
+        Assert.IsNotNull(detailed);
+        StringAssert.Contains(detailed, "temporary detailed transcript");
+        StringAssert.Contains(detailed, "A private conversation");
+        Assert.IsFalse(detailed.Contains("private words", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void AgentContextIncludesProvidedAudioObservationHistory()
+    {
+        const string audioHistory = "just now [system audio, Speech]: A greeting";
 
         var snapshot = AgentContextBuilder.Build(
-            new ChatRequest(string.Empty),
+            new ChatRequest(string.Empty, AudioObservationHistory: audioHistory),
             ChatHistoryContextSettings.Default);
 
-        Assert.IsFalse(snapshot.Values.Keys.Any(key =>
-            key.Contains("audio", StringComparison.OrdinalIgnoreCase)));
-        Assert.IsFalse(snapshot.Values.Values.Any(value =>
-            value.Contains(privateSummary, StringComparison.Ordinal)
-            || value.Contains("short excerpt", StringComparison.Ordinal)));
+        Assert.AreEqual(audioHistory, snapshot.Values["audio_observation_history"]);
+    }
+
+    [TestMethod]
+    public void AudioContextProviderHonorsEnablementAndDepth()
+    {
+        var store = new AudioObservationStore(Path.Combine(_directory, "observations.json"));
+        store.Add(CreateObservation("audio", DateTimeOffset.UtcNow));
+        var settings = EnabledAnalysisSettings() with
+        {
+            ContextDepth = 0
+        };
+        var provider = new AudioObservationContextProvider(
+            store,
+            new TranscriptWorkingBuffer(),
+            () => settings);
+
+        Assert.IsNull(provider.GetCurrentContext());
+
+        settings = settings with { ContextDepth = 1 };
+
+        Assert.IsNotNull(provider.GetCurrentContext());
+        StringAssert.Contains(provider.GetCurrentContext(), "Music");
+    }
+
+    [TestMethod]
+    public async Task BriefAudioDetailDoesNotRequestTranscript()
+    {
+        var analyzer = new SequenceAnalyzer(Success());
+        var store = new AudioObservationStore(Path.Combine(_directory, "observations.json"));
+        using var coordinator = new AudioAnalysisCoordinator(
+            analyzer,
+            new TranscriptWorkingBuffer(),
+            store);
+        coordinator.ApplySettings(EnabledAnalysisSettings() with
+        {
+            TranscriptDetail = AudioTranscriptDetail.Brief
+        });
+
+        Assert.IsTrue(coordinator.TryEnqueue(CreateSegment()));
+        await WaitUntilAsync(() => !coordinator.Diagnostic.RequestActive);
+
+        Assert.IsNotNull(analyzer.LastOptions);
+        Assert.IsFalse(analyzer.LastOptions.RequestTranscript);
+        Assert.AreEqual(AudioTranscriptDetail.Brief, analyzer.LastOptions.TranscriptDetail);
     }
 
     [TestMethod]
@@ -454,6 +545,7 @@ public sealed class AudioAnalysisTests
 
         public bool IsAvailable => true;
         public int CallCount { get; private set; }
+        public AudioAnalysisOptions? LastOptions { get; private set; }
         public int MaximumConcurrentCalls { get; private set; }
         public TaskCompletionSource FirstStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -481,6 +573,7 @@ public sealed class AudioAnalysisTests
         private readonly Queue<AudioAnalysisResponse> _responses = new(responses);
         public bool IsAvailable => true;
         public int CallCount { get; private set; }
+        public AudioAnalysisOptions? LastOptions { get; private set; }
 
         public Task<AudioAnalysisResponse> AnalyzeAsync(
             CompletedAudioSegment segment,
@@ -488,6 +581,7 @@ public sealed class AudioAnalysisTests
             CancellationToken cancellationToken)
         {
             CallCount++;
+            LastOptions = options;
             return Task.FromResult(_responses.Dequeue());
         }
     }

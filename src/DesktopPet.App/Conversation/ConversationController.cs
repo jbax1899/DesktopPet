@@ -28,6 +28,7 @@ public sealed class ConversationController : IDisposable
     private readonly IAmbientActivityState _ambientActivityState;
     private readonly ObservationStore _observationStore;
     private readonly IObservationPermissionService _observationPermissionService;
+    private readonly Func<string?> _audioObservationContextProvider;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -50,7 +51,8 @@ public sealed class ConversationController : IDisposable
         IDesktopContextProvider desktopContextProvider,
         IAmbientActivityState ambientActivityState,
         ObservationStore observationStore,
-        IObservationPermissionService observationPermissionService)
+        IObservationPermissionService observationPermissionService,
+        Func<string?> audioObservationContextProvider)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -66,6 +68,7 @@ public sealed class ConversationController : IDisposable
         _ambientActivityState = ambientActivityState;
         _observationStore = observationStore;
         _observationPermissionService = observationPermissionService;
+        _audioObservationContextProvider = audioObservationContextProvider;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
         _overlayWindow.UserInputActivity += OnUserInputActivity;
@@ -147,7 +150,8 @@ public sealed class ConversationController : IDisposable
                         BuildMemoriesContext(),
                         desktopContext.Context,
                         GetRecentObservations(),
-                        GetConversationHistory(userHistoryMessage?.Id)),
+                        GetConversationHistory(userHistoryMessage?.Id),
+                        _audioObservationContextProvider()),
                     CancellationToken.None);
                 var botMessage = TryAddHistoryMessage(
                     ChatHistoryRole.Bot,

@@ -36,6 +36,11 @@ public static class AgentContextBuilder
             values["desktop_observation_history"] = observationHistory;
         }
 
+        if (!string.IsNullOrWhiteSpace(request.AudioObservationHistory))
+        {
+            values["audio_observation_history"] = request.AudioObservationHistory;
+        }
+
         var normalizedHistorySettings = historySettings.Normalize();
         var conversationHistory = ConversationHistoryFormatter.Format(
             request.ConversationHistory,

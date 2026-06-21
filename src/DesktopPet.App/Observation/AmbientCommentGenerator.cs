@@ -25,6 +25,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
     private readonly IMemoryStore _memoryStore;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly IObservationPermissionService _permissionService;
+    private readonly Func<string?> _audioObservationContextProvider;
 
     public ElevenLabsAmbientCommentGenerator(
         IChatService chatService,
@@ -32,7 +33,8 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         IChatHistoryStore chatHistoryStore,
         IMemoryStore memoryStore,
         Func<ProfileSettings> profileSettingsProvider,
-        IObservationPermissionService permissionService)
+        IObservationPermissionService permissionService,
+        Func<string?> audioObservationContextProvider)
     {
         _chatService = chatService;
         _observationStore = observationStore;
@@ -40,6 +42,7 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
         _memoryStore = memoryStore;
         _profileSettingsProvider = profileSettingsProvider;
         _permissionService = permissionService;
+        _audioObservationContextProvider = audioObservationContextProvider;
     }
 
     public async Task<AmbientCommentResult?> GenerateAsync(
@@ -60,7 +63,8 @@ internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerat
                 BuildMemoriesContext(),
                 DesktopContext: context,
                 ObservationHistory: history,
-                ConversationHistory: GetConversationHistory()),
+                ConversationHistory: GetConversationHistory(),
+                AudioObservationHistory: _audioObservationContextProvider()),
             cancellationToken);
 
         var text = reply.Text.Trim();

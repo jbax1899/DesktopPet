@@ -132,7 +132,9 @@ internal sealed class OpenRouterAudioSegmentAnalyzer : IAudioSegmentAnalyzer
 
             var analysis = new AudioSemanticAnalysis(
                 ParseDetectedKind(wire.DetectedKind),
-                options.RequestTranscript ? wire.Transcript : null,
+                options.RequestTranscript
+                    ? LimitNullable(wire.Transcript, options.MaximumTranscriptCharacters)
+                    : null,
                 Limit(wire.Summary, options.MaximumSummaryCharacters),
                 (wire.EventLabels ?? [])
                     .Where(label => !string.IsNullOrWhiteSpace(label))
@@ -214,9 +216,15 @@ internal sealed class OpenRouterAudioSegmentAnalyzer : IAudioSegmentAnalyzer
         string base64Wav,
         AudioAnalysisOptions options)
     {
-        var prompt = options.RequestTranscript
-            ? "Analyze this audio segment. Include a transcript when speech is intelligible."
-            : "Analyze this audio segment. Do not include a transcript.";
+        var prompt = options.TranscriptDetail switch
+        {
+            AudioTranscriptDetail.Brief =>
+                "Analyze this audio segment. Return a concise event summary. Do not include a transcript.",
+            AudioTranscriptDetail.Transcript =>
+                "Analyze this audio segment. Include a detailed verbatim transcript when speech is intelligible, preserving useful wording while omitting filler only when necessary.",
+            _ =>
+                "Analyze this audio segment. Include a concise transcript when speech is intelligible and summarize the important meaning."
+        };
         var payload = new Dictionary<string, object>
         {
             ["model"] = model,
@@ -262,6 +270,16 @@ internal sealed class OpenRouterAudioSegmentAnalyzer : IAudioSegmentAnalyzer
 
     private static string Limit(string value, int maximum) =>
         value.Length <= maximum ? value : value[..maximum];
+
+    private static string? LimitNullable(string? value, int maximum)
+    {
+        if (string.IsNullOrWhiteSpace(value) || maximum <= 0)
+        {
+            return null;
+        }
+
+        return Limit(value, maximum);
+    }
 
     private static AudioDetectedKind ParseDetectedKind(string? value) => value switch
     {

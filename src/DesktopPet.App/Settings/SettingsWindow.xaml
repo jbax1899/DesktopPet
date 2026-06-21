@@ -278,7 +278,33 @@
                     <TextBlock Margin="16,0,0,8"
                                FontSize="11"
                                Foreground="#FF64748B"
-                               Text="Audio observations are visible in Memories → Observations. They are not sent to Agent chat context and do not trigger commentary."
+                               Text="Reduced audio observations are visible in Memories → Observations and can be included in Agent context. Raw audio is never forwarded to ElevenLabs."
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="16,0,0,0"
+                               FontWeight="SemiBold"
+                               Text="Audio detail" />
+                    <UniformGrid Margin="16,4,0,0"
+                                 Columns="3">
+                        <RadioButton x:Name="AudioDetailBriefRadioButton"
+                                     GroupName="AudioDetail"
+                                     Content="Brief"
+                                     ToolTip="Send concise event summaries without transcript text."
+                                     Checked="OnAudioTranscriptDetailChanged" />
+                        <RadioButton x:Name="AudioDetailDetailedRadioButton"
+                                     GroupName="AudioDetail"
+                                     Content="Detailed"
+                                     ToolTip="Send summaries with short transcript excerpts when available."
+                                     Checked="OnAudioTranscriptDetailChanged" />
+                        <RadioButton x:Name="AudioDetailTranscriptRadioButton"
+                                     GroupName="AudioDetail"
+                                     Content="Transcript"
+                                     ToolTip="Send longer bounded transcript detail from the temporary in-memory buffer when available."
+                                     Checked="OnAudioTranscriptDetailChanged" />
+                    </UniformGrid>
+                    <TextBlock x:Name="AudioDetailLegendTextBlock"
+                               Margin="18,4,0,8"
+                               FontSize="10"
+                               Foreground="#FF64748B"
                                TextWrapping="Wrap" />
                     <Grid Margin="16,0,0,10">
                         <Grid.ColumnDefinitions>
@@ -297,6 +323,7 @@
                               Header="Audio analysis advanced">
                         <Grid Margin="16,8,0,0">
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -322,19 +349,24 @@
                             <TextBox x:Name="TranscriptRetentionSecondsTextBox"
                                      Grid.Row="2" Grid.Column="1"
                                      Style="{StaticResource AdvancedNumberTextBox}" />
-                            <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
-                            <TextBox x:Name="StoredAudioObservationCountTextBox"
+                            <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Audio context depth" />
+                            <TextBox x:Name="AudioContextDepthTextBox"
                                      Grid.Row="3" Grid.Column="1" Margin="0,6,0,0"
-                                     Style="{StaticResource AdvancedNumberTextBox}" />
-                            <TextBlock Grid.Row="4" Margin="0,6,0,0" VerticalAlignment="Center" Text="Minimum confidence (0–1)" />
-                            <TextBox x:Name="MinimumAudioConfidenceTextBox"
+                                     Style="{StaticResource AdvancedNumberTextBox}"
+                                     ToolTip="Number of recent reduced audio observations included with Agent requests. Zero disables audio context." />
+                            <TextBlock Grid.Row="4" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
+                            <TextBox x:Name="StoredAudioObservationCountTextBox"
                                      Grid.Row="4" Grid.Column="1" Margin="0,6,0,0"
+                                     Style="{StaticResource AdvancedNumberTextBox}" />
+                            <TextBlock Grid.Row="5" Margin="0,6,0,0" VerticalAlignment="Center" Text="Minimum confidence (0–1)" />
+                            <TextBox x:Name="MinimumAudioConfidenceTextBox"
+                                     Grid.Row="5" Grid.Column="1" Margin="0,6,0,0"
                                      Width="74"
                                      HorizontalContentAlignment="Right"
                                      Padding="4,2" />
-                            <TextBlock Grid.Row="5" Margin="0,6,0,0" VerticalAlignment="Center" Text="Request timeout (seconds)" />
+                            <TextBlock Grid.Row="6" Margin="0,6,0,0" VerticalAlignment="Center" Text="Request timeout (seconds)" />
                             <TextBox x:Name="AudioAnalysisTimeoutSecondsTextBox"
-                                     Grid.Row="5" Grid.Column="1" Margin="0,6,0,0"
+                                     Grid.Row="6" Grid.Column="1" Margin="0,6,0,0"
                                      Style="{StaticResource AdvancedNumberTextBox}" />
                         </Grid>
                     </Expander>

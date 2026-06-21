@@ -38,6 +38,22 @@ public sealed class OpenRouterAudioTests
         StringAssert.Contains(json, "\"input_audio\":{\"data\":\"UklGRg==\",\"format\":\"wav\"}");
         StringAssert.Contains(json, "\"type\":\"json_schema\"");
         StringAssert.Contains(json, "\"zdr\":true");
+        StringAssert.Contains(json, "concise transcript");
+    }
+
+    [TestMethod]
+    public void BriefPayloadExplicitlyDisablesTranscript()
+    {
+        var payload = OpenRouterAudioSegmentAnalyzer.BuildPayload(
+            new OpenRouterSettings("key", "vision", "audio/model", true),
+            "audio/model",
+            "UklGRg==",
+            new AudioAnalysisOptions(
+                RequestTranscript: false,
+                TranscriptDetail: AudioTranscriptDetail.Brief));
+        var json = JsonSerializer.Serialize(payload);
+
+        StringAssert.Contains(json, "Do not include a transcript");
     }
 
     [TestMethod]
@@ -65,6 +81,30 @@ public sealed class OpenRouterAudioTests
         Assert.AreEqual(1, result.Analysis.Confidence);
         Assert.AreEqual(0, result.Analysis.PolicySignals!.Novelty);
         Assert.AreEqual(1, result.Analysis.PolicySignals.Relevance);
+    }
+
+    [TestMethod]
+    public async Task TranscriptIsBoundedByAnalysisOptions()
+    {
+        var handler = new RecordingHandler(_ => JsonResponse("""
+        {
+          "choices": [{
+            "message": {
+              "content": "{\"detected_kind\":\"speech\",\"transcript\":\"abcdefgh\",\"summary\":\"Speech.\",\"event_labels\":[],\"confidence\":0.9,\"sensitivity\":\"normal\",\"should_store\":true,\"policy_signals\":null}"
+            }
+          }]
+        }
+        """));
+        using var segment = CreateSegment();
+
+        var result = await CreateAnalyzer(handler).AnalyzeAsync(
+            segment,
+            new AudioAnalysisOptions(
+                RequestTranscript: true,
+                MaximumTranscriptCharacters: 4),
+            CancellationToken.None);
+
+        Assert.AreEqual("abcd", result.Analysis!.Transcript);
     }
 
     [TestMethod]

@@ -26,6 +26,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly AudioContextSettingsStore _audioContextSettingsStore;
     private readonly TranscriptWorkingBuffer _transcriptWorkingBuffer;
     private readonly AudioObservationStore _audioObservationStore;
+    private readonly AudioObservationContextProvider _audioObservationContextProvider;
     private readonly IAudioSegmentAnalyzer _audioSegmentAnalyzer;
     private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
     private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
@@ -87,6 +88,10 @@ public sealed class DesktopPetApplication : IDisposable
                 "DesktopPet",
                 "audio-observations.json"),
             () => _audioContextSettingsStore.Load().Normalize().StoredObservationCount);
+        _audioObservationContextProvider = new AudioObservationContextProvider(
+            _audioObservationStore,
+            _transcriptWorkingBuffer,
+            _audioContextSettingsStore.Load);
         _audioSegmentAnalyzer = new OpenRouterAudioSegmentAnalyzer(
             _httpClient,
             _openRouterSettingsStore.Load,
@@ -140,7 +145,8 @@ public sealed class DesktopPetApplication : IDisposable
             _chatHistoryStore,
             _memoryStore,
             _profileSettingsStore.Load,
-            _observationPermissionService);
+            _observationPermissionService,
+            _audioObservationContextProvider.GetCurrentContext);
         _ambientDecisionStore = new AmbientDecisionStore(
             Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -182,7 +188,8 @@ public sealed class DesktopPetApplication : IDisposable
             _desktopContextProvider,
             _ambientActivityState,
             _observationStore,
-            _observationPermissionService);
+            _observationPermissionService,
+            _audioObservationContextProvider.GetCurrentContext);
         _ambientCommentCoordinator = new AmbientCommentCoordinator(
             _observationCoordinator,
             _observationPermissionService,
@@ -279,7 +286,8 @@ public sealed class DesktopPetApplication : IDisposable
                 _audioAnalysisCoordinator,
                 _observationPermissionService,
                 _profileSettingsStore.Load,
-                _uiSettingsStore.Load);
+                _uiSettingsStore.Load,
+                _audioObservationContextProvider.GetCurrentContext);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 

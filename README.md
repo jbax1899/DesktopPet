@@ -28,7 +28,8 @@ Screen observation and ambient comments are disabled by default.
 1. Run the app.
 2. Open **Settings** from the tray icon or the pet's right-click menu.
 3. Enter the ElevenLabs API key, Agent ID, and voice ID.
-4. Optionally enter an OpenRouter API key and select a vision model.
+4. Optionally enter an OpenRouter API key and select vision and audio-analysis
+   models.
 5. Open **Screen Context Privacy** to enable observation and grant access to
    individual applications.
 
@@ -41,6 +42,7 @@ The ElevenLabs Agent prompt can use these dynamic variables:
 - `conversation_history`
 - `desktop_context`
 - `desktop_observation_history`
+- `audio_observation_history`
 
 ## Run
 

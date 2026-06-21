@@ -152,6 +152,12 @@ public partial class SettingsWindow : Window
                 AudioAnalysisEnabledCheckBox.IsChecked == true,
                 PersistMicrophoneExcerptCheckBox.IsChecked == true,
                 PersistSystemAudioExcerptCheckBox.IsChecked == true,
+                AudioDetailBriefRadioButton.IsChecked == true
+                    ? AudioTranscriptDetail.Brief
+                    : AudioDetailTranscriptRadioButton.IsChecked == true
+                        ? AudioTranscriptDetail.Transcript
+                        : AudioTranscriptDetail.Detailed,
+                ClampInt(AudioContextDepthTextBox.Text, 0, 20, 5),
                 ClampInt(TranscriptRetentionSecondsTextBox.Text, 1, 3600, 300),
                 ClampInt(StoredAudioObservationCountTextBox.Text, 1, 1000, 100),
                 ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
@@ -209,6 +215,13 @@ public partial class SettingsWindow : Window
         AudioAnalysisEnabledCheckBox.IsChecked = audioSettings.AnalysisEnabled;
         PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
         PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
+        AudioDetailBriefRadioButton.IsChecked =
+            audioSettings.TranscriptDetail == AudioTranscriptDetail.Brief;
+        AudioDetailDetailedRadioButton.IsChecked =
+            audioSettings.TranscriptDetail == AudioTranscriptDetail.Detailed;
+        AudioDetailTranscriptRadioButton.IsChecked =
+            audioSettings.TranscriptDetail == AudioTranscriptDetail.Transcript;
+        AudioContextDepthTextBox.Text = audioSettings.ContextDepth.ToString();
         TranscriptRetentionSecondsTextBox.Text = audioSettings.TranscriptRetentionSeconds.ToString();
         StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
         MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
@@ -228,6 +241,20 @@ public partial class SettingsWindow : Window
         }
 
         LoadObservationSettings();
+    }
+
+    private void OnAudioTranscriptDetailChanged(object sender, RoutedEventArgs e)
+    {
+        if (AudioDetailLegendTextBlock is null)
+        {
+            return;
+        }
+
+        AudioDetailLegendTextBlock.Text = AudioDetailBriefRadioButton.IsChecked == true
+            ? "Concise summaries only; no transcript text is requested or sent."
+            : AudioDetailTranscriptRadioButton.IsChecked == true
+                ? "Longer bounded transcript detail is sent when the temporary in-memory transcript is still available."
+                : "Balanced summaries with short bounded transcript excerpts when available.";
     }
 
     private static int ParseInt(System.Windows.Controls.TextBox textBox, int fallback) =>

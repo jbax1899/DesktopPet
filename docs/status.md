@@ -48,6 +48,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   0–50, defaulting to 14 and 6.
 - Selected turns are sent chronologically through `conversation_history`.
   Typed dialogue is protected from displacement by ambient messages.
+- Recent reduced audio observations can be sent through
+  `audio_observation_history`. Audio detail is configurable as Brief,
+  Detailed, or Transcript, and audio context depth is configurable from 0–20.
 - Successful direct and ambient replies save the exact dynamic-variable
   snapshot sent to ElevenLabs. The Memories window orders its tabs as Chat
   History, Observations, and Memories. Each tab has a top action bar for
@@ -122,8 +125,11 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Microphone transcript excerpts default off; system-audio excerpts default
   on. Persisted excerpts are one line and capped at 160 characters. Failed or
   low-confidence analysis is diagnostics-only.
-- Audio observations are not injected into chat, used for commentary, or
-  promoted to durable memory in this phase.
+- Reduced audio observations are available to typed replies and ambient reply
+  generation. Brief sends summaries only; Detailed adds short transcript
+  detail; Transcript can use a longer bounded temporary in-memory transcript.
+  Sensitive observations are excluded, and private-conversation records remain
+  summary-only. Audio observations are not promoted to durable memory.
 - Clearing observations also clears reduced audio observations, queued audio
   analysis work, and the memory-only transcript buffer.
 
@@ -176,6 +182,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Persisted audio observations contain reduced summaries, event labels, and
   optional bounded excerpts only. They do not contain full transcripts, PCM,
   sample arrays, device names, provider bodies, or transient policy scores.
+- Raw audio is never sent to ElevenLabs. Only the bounded
+  `audio_observation_history` text assembled from reduced observations and
+  permitted transcript detail can enter Agent context.
 - Do not persist full UI Automation trees, credentials, raw screenshots, or raw
   Windows identifiers in history, memory, diagnostics, or user-visible errors.
 - Users can inspect and clear observations, inspect context used for replies,
@@ -192,9 +201,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Improve transcript timing if full-text-at-once remains too abrupt.
 - Add automatic chat memory capture and retrieve only a few relevant memories
   per typed request.
-- Decide whether reduced audio observations should become optional chat context
-  or ambient-comment candidates. Any commentary path must reuse the existing
-  ambient policy and cooldown.
+- Decide whether audio events should independently trigger ambient-comment
+  evaluation. Any trigger path must reuse the existing ambient policy and
+  cooldown.
 
 ## Later Work
 

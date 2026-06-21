@@ -23,6 +23,7 @@ public partial class MemoryWindow : Window
         "user_name",
         "memories_context",
         "desktop_observation_history",
+        "audio_observation_history",
         "conversation_history"
     ];
 
@@ -38,6 +39,7 @@ public partial class MemoryWindow : Window
     private readonly IObservationPermissionService _observationPermissionService;
     private readonly Func<ProfileSettings> _profileSettingsProvider;
     private readonly Func<UiSettings> _uiSettingsProvider;
+    private readonly Func<string?> _audioObservationContextProvider;
     private readonly FileSystemWatcher _observationsWatcher;
     private readonly FileSystemWatcher _ambientDecisionsWatcher;
     private bool _suppressWatcherEvents;
@@ -57,7 +59,8 @@ public partial class MemoryWindow : Window
         AudioAnalysisCoordinator audioAnalysisCoordinator,
         IObservationPermissionService observationPermissionService,
         Func<ProfileSettings> profileSettingsProvider,
-        Func<UiSettings> uiSettingsProvider)
+        Func<UiSettings> uiSettingsProvider,
+        Func<string?> audioObservationContextProvider)
     {
         _memoryStore = memoryStore;
         _chatHistoryStore = chatHistoryStore;
@@ -71,6 +74,7 @@ public partial class MemoryWindow : Window
         _observationPermissionService = observationPermissionService;
         _profileSettingsProvider = profileSettingsProvider;
         _uiSettingsProvider = uiSettingsProvider;
+        _audioObservationContextProvider = audioObservationContextProvider;
 
         var dataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -129,7 +133,8 @@ public partial class MemoryWindow : Window
             memoriesContext,
             DesktopContext: null,
             ObservationHistory: observations,
-            ConversationHistory: _chatHistoryStore.List());
+            ConversationHistory: _chatHistoryStore.List(),
+            AudioObservationHistory: _audioObservationContextProvider());
 
         return AgentContextBuilder.Build(
             request,

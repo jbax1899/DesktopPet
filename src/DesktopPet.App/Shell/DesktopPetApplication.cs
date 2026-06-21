@@ -163,6 +163,7 @@ public sealed class DesktopPetApplication : IDisposable
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
         _speechPlayback = new SpeechPlayback(
             _audioPlayer,
+            _audioCaptureCoordinator,
             _overlayWindow,
             _ambientActivityState,
             _chatHistoryStore,

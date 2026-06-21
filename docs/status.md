@@ -74,6 +74,7 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   detail, and a collapsed Advanced section for timing, interest-score weights,
   provider cost limits, context depth, and retention. Presets lock their exact
   cooldown, duplicate-suppression, and check-in values; Custom unlocks them.
+  Configurable durations use seconds, except screenshot delay in milliseconds.
 - The comment threshold is evaluated after vision analysis. Its weighted score
   combines novelty, relevance, privacy safety, and interruption cost.
 - Duplicate-topic suppression applies to metadata-only and vision-backed
@@ -92,6 +93,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - NAudio capture is reduced to a mono in-memory analysis stream. Local activity
   gating uses a short pre-roll, rejects brief spikes, closes segments after
   silence, and force-closes continuous segments at 20 seconds.
+- Shared speech playback suppresses microphone and system-loopback processing
+  while the pet speaks and for 500 milliseconds afterward. Capture devices stay
+  active, while partial segments are reset at both suppression boundaries.
 - Audio analysis is separately disabled by default. When enabled, completed
   segments enter a bounded sequential queue with one active OpenRouter request
   and at most two waiting segments. Capture continues if analysis is disabled,
@@ -100,7 +104,7 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   output. Mono samples are converted to PCM16 WAV in memory and sent through
   the chat-completions `input_audio` block with zero-data-retention routing
   when configured.
-- Full transcripts exist only in a memory-only working buffer with five-minute
+- Full transcripts exist only in a memory-only working buffer with 300-second
   default retention. Reduced observations are stored in
   `%LOCALAPPDATA%\DesktopPet\audio-observations.json`, default to 100 records,
   and appear in the Memories window's Observations tab with source, detected

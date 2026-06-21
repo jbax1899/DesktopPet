@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Memory;
 using DesktopPet.App.Overlay;
@@ -11,6 +12,7 @@ namespace DesktopPet.App.Conversation;
 public sealed class SpeechPlayback
 {
     private readonly StreamingMp3AudioPlayer _audioPlayer;
+    private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
     private readonly ICharacterStateController _characterStateController;
     private readonly IAmbientActivityState _activityState;
     private readonly IChatHistoryStore _chatHistoryStore;
@@ -18,12 +20,14 @@ public sealed class SpeechPlayback
 
     public SpeechPlayback(
         StreamingMp3AudioPlayer audioPlayer,
+        AudioCaptureCoordinator audioCaptureCoordinator,
         ICharacterStateController characterStateController,
         IAmbientActivityState activityState,
         IChatHistoryStore chatHistoryStore,
         ChatAudioStore chatAudioStore)
     {
         _audioPlayer = audioPlayer;
+        _audioCaptureCoordinator = audioCaptureCoordinator;
         _characterStateController = characterStateController;
         _activityState = activityState;
         _chatHistoryStore = chatHistoryStore;
@@ -55,20 +59,23 @@ public sealed class SpeechPlayback
                 }
             }
 
-            using var speaking = _characterStateController.BeginSpeaking();
-            _activityState.SetSpeechActive(true);
-            try
+            using (_audioCaptureCoordinator.SuppressForSpeech())
+            using (var speaking = _characterStateController.BeginSpeaking())
             {
-                await _audioPlayer.PlayAsync(
-                    audio.AudioStream,
-                    audio.AudioFormat,
-                    cancellationToken,
-                    speaking.SetMouthOpen,
-                    cacheStream);
-            }
-            finally
-            {
-                _activityState.SetSpeechActive(false);
+                _activityState.SetSpeechActive(true);
+                try
+                {
+                    await _audioPlayer.PlayAsync(
+                        audio.AudioStream,
+                        audio.AudioFormat,
+                        cancellationToken,
+                        speaking.SetMouthOpen,
+                        cacheStream);
+                }
+                finally
+                {
+                    _activityState.SetSpeechActive(false);
+                }
             }
 
             if (SaveCachedAudio(cacheStream, audioFileName, historyMessageId))

@@ -2,11 +2,16 @@ namespace DesktopPet.App.Audio;
 
 public sealed class AudioCaptureCoordinator : IDisposable
 {
+    internal static readonly TimeSpan SpeechSuppressionCooldown = TimeSpan.FromMilliseconds(500);
+
     private readonly object _sync = new();
     private readonly Func<AudioSourceKind, IAudioCaptureSource> _sourceFactory;
     private readonly AudioAnalysisCoordinator? _analysisCoordinator;
+    private readonly TimeProvider _timeProvider;
     private readonly Dictionary<AudioSourceKind, SourceSession> _sessions;
     private readonly System.Threading.Timer _silenceTimer;
+    private int _speechSuppressionCount;
+    private DateTimeOffset _speechSuppressedUntil;
     private bool _disposed;
 
     public AudioCaptureCoordinator()
@@ -15,20 +20,22 @@ public sealed class AudioCaptureCoordinator : IDisposable
             AudioSourceKind.Microphone => new MicrophoneCaptureSource(),
             AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        }, null)
+        }, null, TimeProvider.System)
     {
     }
 
     internal AudioCaptureCoordinator(
         Func<AudioSourceKind, IAudioCaptureSource> sourceFactory,
-        AudioAnalysisCoordinator? analysisCoordinator = null)
+        AudioAnalysisCoordinator? analysisCoordinator = null,
+        TimeProvider? timeProvider = null)
     {
         _sourceFactory = sourceFactory;
         _analysisCoordinator = analysisCoordinator;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _sessions = Enum.GetValues<AudioSourceKind>()
             .ToDictionary(kind => kind, kind => new SourceSession(kind));
         _silenceTimer = new System.Threading.Timer(
-            _ => ProcessSilenceGaps(DateTimeOffset.UtcNow),
+            _ => ProcessSilenceGaps(_timeProvider.GetUtcNow()),
             null,
             TimeSpan.FromMilliseconds(250),
             TimeSpan.FromMilliseconds(250));
@@ -48,6 +55,18 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
 
         _analysisCoordinator?.ApplySettings(settings);
+    }
+
+    public IDisposable SuppressForSpeech()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _speechSuppressionCount++;
+            ResetBufferedAudio();
+        }
+
+        return new SpeechSuppressionScope(this);
     }
 
     public AudioSourceDiagnostic GetDiagnostic(AudioSourceKind source)
@@ -84,6 +103,8 @@ public sealed class AudioCaptureCoordinator : IDisposable
                 StopSource(session, clearDiagnostics: true);
             }
 
+            _speechSuppressionCount = 0;
+            _speechSuppressedUntil = DateTimeOffset.MinValue;
             _disposed = true;
         }
 
@@ -176,6 +197,12 @@ public sealed class AudioCaptureCoordinator : IDisposable
                 return;
             }
 
+            if (IsSpeechSuppressed(_timeProvider.GetUtcNow()))
+            {
+                session.CurrentLevel = 0;
+                return;
+            }
+
             session.CurrentLevel = CalculateRms(e.MonoSamples);
             session.SampleRate = e.SampleRate;
             session.LastFrameAt = e.CapturedAt;
@@ -227,6 +254,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
             foreach (var session in _sessions.Values)
             {
                 if (session.State != AudioCaptureState.Capturing
+                    || IsSpeechSuppressed(now)
                     || session.SampleRate <= 0
                     || session.LastFrameAt is null
                     || now - session.LastFrameAt.Value < TimeSpan.FromMilliseconds(250))
@@ -261,6 +289,41 @@ public sealed class AudioCaptureCoordinator : IDisposable
                         silenceStart + injectedDuration));
                 session.LastSilenceAt = silenceStart + injectedDuration;
             }
+        }
+    }
+
+    private bool IsSpeechSuppressed(DateTimeOffset now) =>
+        _speechSuppressionCount > 0 || now < _speechSuppressedUntil;
+
+    private void EndSpeechSuppression()
+    {
+        lock (_sync)
+        {
+            if (_disposed || _speechSuppressionCount == 0)
+            {
+                return;
+            }
+
+            _speechSuppressionCount--;
+            if (_speechSuppressionCount > 0)
+            {
+                return;
+            }
+
+            ResetBufferedAudio();
+            _speechSuppressedUntil = _timeProvider.GetUtcNow() + SpeechSuppressionCooldown;
+        }
+    }
+
+    private void ResetBufferedAudio()
+    {
+        foreach (var session in _sessions.Values)
+        {
+            session.CurrentLevel = 0;
+            session.LastFrameAt = null;
+            session.LastSilenceAt = null;
+            session.SampleRate = 0;
+            session.SegmentBuffer.Reset(clearDiagnostics: false);
         }
     }
 
@@ -342,5 +405,20 @@ public sealed class AudioCaptureCoordinator : IDisposable
         public int CompletedCount { get; set; }
 
         public int DiscardedCount { get; set; }
+    }
+
+    private sealed class SpeechSuppressionScope : IDisposable
+    {
+        private AudioCaptureCoordinator? _owner;
+
+        public SpeechSuppressionScope(AudioCaptureCoordinator owner)
+        {
+            _owner = owner;
+        }
+
+        public void Dispose()
+        {
+            Interlocked.Exchange(ref _owner, null)?.EndSpeechSuppression();
+        }
     }
 }

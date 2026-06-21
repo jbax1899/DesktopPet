@@ -243,6 +243,54 @@ public sealed class AudioCaptureTests
         Assert.AreEqual(0d, diagnostic.CurrentLevel);
     }
 
+    [TestMethod]
+    public void SpeechSuppressionDiscardsAudioAndResetsPartialSegments()
+    {
+        FakeCaptureSource? microphone = null;
+        var timeProvider = new ManualTimeProvider(DateTimeOffset.UtcNow);
+        using var coordinator = new AudioCaptureCoordinator(
+            kind =>
+            {
+                var source = new FakeCaptureSource(kind);
+                if (kind == AudioSourceKind.Microphone)
+                {
+                    microphone = source;
+                }
+
+                return source;
+            },
+            timeProvider: timeProvider);
+
+        coordinator.ApplySettings(new AudioContextSettings(true, true, false));
+        microphone!.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        Assert.IsGreaterThan(
+            TimeSpan.Zero,
+            coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
+
+        using (coordinator.SuppressForSpeech())
+        {
+            Assert.AreEqual(
+                TimeSpan.Zero,
+                coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
+
+            microphone.Emit(0.2f, TimeSpan.FromSeconds(2));
+            Assert.AreEqual(
+                TimeSpan.Zero,
+                coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
+        }
+
+        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        Assert.AreEqual(
+            TimeSpan.Zero,
+            coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
+
+        timeProvider.Advance(AudioCaptureCoordinator.SpeechSuppressionCooldown);
+        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        Assert.IsGreaterThan(
+            TimeSpan.Zero,
+            coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
+    }
+
     private static void Feed(
         AudioSegmentBuffer buffer,
         float amplitude,
@@ -314,6 +362,18 @@ public sealed class AudioCaptureTests
         public void Fail(Exception exception)
         {
             CaptureFailed?.Invoke(this, exception);
+        }
+    }
+
+    private sealed class ManualTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan duration)
+        {
+            _utcNow += duration;
         }
     }
 }

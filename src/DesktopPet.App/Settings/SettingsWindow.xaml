@@ -164,8 +164,20 @@
                           Grid.Row="7"
                           Grid.Column="1"
                           Margin="0,0,0,12"
-                          DisplayMemberPath="Name"
-                          ToolTip="Select a vision-capable model for screenshot analysis." />
+                          ToolTip="Select a vision-capable model for screenshot analysis.">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <TextBlock Text="{Binding Name}" />
+                                <TextBlock Text="{Binding CostSummary}"
+                                           DockPanel.Dock="Right"
+                                           Foreground="#FF94A3B8"
+                                           Margin="12,0,0,0"
+                                           FontSize="11" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
                 <StackPanel Grid.Row="8"
                             Grid.ColumnSpan="2"
@@ -297,8 +309,20 @@
                                    Text="OpenRouter audio model" />
                         <ComboBox x:Name="OpenRouterAudioModelComboBox"
                                   Grid.Column="1"
-                                  DisplayMemberPath="Name"
-                                  ToolTip="Speech-to-text models for audio transcription via OpenRouter." />
+                                  ToolTip="Speech-to-text models for audio transcription via OpenRouter.">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel>
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Text="{Binding CostSummary}"
+                                                   DockPanel.Dock="Right"
+                                                   Foreground="#FF94A3B8"
+                                                   Margin="12,0,0,0"
+                                                   FontSize="11" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </Grid>
 
                     <Expander Margin="0,0,0,10"

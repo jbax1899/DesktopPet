@@ -10,7 +10,45 @@ public sealed record OpenRouterModelInfo(
     string Name,
     bool SupportsStructuredOutput,
     bool SupportsImageInput,
-    bool SupportsAudioInput);
+    bool SupportsAudioInput,
+    decimal InputCostPerToken,
+    decimal OutputCostPerToken,
+    decimal AudioCostPerToken,
+    bool IsAudioModel)
+{
+    public string CostSummary
+    {
+        get
+        {
+            if (IsAudioModel)
+            {
+                if (InputCostPerToken == 0m && OutputCostPerToken == 0m)
+                {
+                    return "Free";
+                }
+
+                if (OutputCostPerToken == 0m)
+                {
+                    return $"${InputCostPerToken:F6} / audio token";
+                }
+
+                return $"${InputCostPerToken:F6} in / ${OutputCostPerToken:F6} out";
+            }
+
+            if (InputCostPerToken == 0m && OutputCostPerToken == 0m)
+            {
+                return "Free";
+            }
+
+            if (OutputCostPerToken == 0m)
+            {
+                return $"${InputCostPerToken * 1_000_000:F2} per M tokens";
+            }
+
+            return $"${InputCostPerToken * 1_000_000:F2} / ${OutputCostPerToken * 1_000_000:F2} per M tokens";
+        }
+    }
+}
 
 public sealed class OpenRouterModelsService
 {
@@ -69,7 +107,11 @@ public sealed class OpenRouterModelsService
                     m.Name,
                     m.SupportedParameters?.Contains("response_format") == true,
                     m.Architecture?.InputModalities?.Contains("image") == true,
-                    m.Architecture?.InputModalities?.Contains("audio") == true))
+                    m.Architecture?.InputModalities?.Contains("audio") == true,
+                    ParseCost(m.Pricing?.Prompt),
+                    ParseCost(m.Pricing?.Completion),
+                    ParseCost(m.Pricing?.Audio),
+                    IsAudioModel: true))
                 .ToArray();
         }
         catch (OperationCanceledException)
@@ -80,6 +122,19 @@ public sealed class OpenRouterModelsService
         {
             return [];
         }
+    }
+
+    private static decimal ParseCost(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0m;
+        }
+
+        return decimal.TryParse(value, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var cost)
+            ? cost
+            : 0m;
     }
 
     private async Task<IReadOnlyList<OpenRouterModelInfo>> GetModelsAsync(
@@ -125,7 +180,11 @@ public sealed class OpenRouterModelsService
                     m.Name,
                     m.SupportedParameters?.Contains("response_format") == true,
                     m.Architecture?.InputModalities?.Contains("image") == true,
-                    m.Architecture?.InputModalities?.Contains("audio") == true))
+                    m.Architecture?.InputModalities?.Contains("audio") == true,
+                    ParseCost(m.Pricing?.Prompt),
+                    ParseCost(m.Pricing?.Completion),
+                    0m,
+                    IsAudioModel: false))
                 .ToArray();
         }
         catch (OperationCanceledException)
@@ -145,9 +204,15 @@ public sealed class OpenRouterModelsService
         [property: JsonPropertyName("id")] string Id,
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("architecture")] ModelArchitecture? Architecture,
-        [property: JsonPropertyName("supported_parameters")] IReadOnlyList<string>? SupportedParameters);
+        [property: JsonPropertyName("supported_parameters")] IReadOnlyList<string>? SupportedParameters,
+        [property: JsonPropertyName("pricing")] ModelPricing? Pricing);
 
     private sealed record ModelArchitecture(
         [property: JsonPropertyName("input_modalities")] IReadOnlyList<string>? InputModalities,
         [property: JsonPropertyName("output_modalities")] IReadOnlyList<string>? OutputModalities);
+
+    private sealed record ModelPricing(
+        [property: JsonPropertyName("prompt")] string? Prompt,
+        [property: JsonPropertyName("completion")] string? Completion,
+        [property: JsonPropertyName("audio")] string? Audio);
 }

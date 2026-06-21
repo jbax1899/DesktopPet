@@ -108,6 +108,8 @@ public partial class SettingsWindow
             capabilities.Add("Structured output");
         }
 
+        capabilities.Add($"Cost: {model.CostSummary}");
+
         OpenRouterModelCapabilitiesText.Text = $"Capabilities: {string.Join(", ", capabilities)}";
     }
 

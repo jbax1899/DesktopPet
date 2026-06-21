@@ -51,7 +51,8 @@ public sealed class AudioContextSettingsStore
             ReadDouble(root, nameof(AudioContextSettings.MinimumAnalysisConfidence), defaults.MinimumAnalysisConfidence),
             ReadInt(root, nameof(AudioContextSettings.AnalysisTimeoutSeconds), defaults.AnalysisTimeoutSeconds),
             ReadInt(root, nameof(AudioContextSettings.TranscriptVerbosityLevel), defaults.TranscriptVerbosityLevel),
-            ReadInt(root, nameof(AudioContextSettings.MaximumSegmentDurationSeconds), defaults.MaximumSegmentDurationSeconds))
+            ReadInt(root, nameof(AudioContextSettings.MaximumSegmentDurationSeconds), defaults.MaximumSegmentDurationSeconds),
+            ReadAudioApplicationRules(root, nameof(AudioContextSettings.AudioApplicationRules)))
             .Normalize();
     }
 
@@ -96,5 +97,41 @@ public sealed class AudioContextSettingsStore
         return root.TryGetProperty(name, out var value) && value.TryGetDouble(out var result)
             ? result
             : fallback;
+    }
+
+    private static IReadOnlyList<AudioApplicationRule> ReadAudioApplicationRules(
+        JsonElement root, string name)
+    {
+        if (!root.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var rules = new List<AudioApplicationRule>();
+        foreach (var item in value.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var exePath = item.TryGetProperty("ExecutablePath", out var p)
+                ? p.GetString()
+                : null;
+            var displayName = item.TryGetProperty("DisplayName", out var d)
+                ? d.GetString()
+                : null;
+            var allowCapture = item.TryGetProperty("AllowCapture", out var c)
+                && c.ValueKind is JsonValueKind.True;
+
+            if (string.IsNullOrWhiteSpace(exePath))
+            {
+                continue;
+            }
+
+            rules.Add(new AudioApplicationRule(exePath, displayName ?? string.Empty, allowCapture));
+        }
+
+        return rules;
     }
 }

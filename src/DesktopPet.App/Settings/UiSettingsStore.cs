@@ -35,10 +35,10 @@ public sealed class UiSettingsStore
         var settings = _settingsFile.Load(UiSettings.Default);
         return settings with
         {
-            ChatShortcut = settings.ChatShortcut.IsValid()
+            ChatShortcut = settings.ChatShortcut?.IsValid() == true
                 ? settings.ChatShortcut
                 : KeyboardShortcut.DefaultChatShortcut,
-            PushToTalkShortcut = settings.PushToTalkShortcut.IsValid()
+            PushToTalkShortcut = settings.PushToTalkShortcut?.IsValid() == true
                 ? settings.PushToTalkShortcut
                 : KeyboardShortcut.DefaultPushToTalkShortcut,
             ChatHistoryContext = settings.GetEffectiveChatHistoryContext()

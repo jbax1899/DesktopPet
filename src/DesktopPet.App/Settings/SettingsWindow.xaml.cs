@@ -161,9 +161,19 @@ public partial class SettingsWindow : Window
                 ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
                 ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45),
                 (int)TranscriptVerbositySlider.Value,
-                ClampInt(MaxSegmentDurationSecondsTextBox.Text, 5, 60, 30));
+                ClampInt(MaxSegmentDurationSecondsTextBox.Text, 5, 60, 30),
+                _observationRows
+                    .Where(row => row.AllowAudio)
+                    .Select(row => new AudioApplicationRule(row.ExecutablePath, row.DisplayName, row.AllowAudio))
+                    .ToArray());
             _audioContextSettingsStore.Save(audioSettings);
             _audioCaptureCoordinator.ApplySettings(audioSettings);
+
+            // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
+            _audioCaptureCoordinator.ApplyPerAppCaptures(
+                audioSettings.AudioApplicationRules,
+                audioSettings.SystemAudioEnabled,
+                TimeSpan.FromSeconds(audioSettings.MaximumSegmentDurationSeconds));
             _audioObservationStore.ApplyRetentionLimit();
             RefreshAudioDiagnostics();
 
@@ -238,6 +248,22 @@ public partial class SettingsWindow : Window
         }
 
         LoadObservationSettings();
+
+        // Apply per-app audio rules to observation rows.
+        var audioRules = audioSettings.AudioApplicationRules;
+        var audioRuleLookup = audioRules.ToDictionary(
+            r => r.ExecutablePath,
+            r => r.AllowCapture,
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var row in _observationRows)
+        {
+            if (audioRuleLookup.TryGetValue(row.ExecutablePath, out var allowAudio))
+            {
+                row.AllowAudio = allowAudio;
+            }
+        }
+
+        UpdatePerAppAudioEnabledState();
     }
 
     private static int ParseInt(System.Windows.Controls.TextBox textBox, int fallback) =>

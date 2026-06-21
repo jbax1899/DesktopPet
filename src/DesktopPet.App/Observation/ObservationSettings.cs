@@ -85,7 +85,8 @@ public sealed record ApplicationObservationRule(
     bool IsDenied = false,
     bool AllowMetadata = false,
     bool AllowStructure = false,
-    bool AllowVisual = false);
+    bool AllowVisual = false,
+    bool AllowAudio = false);
 
 public sealed record ObservationSettings(
     bool ObservationEnabled,

@@ -9,6 +9,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
     private readonly AudioAnalysisCoordinator? _analysisCoordinator;
     private readonly TimeProvider _timeProvider;
     private readonly Dictionary<AudioSourceKind, SourceSession> _sessions;
+    private readonly Dictionary<string, SourceSession> _perAppSessions;
     private readonly System.Threading.Timer _silenceTimer;
     private int _speechSuppressionCount;
     private DateTimeOffset _speechSuppressedUntil;
@@ -40,6 +41,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
         _sessions = Enum.GetValues<AudioSourceKind>()
             .ToDictionary(kind => kind, kind => new SourceSession(kind));
+        _perAppSessions = new Dictionary<string, SourceSession>(StringComparer.OrdinalIgnoreCase);
         _silenceTimer = new System.Threading.Timer(
             _ => ProcessSilenceGaps(_timeProvider.GetUtcNow()),
             null,
@@ -64,6 +66,60 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
 
         _analysisCoordinator?.ApplySettings(settings);
+    }
+
+    // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
+    public void ApplyPerAppCaptures(
+        IReadOnlyList<AudioApplicationRule> rules,
+        bool systemAudioEnabled,
+        TimeSpan maxDuration)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        lock (_sync)
+        {
+            if (systemAudioEnabled)
+            {
+                foreach (var session in _perAppSessions.Values)
+                {
+                    StopSource(session, clearDiagnostics: false);
+                }
+
+                _perAppSessions.Clear();
+                return;
+            }
+
+            var desiredPaths = new HashSet<string>(
+                rules.Where(r => r.AllowCapture).Select(r => r.ExecutablePath),
+                StringComparer.OrdinalIgnoreCase);
+
+            var toRemove = _perAppSessions.Keys
+                .Where(k => !desiredPaths.Contains(k))
+                .ToList();
+            foreach (var path in toRemove)
+            {
+                StopSource(_perAppSessions[path], clearDiagnostics: false);
+                _perAppSessions.Remove(path);
+            }
+
+            foreach (var rule in rules.Where(r => r.AllowCapture))
+            {
+                if (_perAppSessions.TryGetValue(rule.ExecutablePath, out var existing))
+                {
+                    if (existing.Source is not null && existing.State == AudioCaptureState.Capturing)
+                    {
+                        continue;
+                    }
+
+                    StopSource(existing, clearDiagnostics: false);
+                }
+
+                var session = new SourceSession(AudioSourceKind.ProcessAudio);
+                session.SegmentBuffer.UpdateMaximumDuration(maxDuration);
+                _perAppSessions[rule.ExecutablePath] = session;
+
+                TryStartPerAppSource(session, rule.ExecutablePath);
+            }
+        }
     }
 
     public IDisposable SuppressForSpeech()
@@ -113,6 +169,12 @@ public sealed class AudioCaptureCoordinator : IDisposable
                 StopSource(session, clearDiagnostics: true);
             }
 
+            foreach (var session in _perAppSessions.Values)
+            {
+                StopSource(session, clearDiagnostics: true);
+            }
+
+            _perAppSessions.Clear();
             _speechSuppressionCount = 0;
             _speechSuppressedUntil = DateTimeOffset.MinValue;
             _disposed = true;
@@ -315,6 +377,98 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
     }
 
+    // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
+    private bool TryStartPerAppSource(SourceSession session, string executablePath)
+    {
+        session.State = AudioCaptureState.Starting;
+        session.LastError = null;
+
+        var processId = FindProcessIdForPath(executablePath);
+        if (processId is null)
+        {
+            session.State = AudioCaptureState.Error;
+            session.LastError = "Process not found or not running.";
+            return false;
+        }
+
+        IAudioCaptureSource? source = null;
+        try
+        {
+            source = new ProcessLoopbackCaptureSource(processId.Value);
+            source.SamplesAvailable += OnSamplesAvailable;
+            source.CaptureFailed += OnCaptureFailed;
+            session.Source = source;
+            source.Start();
+            session.DeviceName = source.DeviceName;
+            session.Format = source.FormatDescription;
+            session.State = AudioCaptureState.Capturing;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (source is not null)
+            {
+                source.SamplesAvailable -= OnSamplesAvailable;
+                source.CaptureFailed -= OnCaptureFailed;
+                source.Dispose();
+            }
+
+            session.Source = null;
+            session.State = AudioCaptureState.Error;
+            session.LastError = ex.Message;
+            return false;
+        }
+    }
+
+    private static int? FindProcessIdForPath(string executablePath)
+    {
+        try
+        {
+            var normalizedPath = System.IO.Path.GetFullPath(executablePath);
+            foreach (var process in System.Diagnostics.Process.GetProcesses())
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (process.MainModule?.FileName is string path
+                            && string.Equals(path, normalizedPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return process.Id;
+                        }
+                    }
+                    catch (System.ComponentModel.Win32Exception)
+                    {
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private SourceSession? FindSessionBySource(IAudioCaptureSource source)
+    {
+        if (_sessions.TryGetValue(source.Kind, out var fixedSession)
+            && ReferenceEquals(fixedSession.Source, source))
+        {
+            return fixedSession;
+        }
+
+        foreach (var session in _perAppSessions.Values)
+        {
+            if (ReferenceEquals(session.Source, source))
+            {
+                return session;
+            }
+        }
+
+        return null;
+    }
+
     private void StopSource(SourceSession session, bool clearDiagnostics)
     {
         var source = session.Source;
@@ -329,16 +483,16 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
         session.State = AudioCaptureState.Stopped;
         session.CurrentLevel = 0;
-            session.LastError = null;
-            session.LastFrameAt = null;
-            session.LastSilenceAt = null;
-            session.SampleRate = 0;
-            if (clearDiagnostics)
-            {
-                session.CompletedCount = 0;
-                session.DiscardedCount = 0;
-            }
-            session.SegmentBuffer.Reset(clearDiagnostics);
+        session.LastError = null;
+        session.LastFrameAt = null;
+        session.LastSilenceAt = null;
+        session.SampleRate = 0;
+        if (clearDiagnostics)
+        {
+            session.CompletedCount = 0;
+            session.DiscardedCount = 0;
+        }
+        session.SegmentBuffer.Reset(clearDiagnostics);
     }
 
     private void OnSamplesAvailable(object? sender, AudioSamplesAvailableEventArgs e)
@@ -350,8 +504,8 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
         lock (_sync)
         {
-            var session = _sessions[source.Kind];
-            if (!ReferenceEquals(session.Source, source)
+            var session = FindSessionBySource(source);
+            if (session is null
                 || session.State != AudioCaptureState.Capturing)
             {
                 return;
@@ -382,8 +536,8 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
         lock (_sync)
         {
-            var session = _sessions[source.Kind];
-            if (!ReferenceEquals(session.Source, source))
+            var session = FindSessionBySource(source);
+            if (session is null)
             {
                 return;
             }
@@ -411,7 +565,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
                 return;
             }
 
-            foreach (var session in _sessions.Values)
+            foreach (var session in _sessions.Values.Concat(_perAppSessions.Values))
             {
                 if (session.State != AudioCaptureState.Capturing
                     || IsSpeechSuppressed(now)
@@ -477,7 +631,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
     private void ResetBufferedAudio()
     {
-        foreach (var session in _sessions.Values)
+        foreach (var session in _sessions.Values.Concat(_perAppSessions.Values))
         {
             session.CurrentLevel = 0;
             session.LastFrameAt = null;

@@ -110,7 +110,18 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 ### Ambient audio capture prototype
 
 - Ambient audio capture is separately opt-in and supports the default
-  microphone and default system-output loopback device.
+  microphone, default system-output loopback device, and per-application
+  audio capture via the Windows process loopback API.
+- Per-application audio capture uses `ActivateAudioInterfaceAsync` with
+  `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK` (Windows 10 build 19041+).
+  The `DesktopPet.Audio.ProcessLoopback.Native` project wraps the Win32
+  interop, providing a clean `StartAsync`/`Stop` API that delivers raw PCM16
+  frames via callback.
+  // TODO: Replace with NAudio's built-in process loopback once NAudio 3.x ships
+  // support (PR #1225 / WasapiCapture.CreateForProcessCaptureAsync).
+- The application grid includes an Audio column with per-app toggle buttons.
+  When system-wide audio is enabled, per-app audio buttons are grayed out
+  because system loopback already captures all application audio.
 - NAudio capture is reduced to a mono in-memory analysis stream. Local activity
   gating uses a short pre-roll, rejects brief spikes, closes segments after
   silence, and force-closes continuous segments at 20 seconds.
@@ -164,6 +175,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   text and TTS audio ready.
 - Keep playback, interruption, transcript ownership, mouth movement, and
   character state local.
+- Keep process loopback P/Invoke isolated in `DesktopPet.Audio.ProcessLoopback.Native`
+  until NAudio adds native support. Replace with NAudio's built-in API when available.
 - Keep `IVoiceSynthesisService` small and the current provider boundaries unless
   they obstruct a concrete feature.
 - Keep chat history and manually managed memories in one bundled SQLite
@@ -210,6 +223,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Decide whether audio events should independently trigger ambient-comment
   evaluation. Any trigger path must reuse the existing ambient policy and
   cooldown.
+- Replace `DesktopPet.Audio.ProcessLoopback.Native` interop with NAudio's
+  built-in process loopback once NAudio 3.x ships support (PR #1225).
 
 ## Later Work
 

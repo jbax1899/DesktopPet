@@ -24,6 +24,20 @@ public partial class SettingsWindow
     {
     }
 
+    private void OnSystemAudioCaptureChanged(object sender, RoutedEventArgs e)
+    {
+        UpdatePerAppAudioEnabledState();
+    }
+
+    private void UpdatePerAppAudioEnabledState()
+    {
+        var systemWideEnabled = SystemAudioCaptureEnabledCheckBox?.IsChecked == true;
+        foreach (var row in _observationRows)
+        {
+            row.IsAudioEnabled = !systemWideEnabled;
+        }
+    }
+
     private void RefreshAudioDiagnostics()
     {
         if (MicrophoneDiagnosticTextBlock is null || SystemAudioDiagnosticTextBlock is null)

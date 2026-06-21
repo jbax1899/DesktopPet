@@ -1,5 +1,10 @@
 namespace DesktopPet.App.Audio;
 
+public sealed record AudioApplicationRule(
+    string ExecutablePath,
+    string DisplayName,
+    bool AllowCapture = false);
+
 public sealed record AudioContextSettings(
     bool Enabled,
     bool MicrophoneEnabled,
@@ -13,7 +18,8 @@ public sealed record AudioContextSettings(
     double MinimumAnalysisConfidence,
     int AnalysisTimeoutSeconds,
     int TranscriptVerbosityLevel,
-    int MaximumSegmentDurationSeconds)
+    int MaximumSegmentDurationSeconds,
+    IReadOnlyList<AudioApplicationRule> AudioApplicationRules)
 {
     public AudioContextSettings(bool enabled, bool microphoneEnabled, bool systemAudioEnabled)
         : this(
@@ -29,7 +35,8 @@ public sealed record AudioContextSettings(
             Default.MinimumAnalysisConfidence,
             Default.AnalysisTimeoutSeconds,
             Default.TranscriptVerbosityLevel,
-            Default.MaximumSegmentDurationSeconds)
+            Default.MaximumSegmentDurationSeconds,
+            Default.AudioApplicationRules)
     {
     }
 
@@ -46,7 +53,8 @@ public sealed record AudioContextSettings(
         MinimumAnalysisConfidence: 0.60,
         AnalysisTimeoutSeconds: 45,
         TranscriptVerbosityLevel: 5,
-        MaximumSegmentDurationSeconds: 30);
+        MaximumSegmentDurationSeconds: 30,
+        AudioApplicationRules: []);
 
     public AudioContextSettings Normalize() => this with
     {

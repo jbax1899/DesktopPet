@@ -281,7 +281,9 @@
                               Content="Capture the default microphone" />
                     <CheckBox x:Name="SystemAudioCaptureEnabledCheckBox"
                               Margin="16,0,0,10"
-                              Content="Capture the default system output" />
+                              Content="Capture the default system output"
+                              Checked="OnSystemAudioCaptureChanged"
+                              Unchecked="OnSystemAudioCaptureChanged" />
                     <CheckBox x:Name="AudioAnalysisEnabledCheckBox"
                               Margin="0,0,0,8"
                               FontWeight="SemiBold"
@@ -724,6 +726,24 @@
                                               VerticalAlignment="Center"
                                               IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                               ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- TODO: Remove custom audio column once NAudio 3.x ships process loopback (PR #1225) -->
+                        <DataGridTemplateColumn Width="80"
+                                                CanUserSort="False">
+                            <DataGridTemplateColumn.Header>
+                                <TextBlock Text="Audio"
+                                           ToolTip="Capture audio output from this application. Disabled when system-wide audio is active." />
+                            </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox x:Name="AudioSpeakerCheckBox"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding AllowAudio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEnabled="{Binding IsAudioEnabled}"
+                                              ToolTip="Capture audio output from this application." />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

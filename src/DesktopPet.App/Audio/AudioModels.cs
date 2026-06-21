@@ -3,7 +3,8 @@ namespace DesktopPet.App.Audio;
 public enum AudioSourceKind
 {
     Microphone,
-    SystemAudio
+    SystemAudio,
+    ProcessAudio
 }
 
 public enum AudioCaptureState

@@ -272,6 +272,8 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
     private bool _allowMetadata;
     private bool _allowStructure;
     private bool _allowVisual;
+    private bool _allowAudio;
+    private bool _isAudioEnabled = true;
 
     public required string ExecutablePath { get; init; }
 
@@ -344,7 +346,25 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
         }
     }
 
-    public bool HasDecision => IsDenied || AllowMetadata || AllowStructure || AllowVisual;
+    public bool AllowAudio
+    {
+        get => _allowAudio;
+        set
+        {
+            if (SetField(ref _allowAudio, value) && value)
+            {
+                IsDenied = false;
+            }
+        }
+    }
+
+    public bool IsAudioEnabled
+    {
+        get => _isAudioEnabled;
+        set => SetField(ref _isAudioEnabled, value);
+    }
+
+    public bool HasDecision => IsDenied || AllowMetadata || AllowStructure || AllowVisual || AllowAudio;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -358,7 +378,8 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
             _isDenied = rule.IsDenied,
             _allowMetadata = allowCombinedMetadata,
             _allowStructure = allowCombinedMetadata,
-            _allowVisual = rule.AllowVisual
+            _allowVisual = rule.AllowVisual,
+            _allowAudio = rule.AllowAudio
         };
     }
 
@@ -370,7 +391,8 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
             IsDenied,
             AllowMetadata,
             AllowStructure,
-            AllowVisual);
+            AllowVisual,
+            AllowAudio);
     }
 
     private bool SetField(ref bool field, bool value, [CallerMemberName] string? propertyName = null)

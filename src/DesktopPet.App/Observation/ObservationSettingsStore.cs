@@ -55,6 +55,8 @@ public sealed class ObservationSettingsStore
             RelevanceWeightPercent = Math.Clamp(settings.RelevanceWeightPercent, 0, 100),
             PrivacySafetyWeightPercent = Math.Clamp(settings.PrivacySafetyWeightPercent, 0, 100),
             LowInterruptionCostWeightPercent = Math.Clamp(settings.LowInterruptionCostWeightPercent, 0, 100),
+            VisionDetailLevel = Math.Clamp(settings.VisionDetailLevel, ObservationSettingLimits.MinimumDetailLevel, ObservationSettingLimits.MaximumDetailLevel),
+            VisionVerbosityLevel = Math.Clamp(settings.VisionVerbosityLevel, ObservationSettingLimits.MinimumVerbosityLevel, ObservationSettingLimits.MaximumVerbosityLevel),
             RecentTypingQuietSeconds = Math.Clamp(settings.RecentTypingQuietSeconds, ObservationSettingLimits.MinimumRecentTypingQuietSeconds, ObservationSettingLimits.MaximumRecentTypingQuietSeconds),
             PollIntervalSeconds = Math.Clamp(settings.PollIntervalSeconds, ObservationSettingLimits.MinimumPollIntervalSeconds, ObservationSettingLimits.MaximumPollIntervalSeconds),
             MinimumDwellTimeSeconds = Math.Clamp(settings.MinimumDwellTimeSeconds, ObservationSettingLimits.MinimumDwellTimeSeconds, ObservationSettingLimits.MaximumDwellTimeSeconds),
@@ -108,7 +110,8 @@ public sealed class ObservationSettingsStore
             Read(root, nameof(ObservationSettings.RelevanceWeightPercent), defaults.RelevanceWeightPercent),
             Read(root, nameof(ObservationSettings.PrivacySafetyWeightPercent), defaults.PrivacySafetyWeightPercent),
             Read(root, nameof(ObservationSettings.LowInterruptionCostWeightPercent), defaults.LowInterruptionCostWeightPercent),
-            Read(root, nameof(ObservationSettings.ScanQuality), defaults.ScanQuality),
+            MigrateVisionDetailLevel(root, defaults.VisionDetailLevel),
+            MigrateVisionVerbosityLevel(root, defaults.VisionVerbosityLevel),
             Read(root, nameof(ObservationSettings.RecentTypingQuietSeconds), defaults.RecentTypingQuietSeconds),
             Read(root, nameof(ObservationSettings.PollIntervalSeconds), defaults.PollIntervalSeconds),
             Read(root, nameof(ObservationSettings.MinimumDwellTimeSeconds), defaults.MinimumDwellTimeSeconds),
@@ -150,6 +153,54 @@ public sealed class ObservationSettingsStore
             "High" => 30,
             _ => 50
         };
+    }
+
+    private static int MigrateVisionDetailLevel(JsonElement root, int fallback)
+    {
+        if (root.TryGetProperty(nameof(ObservationSettings.VisionDetailLevel), out var value)
+            && value.TryGetInt32(out var result))
+        {
+            return result;
+        }
+
+        if (root.TryGetProperty("ScanQuality", out var scanQuality))
+        {
+            var name = scanQuality.ValueKind == JsonValueKind.String
+                ? scanQuality.GetString()
+                : null;
+            return name switch
+            {
+                "Brief" => 1,
+                "Narrative" => 10,
+                _ => 5
+            };
+        }
+
+        return fallback;
+    }
+
+    private static int MigrateVisionVerbosityLevel(JsonElement root, int fallback)
+    {
+        if (root.TryGetProperty(nameof(ObservationSettings.VisionVerbosityLevel), out var value)
+            && value.TryGetInt32(out var result))
+        {
+            return result;
+        }
+
+        if (root.TryGetProperty("ScanQuality", out var scanQuality))
+        {
+            var name = scanQuality.ValueKind == JsonValueKind.String
+                ? scanQuality.GetString()
+                : null;
+            return name switch
+            {
+                "Brief" => 1,
+                "Narrative" => 10,
+                _ => 5
+            };
+        }
+
+        return fallback;
     }
 
     private static T Read<T>(JsonElement root, string name, T fallback)

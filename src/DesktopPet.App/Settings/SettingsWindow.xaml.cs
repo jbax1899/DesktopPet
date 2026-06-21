@@ -36,6 +36,9 @@ public partial class SettingsWindow : Window
     private bool _isRecordingShortcut;
     private bool _loadingObservationSettings;
     private bool _syncingCommentThreshold;
+    private bool _syncingVisionDetail;
+    private bool _syncingVisionVerbosity;
+    private bool _syncingTranscriptVerbosity;
 
     public SettingsWindow(
         ElevenLabsSettingsStore elevenLabsSettingsStore,
@@ -156,7 +159,8 @@ public partial class SettingsWindow : Window
                 ClampInt(TranscriptRetentionSecondsTextBox.Text, 1, 3600, 300),
                 ClampInt(StoredAudioObservationCountTextBox.Text, 1, 1000, 100),
                 ClampDouble(MinimumAudioConfidenceTextBox.Text, 0, 1, 0.60),
-                ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45));
+                ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45),
+                (int)TranscriptVerbositySlider.Value);
             _audioContextSettingsStore.Save(audioSettings);
             _audioCaptureCoordinator.ApplySettings(audioSettings);
             _audioObservationStore.ApplyRetentionLimit();
@@ -215,6 +219,8 @@ public partial class SettingsWindow : Window
         StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
         MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
         AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();
+        TranscriptVerbositySlider.Value = audioSettings.TranscriptVerbosityLevel;
+        TranscriptVerbosityValueText.Text = audioSettings.TranscriptVerbosityLevel.ToString();
 
         var uiSettings = _uiSettingsStore.Load();
         _selectedChatShortcut = uiSettings.ChatShortcut;

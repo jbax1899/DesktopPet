@@ -726,10 +726,6 @@ public partial class MemoryWindow : Window
                 : observation.TranscriptExpiresAt.Value <= DateTimeOffset.UtcNow
                     ? "Temporary full transcript expired"
                     : $"Temporary full transcript expires by {observation.TranscriptExpiresAt.Value.LocalDateTime:g}; also clears on disable, clear, or restart";
-            var excerpt = string.IsNullOrWhiteSpace(observation.TranscriptExcerpt)
-                ? null
-                : $"Excerpt: {observation.TranscriptExcerpt}";
-
             return new ObservationListItemView(
                 observation,
                 source,
@@ -739,7 +735,7 @@ public partial class MemoryWindow : Window
                 observation.CreatedAt,
                 ObservationOutcome.Recorded,
                 null,
-                excerpt);
+                null);
         }
 
         public static string ExtractApplication(string description)

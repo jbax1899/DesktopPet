@@ -294,11 +294,40 @@
                                TextWrapping="Wrap" />
                     <TextBlock Margin="16,0,0,0"
                                FontWeight="SemiBold"
-                               Text="Audio detail" />
-                    <TextBlock Margin="16,4,0,8"
+                               Text="Transcript verbosity" />
+                    <TextBlock Margin="16,4,0,2"
                                FontSize="11"
                                Foreground="#FF64748B"
-                               Text="Full transcripts are always requested. Context depth controls how much detail reaches the Agent."
+                               TextWrapping="Wrap">
+                        Controls how much of each transcript appears in Agent context.
+                    </TextBlock>
+                    <Grid Margin="16,4,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="TranscriptVerbositySlider"
+                                Minimum="1" Maximum="10" TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                ToolTip="Low = labels only, high = full transcript text."
+                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                ValueChanged="OnTranscriptVerbositySliderChanged" />
+                        <TextBlock x:Name="TranscriptVerbosityValueText"
+                                   Grid.Column="1" Margin="8,0,4,0"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Text="5" />
+                        <TextBlock Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   Foreground="#FF64748B"
+                                   Text="/ 10" />
+                    </Grid>
+                    <TextBlock x:Name="TranscriptVerbosityLegendTextBlock"
+                               Margin="16,0,0,8"
+                               FontSize="10"
+                               Foreground="#FF64748B"
                                TextWrapping="Wrap" />
                     <Grid Margin="16,0,0,10">
                         <Grid.ColumnDefinitions>
@@ -490,27 +519,72 @@
                     </Grid>
 
                     <TextBlock FontWeight="SemiBold" Text="Vision detail" />
-                    <UniformGrid Margin="0,4,0,0" Columns="3">
-                        <RadioButton x:Name="ScanQualityBriefRadioButton"
-                                     GroupName="ScanQuality"
-                                     Content="Brief"
-                                     ToolTip="Ask the vision model for a concise activity summary with the lowest token use."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnScanQualityChanged" />
-                        <RadioButton x:Name="ScanQualityDetailedRadioButton"
-                                     GroupName="ScanQuality"
-                                     Content="Detailed"
-                                     ToolTip="Ask for balanced activity context and notable screen elements."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnScanQualityChanged" />
-                        <RadioButton x:Name="ScanQualityNarrativeRadioButton"
-                                     GroupName="ScanQuality"
-                                     Content="Narrative"
-                                     ToolTip="Ask for richer scene descriptions. This may use more provider tokens."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnScanQualityChanged" />
-                    </UniformGrid>
-                    <TextBlock x:Name="ScanQualityLegendTextBlock" Margin="2,4,0,8" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
+                    <TextBlock Margin="0,4,0,2"
+                               FontSize="11"
+                               Foreground="#FF64748B"
+                               TextWrapping="Wrap">
+                        Control how much detail the vision model reports and how verbose its descriptions are.
+                    </TextBlock>
+
+                    <TextBlock Margin="0,6,0,2" FontSize="11" Text="Detail level" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="VisionDetailSlider"
+                                Minimum="1" Maximum="10" TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                ToolTip="How much raw content to include. Low = summarized, high = verbatim."
+                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                ValueChanged="OnVisionDetailSliderChanged" />
+                        <TextBlock x:Name="VisionDetailValueText"
+                                   Grid.Column="1" Margin="8,0,4,0"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Text="5" />
+                        <TextBlock Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   Foreground="#FF64748B"
+                                   Text="/ 10" />
+                    </Grid>
+                    <TextBlock x:Name="VisionDetailLegendTextBlock"
+                               Margin="2,2,0,6"
+                               FontSize="10"
+                               Foreground="#FF64748B"
+                               TextWrapping="Wrap" />
+
+                    <TextBlock Margin="0,4,0,2" FontSize="11" Text="Verbosity" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="58" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Slider x:Name="VisionVerbositySlider"
+                                Minimum="1" Maximum="10" TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                ToolTip="How descriptive the output is. Low = succinct, high = verbose."
+                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                ValueChanged="OnVisionVerbositySliderChanged" />
+                        <TextBlock x:Name="VisionVerbosityValueText"
+                                   Grid.Column="1" Margin="8,0,4,0"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Text="5" />
+                        <TextBlock Grid.Column="2"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   Foreground="#FF64748B"
+                                   Text="/ 10" />
+                    </Grid>
+                    <TextBlock x:Name="VisionVerbosityLegendTextBlock"
+                               Margin="2,2,0,8"
+                               FontSize="10"
+                               Foreground="#FF64748B"
+                               TextWrapping="Wrap" />
 
                     <Expander Header="Advanced"
                               Margin="0,4,0,10"

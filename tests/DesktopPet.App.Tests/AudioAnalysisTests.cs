@@ -346,7 +346,7 @@ public sealed class AudioAnalysisTests
             [observation],
             transcripts,
             contextDepth: 5,
-            now);
+            asOf: now);
 
         Assert.IsNotNull(formatted);
         StringAssert.Contains(formatted, "temporary detailed transcript");
@@ -374,7 +374,7 @@ public sealed class AudioAnalysisTests
             [observation],
             [expiredTranscript],
             contextDepth: 5,
-            now);
+            asOf: now);
 
         Assert.IsNotNull(formatted);
         StringAssert.Contains(formatted, "persisted excerpt");

@@ -49,8 +49,9 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Selected turns are sent chronologically through `conversation_history`.
   Typed dialogue is protected from displacement by ambient messages.
 - Recent reduced audio observations can be sent through
-  `audio_observation_history`. Audio detail is configurable as Brief,
-  Detailed, or Transcript, and audio context depth is configurable from 0–20.
+  `audio_observation_history`. A 10-tick Transcript verbosity slider controls
+  how much transcript text appears in Agent context (low = labels only, high =
+  full transcript), and audio context depth is configurable from 0–20.
 - Successful direct and ambient replies save the exact dynamic-variable
   snapshot sent to ElevenLabs. The Memories window orders its tabs as Chat
   History, Observations, and Memories. Each tab has a top action bar for
@@ -73,15 +74,19 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   or timed-out inspection falls back to the available context.
 - Permitted screenshots are captured in memory, downscaled to 1280x720, and
   analyzed by the configured OpenRouter vision model using structured output.
+  Two 10-tick sliders control vision detail: Detail (summarized → verbatim)
+  and Verbosity (succinct → verbose). These replace the former Brief/Detailed/
+  Narrative radio buttons.
 - Background observation reacts to stable application/title changes and
   periodic check-ins. Rapid switching is filtered by a minimum dwell time.
 - Local policy evaluates freshness, user activity, cooldown, duplicate topics,
   and vision interest before requesting a short ambient ElevenLabs comment.
   Silence is the normal valid outcome.
 - Settings expose commentary presets, an exact comment threshold, vision
-  detail, and a collapsed Advanced section for timing, interest-score weights,
-  provider cost limits, context depth, and retention. Presets lock their exact
-  cooldown, duplicate-suppression, and check-in values; Custom unlocks them.
+  detail (two 10-tick sliders: Detail level and Verbosity), and a collapsed
+  Advanced section for timing, interest-score weights, provider cost limits,
+  context depth, and retention. Presets lock their exact cooldown,
+  duplicate-suppression, and check-in values; Custom unlocks them.
   Configurable durations use seconds, except screenshot delay in milliseconds.
 - The comment threshold is evaluated after vision analysis. Its weighted score
   combines novelty, relevance, privacy safety, and interruption cost.

@@ -46,18 +46,14 @@ public partial class SettingsWindow
         CommentThresholdSlider.Value = settings.CommentThresholdPercent;
         CommentThresholdTextBox.Text = settings.CommentThresholdPercent.ToString();
 
-        switch (settings.ScanQuality)
-        {
-            case ScanQuality.Brief:
-                ScanQualityBriefRadioButton.IsChecked = true;
-                break;
-            case ScanQuality.Narrative:
-                ScanQualityNarrativeRadioButton.IsChecked = true;
-                break;
-            default:
-                ScanQualityDetailedRadioButton.IsChecked = true;
-                break;
-        }
+        VisionDetailSlider.Value = settings.VisionDetailLevel;
+        VisionDetailValueText.Text = settings.VisionDetailLevel.ToString();
+        UpdateVisionDetailLegend(settings.VisionDetailLevel);
+
+        VisionVerbositySlider.Value = settings.VisionVerbosityLevel;
+        VisionVerbosityValueText.Text = settings.VisionVerbosityLevel.ToString();
+        UpdateVisionVerbosityLegend(settings.VisionVerbosityLevel);
+
         _loadingObservationSettings = false;
         UpdateCommentaryPresetState(populateValues: false);
 
@@ -114,11 +110,8 @@ public partial class SettingsWindow
             RelevanceWeightPercent = weights[1],
             PrivacySafetyWeightPercent = weights[2],
             LowInterruptionCostWeightPercent = weights[3],
-            ScanQuality = ScanQualityNarrativeRadioButton.IsChecked == true
-                ? ScanQuality.Narrative
-                : ScanQualityBriefRadioButton.IsChecked == true
-                    ? ScanQuality.Brief
-                    : ScanQuality.Detailed,
+            VisionDetailLevel = (int)VisionDetailSlider.Value,
+            VisionVerbosityLevel = (int)VisionVerbositySlider.Value,
             RecentTypingQuietSeconds = ParseInt(RecentTypingQuietSecondsTextBox, current.RecentTypingQuietSeconds),
             PollIntervalSeconds = ParseInt(PollIntervalSecondsTextBox, current.PollIntervalSeconds),
             MinimumDwellTimeSeconds = ParseInt(MinimumDwellSecondsTextBox, current.MinimumDwellTimeSeconds),
@@ -206,14 +199,32 @@ public partial class SettingsWindow
         e.Handled = e.Text.Any(character => !char.IsDigit(character) && character != '.');
     }
 
-    private void OnScanQualityChanged(object sender, RoutedEventArgs e)
+    private void OnVisionDetailSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (ScanQualityLegendTextBlock is null) return;
-        ScanQualityLegendTextBlock.Text = ScanQualityBriefRadioButton.IsChecked == true
-            ? "Quick summaries with minimal token usage."
-            : ScanQualityNarrativeRadioButton.IsChecked == true
-                ? "Rich scene descriptions that give Pebble more to comment on."
-                : "Balanced detail with activity context and notable elements.";
+        if (_syncingVisionDetail || VisionDetailValueText is null) return;
+        _syncingVisionDetail = true;
+        var value = (int)Math.Round(e.NewValue);
+        VisionDetailValueText.Text = value.ToString();
+        UpdateVisionDetailLegend(value);
+        _syncingVisionDetail = false;
+    }
+
+    private void OnVisionVerbositySliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_syncingVisionVerbosity || VisionVerbosityValueText is null) return;
+        _syncingVisionVerbosity = true;
+        var value = (int)Math.Round(e.NewValue);
+        VisionVerbosityValueText.Text = value.ToString();
+        UpdateVisionVerbosityLegend(value);
+        _syncingVisionVerbosity = false;
+    }
+
+    private static void UpdateVisionDetailLegend(int value)
+    {
+    }
+
+    private static void UpdateVisionVerbosityLegend(int value)
+    {
     }
 
     private static IEnumerable<ApplicationRuleRow> ListRunningApplications()

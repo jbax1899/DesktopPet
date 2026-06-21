@@ -1,12 +1,5 @@
 namespace DesktopPet.App.Observation;
 
-public enum ScanQuality
-{
-    Brief,
-    Detailed,
-    Narrative
-}
-
 public enum CommentaryPreset
 {
     Quiet,
@@ -57,6 +50,10 @@ public static class ObservationSettingLimits
     public const int MaximumStoredObservationCount = 5000;
     public const int MinimumStoredDecisionCount = 1;
     public const int MaximumStoredDecisionCount = 5000;
+    public const int MinimumDetailLevel = 1;
+    public const int MaximumDetailLevel = 10;
+    public const int MinimumVerbosityLevel = 1;
+    public const int MaximumVerbosityLevel = 10;
 
     public static CommentaryTiming GetPreset(CommentaryPreset preset) => preset switch
     {
@@ -102,7 +99,8 @@ public sealed record ObservationSettings(
     double RelevanceWeightPercent,
     double PrivacySafetyWeightPercent,
     double LowInterruptionCostWeightPercent,
-    ScanQuality ScanQuality,
+    int VisionDetailLevel,
+    int VisionVerbosityLevel,
     int RecentTypingQuietSeconds,
     int PollIntervalSeconds,
     int MinimumDwellTimeSeconds,
@@ -132,7 +130,8 @@ public sealed record ObservationSettings(
         RelevanceWeightPercent: 37.5,
         PrivacySafetyWeightPercent: 12.5,
         LowInterruptionCostWeightPercent: 12.5,
-        ScanQuality.Detailed,
+        VisionDetailLevel: 5,
+        VisionVerbosityLevel: 5,
         RecentTypingQuietSeconds: 8,
         PollIntervalSeconds: 2,
         MinimumDwellTimeSeconds: 15,

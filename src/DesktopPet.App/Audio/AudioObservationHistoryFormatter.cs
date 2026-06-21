@@ -10,6 +10,7 @@ public static class AudioObservationHistoryFormatter
         IReadOnlyList<AudioObservation>? observations,
         IReadOnlyList<TranscriptWorkingChunk>? transcripts,
         int contextDepth,
+        int verbosityLevel = 5,
         DateTimeOffset? asOf = null)
     {
         if (observations is null || observations.Count == 0 || contextDepth <= 0)
@@ -31,7 +32,7 @@ public static class AudioObservationHistoryFormatter
                      .OrderByDescending(item => item.CreatedAt)
                      .Take(Math.Clamp(contextDepth, 0, 20)))
         {
-            var entry = FormatEntry(observation, transcriptBySegment, now);
+            var entry = FormatEntry(observation, transcriptBySegment, now, verbosityLevel);
             if (string.IsNullOrWhiteSpace(entry))
             {
                 continue;
@@ -62,7 +63,8 @@ public static class AudioObservationHistoryFormatter
     private static string FormatEntry(
         AudioObservation observation,
         IReadOnlyDictionary<string, TranscriptWorkingChunk> transcriptBySegment,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        int verbosityLevel)
     {
         var source = observation.Source == AudioSourceKind.Microphone
             ? "microphone"
@@ -77,9 +79,21 @@ public static class AudioObservationHistoryFormatter
             return string.Empty;
         }
 
+        var maxTranscriptLength = verbosityLevel switch
+        {
+            <= 3 => 0,
+            <= 6 => 80,
+            <= 9 => 160,
+            _ => 240
+        };
+
         var builder = new StringBuilder();
-        builder.Append($"{age} [{source}]: ");
-        builder.Append(Limit(CollapseWhitespace(transcript), 240));
+        builder.Append($"{age} [{source}]");
+        if (maxTranscriptLength > 0)
+        {
+            builder.Append(": ");
+            builder.Append(Limit(CollapseWhitespace(transcript), maxTranscriptLength));
+        }
         return builder.ToString();
     }
 
@@ -142,7 +156,8 @@ public sealed class AudioObservationContextProvider
             return AudioObservationHistoryFormatter.Format(
                 _observationStore.List(),
                 _transcriptBuffer.List(),
-                settings.ContextDepth);
+                settings.ContextDepth,
+                settings.TranscriptVerbosityLevel);
         }
         catch
         {

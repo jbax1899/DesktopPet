@@ -13,31 +13,6 @@ namespace DesktopPet.App.Observation;
 internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private static readonly string AnalysisSchemaJson = """
-    {
-      "type": "json_schema",
-      "json_schema": {
-        "name": "vision_observation",
-        "strict": true,
-        "schema": {
-          "type": "object",
-          "properties": {
-            "summary": { "type": "string", "description": "One or two sentence summary of what is visible" },
-            "visible_activity": { "type": ["string", "null"], "description": "What the user appears to be doing, or null if unclear" },
-            "notable_changes": { "type": "array", "items": { "type": "string" }, "description": "Notable things that stand out" },
-            "possible_comment_topics": { "type": "array", "items": { "type": "string" }, "description": "Topics a desktop pet might comment on" },
-            "novelty": { "type": "number", "description": "How novel this is compared to typical desktop use, 0-1" },
-            "relevance": { "type": "number", "description": "How relevant this might be for a companion pet to notice, 0-1" },
-            "sensitivity": { "type": "number", "description": "How sensitive/private this content is, 0-1" },
-            "interruption_cost": { "type": "number", "description": "How disruptive it would be to interrupt the user now, 0-1" },
-            "expires_after_seconds": { "type": "integer", "description": "How long this observation remains relevant in seconds" }
-          },
-          "required": ["summary", "visible_activity", "notable_changes", "possible_comment_topics", "novelty", "relevance", "sensitivity", "interruption_cost", "expires_after_seconds"],
-          "additionalProperties": false
-        }
-      }
-    }
-    """;
 
     private readonly HttpClient _httpClient;
     private readonly Func<OpenRouterSettings> _settingsProvider;
@@ -90,6 +65,9 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         }
 
         var base64Image = EncodeImageToBase64(image.Bitmap);
+        var currentSettings = _permissionService?.Current;
+        var detailLevel = currentSettings?.VisionDetailLevel ?? 5;
+        var verbosityLevel = currentSettings?.VisionVerbosityLevel ?? 5;
         var systemPrompt = BuildSystemPrompt(request);
         var userContent = BuildUserContent(request);
 
@@ -98,7 +76,8 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 
         try
         {
-            var requestPayload = BuildRequestPayload(settings, systemPrompt, userContent, base64Image);
+            var schemaJson = BuildAnalysisSchema(verbosityLevel);
+            var requestPayload = BuildRequestPayload(settings, systemPrompt, userContent, base64Image, schemaJson);
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
             httpRequest.Headers.Add("Authorization", $"Bearer {settings.ApiKey}");
             httpRequest.Content = new StringContent(
@@ -175,16 +154,18 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         }
 
         var base64Image = EncodeImageToBase64(image.Bitmap);
-        var scanQuality = _permissionService?.Current.ScanQuality ?? ScanQuality.Detailed;
+        var currentSettings = _permissionService?.Current;
+        var detailLevel = currentSettings?.VisionDetailLevel ?? 5;
+        var verbosityLevel = currentSettings?.VisionVerbosityLevel ?? 5;
         var observationHistory = GetObservationHistory();
-        var systemPrompt = BuildDetailedSystemPrompt(request, recentObservations, lastSpokeAt, scanQuality, observationHistory);
+        var systemPrompt = BuildDetailedSystemPrompt(request, recentObservations, lastSpokeAt, detailLevel, verbosityLevel, observationHistory);
 
         using var timeout = new CancellationTokenSource(GetRequestTimeout());
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
         try
         {
-            var requestPayload = BuildRequestPayload(settings, systemPrompt, "Analyze this screenshot.", base64Image);
+            var requestPayload = BuildRequestPayload(settings, systemPrompt, "Analyze this screenshot.", base64Image, BuildAnalysisSchema(verbosityLevel));
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
             httpRequest.Headers.Add("Authorization", $"Bearer {settings.ApiKey}");
             httpRequest.Content = new StringContent(
@@ -299,7 +280,8 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         VisualAnalysisRequest request,
         IReadOnlyList<ReducedDesktopObservation> recentObservations,
         DateTimeOffset? lastSpokeAt,
-        ScanQuality scanQuality,
+        int detailLevel,
+        int verbosityLevel,
         IReadOnlyList<ObservationRecord> observationHistory)
     {
         var parts = new List<string>
@@ -343,18 +325,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
             parts.Add("IMPORTANT: Do NOT repeat what has already been observed. Focus on what is NEW, CHANGED, or DIFFERENT since the last observation. If the scene is substantially the same, note what has progressed or evolved.");
         }
 
-        switch (scanQuality)
-        {
-            case ScanQuality.Brief:
-                parts.Add("Produce a concise observation. Focus only on the most essential details — what the user is doing and the single most noteworthy element.");
-                break;
-            case ScanQuality.Narrative:
-                parts.Add("Produce a rich, narrative observation. Describe the scene like a story: what is the user engaged in, what is happening on screen, what elements stand out, what is the mood or energy of the activity, what might be happening next. Give Pebble something interesting to comment on.");
-                break;
-            default:
-                parts.Add("Produce a balanced observation. Describe the user's activity, notable on-screen elements, and anything Pebble might find interesting to comment on.");
-                break;
-        }
+        parts.Add(BuildDetailInstruction(detailLevel, verbosityLevel));
 
         parts.Add("Analyze the screenshot and produce a structured observation.");
         parts.Add("Respond ONLY with valid JSON matching the provided schema.");
@@ -370,12 +341,78 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         return $"{(int)time.TotalDays} days";
     }
 
+    private static string BuildDetailInstruction(int detailLevel, int verbosityLevel)
+    {
+        detailLevel = Math.Clamp(detailLevel, 1, 10);
+        verbosityLevel = Math.Clamp(verbosityLevel, 1, 10);
+
+        var detailPart = detailLevel switch
+        {
+            <= 2 => "Focus only on the user's core action and the single most important element.",
+            <= 4 => "Describe what the user is doing and the most notable screen elements.",
+            <= 6 => "Describe the user's activity, notable on-screen elements, and visible text labels.",
+            <= 8 => "Describe the user's activity, all visible UI elements, text, and layout.",
+            _ => "Describe everything visible in full detail — all text, controls, layout, content, and visual elements."
+        };
+
+        var verbosityPart = verbosityLevel switch
+        {
+            <= 2 => "Use one terse sentence. No adjectives or elaboration.",
+            <= 4 => "Use brief, direct sentences with minimal description.",
+            <= 6 => "Use clear, descriptive sentences.",
+            <= 8 => "Use detailed, descriptive language with context and character.",
+            _ => "Write a rich, narrative description. Describe the mood, energy, and story of what is happening. Give Pebble something interesting to comment on."
+        };
+
+        return $"Produce an observation. {detailPart} {verbosityPart}";
+    }
+
+    private static string BuildAnalysisSchema(int verbosityLevel)
+    {
+        verbosityLevel = Math.Clamp(verbosityLevel, 1, 10);
+
+        var summaryDescription = verbosityLevel switch
+        {
+            <= 2 => "A single terse sentence describing what is visible",
+            <= 4 => "One or two sentences describing what is visible",
+            <= 6 => "A short paragraph describing what is visible, with key details",
+            <= 8 => "A detailed paragraph describing what is visible, including text, UI elements, and layout",
+            _ => "A rich, detailed description of everything visible — text, UI elements, layout, colors, content, and atmosphere"
+        };
+
+        return $$"""
+        {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "vision_observation",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "summary": { "type": "string", "description": "{{summaryDescription}}" },
+                "visible_activity": { "type": ["string", "null"], "description": "What the user appears to be doing, or null if unclear" },
+                "notable_changes": { "type": "array", "items": { "type": "string" }, "description": "Notable things that stand out" },
+                "possible_comment_topics": { "type": "array", "items": { "type": "string" }, "description": "Topics a desktop pet might comment on" },
+                "novelty": { "type": "number", "description": "How novel this is compared to typical desktop use, 0-1" },
+                "relevance": { "type": "number", "description": "How relevant this might be for a companion pet to notice, 0-1" },
+                "sensitivity": { "type": "number", "description": "How sensitive/private this content is, 0-1" },
+                "interruption_cost": { "type": "number", "description": "How disruptive it would be to interrupt the user now, 0-1" },
+                "expires_after_seconds": { "type": "integer", "description": "How long this observation remains relevant in seconds" }
+              },
+              "required": ["summary", "visible_activity", "notable_changes", "possible_comment_topics", "novelty", "relevance", "sensitivity", "interruption_cost", "expires_after_seconds"],
+              "additionalProperties": false
+            }
+          }
+        }
+        """;
+    }
+
     private static string BuildUserContent(VisualAnalysisRequest request)
     {
         return $"Analyze this screenshot of {request.ApplicationName}.";
     }
 
-    private static object BuildRequestPayload(OpenRouterSettings settings, string systemPrompt, string userContent, string base64Image)
+    private static object BuildRequestPayload(OpenRouterSettings settings, string systemPrompt, string userContent, string base64Image, string schemaJson)
     {
         var messages = new List<object>
         {
@@ -395,7 +432,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
         {
             ["model"] = settings.VisionModelId!,
             ["messages"] = messages,
-            ["response_format"] = JsonSerializer.Deserialize<object>(AnalysisSchemaJson)!
+            ["response_format"] = JsonSerializer.Deserialize<object>(schemaJson)!
         };
 
         if (settings.RequireZeroRetention)

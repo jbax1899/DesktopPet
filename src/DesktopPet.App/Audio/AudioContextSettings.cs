@@ -1,12 +1,5 @@
 namespace DesktopPet.App.Audio;
 
-public enum AudioTranscriptDetail
-{
-    Brief,
-    Detailed,
-    Transcript
-}
-
 public sealed record AudioContextSettings(
     bool Enabled,
     bool MicrophoneEnabled,
@@ -14,7 +7,6 @@ public sealed record AudioContextSettings(
     bool AnalysisEnabled,
     bool PersistMicrophoneTranscriptExcerpt,
     bool PersistSystemAudioTranscriptExcerpt,
-    AudioTranscriptDetail TranscriptDetail,
     int ContextDepth,
     int TranscriptRetentionSeconds,
     int StoredObservationCount,
@@ -29,7 +21,6 @@ public sealed record AudioContextSettings(
             Default.AnalysisEnabled,
             Default.PersistMicrophoneTranscriptExcerpt,
             Default.PersistSystemAudioTranscriptExcerpt,
-            Default.TranscriptDetail,
             Default.ContextDepth,
             Default.TranscriptRetentionSeconds,
             Default.StoredObservationCount,
@@ -45,7 +36,6 @@ public sealed record AudioContextSettings(
         AnalysisEnabled: false,
         PersistMicrophoneTranscriptExcerpt: false,
         PersistSystemAudioTranscriptExcerpt: true,
-        TranscriptDetail: AudioTranscriptDetail.Detailed,
         ContextDepth: 5,
         TranscriptRetentionSeconds: 300,
         StoredObservationCount: 100,
@@ -54,9 +44,6 @@ public sealed record AudioContextSettings(
 
     public AudioContextSettings Normalize() => this with
     {
-        TranscriptDetail = Enum.IsDefined(TranscriptDetail)
-            ? TranscriptDetail
-            : AudioTranscriptDetail.Detailed,
         ContextDepth = Math.Clamp(ContextDepth, 0, 20),
         TranscriptRetentionSeconds = Math.Clamp(TranscriptRetentionSeconds, 1, 3600),
         StoredObservationCount = Math.Clamp(StoredObservationCount, 1, 1000),

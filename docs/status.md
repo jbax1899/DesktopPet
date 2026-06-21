@@ -113,23 +113,21 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   segments enter a bounded sequential queue with one active OpenRouter request
   and at most two waiting segments. Capture continues if analysis is disabled,
   unavailable, rejected, or fails.
-- The selected OpenRouter model must advertise audio input and structured
-  output. Mono samples are converted to PCM16 WAV in memory and sent through
-  the chat-completions `input_audio` block with zero-data-retention routing
-  when configured.
+- The selected OpenRouter model must be an STT model (e.g. whisper-large-v3)
+  listed via the `/api/v1/audio/transcriptions` endpoint. Mono samples are
+  converted to PCM16 WAV in memory and sent as base64 with zero-data-retention
+  routing when configured.
 - Full transcripts exist only in a memory-only working buffer with 300-second
-  default retention. Reduced observations are stored in
+  default retention. Transcript observations are stored in
   `%LOCALAPPDATA%\DesktopPet\audio-observations.json`, default to 100 records,
-  and appear in the Memories window's Observations tab with source, detected
-  kind, summary, confidence, optional excerpt, and transcript-retention status.
+  and appear in the Memories window's Observations tab with source, confidence,
+  optional excerpt, and transcript-retention status.
 - Microphone transcript excerpts default off; system-audio excerpts default
   on. Persisted excerpts are one line and capped at 160 characters. Failed or
-  low-confidence analysis is diagnostics-only.
-- Reduced audio observations are available to typed replies and ambient reply
-  generation. Brief sends summaries only; Detailed adds short transcript
-  detail; Transcript can use a longer bounded temporary in-memory transcript.
-  Sensitive observations are excluded, and private-conversation records remain
-  summary-only. Audio observations are not promoted to durable memory.
+  low-confidence transcription is diagnostics-only.
+- Transcript observations are available to typed replies and ambient reply
+  generation. Context depth controls how many recent observations are included.
+  Audio observations are not promoted to durable memory.
 - Clearing observations also clears reduced audio observations, queued audio
   analysis work, and the memory-only transcript buffer.
 

@@ -253,10 +253,8 @@ public sealed class AudioAnalysisCoordinator : IDisposable
                 analysis.Confidence);
         }
 
-        if (analysis.ShouldStore
-            && analysis.Confidence >= settings.MinimumAnalysisConfidence
-            && analysis.DetectedKind != AudioDetectedKind.Silence
-            && !string.IsNullOrWhiteSpace(analysis.Summary))
+        if (analysis.Confidence >= settings.MinimumAnalysisConfidence
+            && !string.IsNullOrWhiteSpace(analysis.Transcript))
         {
             var persistExcerpt = segment.Source == AudioSourceKind.Microphone
                 ? settings.PersistMicrophoneTranscriptExcerpt
@@ -269,14 +267,11 @@ public sealed class AudioAnalysisCoordinator : IDisposable
                 Guid.NewGuid().ToString("N"),
                 segment.Id,
                 segment.Source,
-                analysis.DetectedKind,
+                AudioDetectedKind.Speech,
                 segment.StartedAt,
                 segment.EndedAt,
-                analysis.Summary.Trim(),
-                analysis.EventLabels,
                 excerpt,
                 analysis.Confidence,
-                analysis.Sensitivity,
                 response.Provider,
                 response.Model,
                 response.Status,
@@ -303,27 +298,8 @@ public sealed class AudioAnalysisCoordinator : IDisposable
 
     private static AudioAnalysisOptions CreateAnalysisOptions(AudioContextSettings settings)
     {
-        return settings.TranscriptDetail switch
-        {
-            AudioTranscriptDetail.Brief => new AudioAnalysisOptions(
-                RequestTranscript: false,
-                MaximumSummaryCharacters: 160,
-                MaximumEventLabels: 3,
-                TranscriptDetail: AudioTranscriptDetail.Brief,
-                MaximumTranscriptCharacters: 0),
-            AudioTranscriptDetail.Transcript => new AudioAnalysisOptions(
-                RequestTranscript: true,
-                MaximumSummaryCharacters: 400,
-                MaximumEventLabels: 5,
-                TranscriptDetail: AudioTranscriptDetail.Transcript,
-                MaximumTranscriptCharacters: 4000),
-            _ => new AudioAnalysisOptions(
-                RequestTranscript: true,
-                MaximumSummaryCharacters: 260,
-                MaximumEventLabels: 5,
-                TranscriptDetail: AudioTranscriptDetail.Detailed,
-                MaximumTranscriptCharacters: 1200)
-        };
+        return new AudioAnalysisOptions(
+            MaximumTranscriptCharacters: 1200);
     }
 
     private List<CompletedAudioSegment> DrainQueue()

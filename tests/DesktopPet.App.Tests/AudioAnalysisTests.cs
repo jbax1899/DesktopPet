@@ -192,7 +192,7 @@ public sealed class AudioAnalysisTests
     }
 
     [TestMethod]
-    public async Task ObservationFilteringAndExcerptPrivacyRulesAreApplied()
+    public async Task MicrophoneExcerptDisabledDoesNotPersistExcerpt()
     {
         var analyzer = new SequenceAnalyzer(Success(
             transcript: "private microphone transcript\r\nwith controls",
@@ -215,7 +215,6 @@ public sealed class AudioAnalysisTests
         var json = File.ReadAllText(storePath);
         Assert.IsFalse(json.Contains("private microphone transcript", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("MonoSamples", StringComparison.Ordinal));
-        Assert.IsFalse(json.Contains("PolicySignals", StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -323,66 +322,69 @@ public sealed class AudioAnalysisTests
     }
 
     [TestMethod]
-    public void AudioHistoryFormatterRespectsDetailAndSensitivity()
+    public void AudioHistoryFormatterUsesTranscriptText()
     {
         var now = DateTimeOffset.UtcNow;
-        var normal = CreateObservation("normal", now) with
+        var observation = CreateObservation("obs", now) with
         {
-            Summary = "A project discussion",
             TranscriptExcerpt = "persisted excerpt"
-        };
-        var privateConversation = CreateObservation("private", now.AddSeconds(-1)) with
-        {
-            Summary = "A private conversation",
-            Sensitivity = AudioSensitivity.PrivateConversation,
-            TranscriptExcerpt = "private words"
-        };
-        var sensitive = CreateObservation("sensitive", now.AddSeconds(-2)) with
-        {
-            Summary = "A password was spoken",
-            Sensitivity = AudioSensitivity.Sensitive,
-            TranscriptExcerpt = "secret"
         };
         var transcripts = new[]
         {
             new TranscriptWorkingChunk(
                 "chunk",
-                normal.SegmentId,
-                normal.Source,
-                normal.StartedAt,
-                normal.EndedAt,
+                observation.SegmentId,
+                observation.Source,
+                observation.StartedAt,
+                observation.EndedAt,
                 "temporary detailed transcript",
                 0.9,
                 now.AddMinutes(5))
         };
 
-        var brief = AudioObservationHistoryFormatter.Format(
-            [normal, privateConversation, sensitive],
+        var formatted = AudioObservationHistoryFormatter.Format(
+            [observation],
             transcripts,
-            AudioTranscriptDetail.Brief,
-            contextDepth: 5,
-            now);
-        var detailed = AudioObservationHistoryFormatter.Format(
-            [normal, privateConversation, sensitive],
-            transcripts,
-            AudioTranscriptDetail.Detailed,
             contextDepth: 5,
             now);
 
-        Assert.IsNotNull(brief);
-        StringAssert.Contains(brief, "A project discussion");
-        Assert.IsFalse(brief.Contains("temporary detailed transcript", StringComparison.Ordinal));
-        Assert.IsFalse(brief.Contains("A password was spoken", StringComparison.Ordinal));
-        Assert.IsNotNull(detailed);
-        StringAssert.Contains(detailed, "temporary detailed transcript");
-        StringAssert.Contains(detailed, "A private conversation");
-        Assert.IsFalse(detailed.Contains("private words", StringComparison.Ordinal));
+        Assert.IsNotNull(formatted);
+        StringAssert.Contains(formatted, "temporary detailed transcript");
+    }
+
+    [TestMethod]
+    public void AudioHistoryFormatterExcludesExpiredTranscripts()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var observation = CreateObservation("obs", now) with
+        {
+            TranscriptExcerpt = "persisted excerpt"
+        };
+        var expiredTranscript = new TranscriptWorkingChunk(
+            "chunk",
+            observation.SegmentId,
+            observation.Source,
+            observation.StartedAt,
+            observation.EndedAt,
+            "expired transcript",
+            0.9,
+            now.AddMinutes(-1));
+
+        var formatted = AudioObservationHistoryFormatter.Format(
+            [observation],
+            [expiredTranscript],
+            contextDepth: 5,
+            now);
+
+        Assert.IsNotNull(formatted);
+        StringAssert.Contains(formatted, "persisted excerpt");
+        Assert.IsFalse(formatted.Contains("expired transcript", StringComparison.Ordinal));
     }
 
     [TestMethod]
     public void AgentContextIncludesProvidedAudioObservationHistory()
     {
-        const string audioHistory = "just now [system audio, Speech]: A greeting";
+        const string audioHistory = "just now [system audio]: hello world";
 
         var snapshot = AgentContextBuilder.Build(
             new ChatRequest(string.Empty, AudioObservationHistory: audioHistory),
@@ -395,7 +397,10 @@ public sealed class AudioAnalysisTests
     public void AudioContextProviderHonorsEnablementAndDepth()
     {
         var store = new AudioObservationStore(Path.Combine(_directory, "observations.json"));
-        store.Add(CreateObservation("audio", DateTimeOffset.UtcNow));
+        store.Add(CreateObservation("audio", DateTimeOffset.UtcNow) with
+        {
+            TranscriptExcerpt = "some transcript text"
+        });
         var settings = EnabledAnalysisSettings() with
         {
             ContextDepth = 0
@@ -410,29 +415,7 @@ public sealed class AudioAnalysisTests
         settings = settings with { ContextDepth = 1 };
 
         Assert.IsNotNull(provider.GetCurrentContext());
-        StringAssert.Contains(provider.GetCurrentContext(), "Music");
-    }
-
-    [TestMethod]
-    public async Task BriefAudioDetailDoesNotRequestTranscript()
-    {
-        var analyzer = new SequenceAnalyzer(Success());
-        var store = new AudioObservationStore(Path.Combine(_directory, "observations.json"));
-        using var coordinator = new AudioAnalysisCoordinator(
-            analyzer,
-            new TranscriptWorkingBuffer(),
-            store);
-        coordinator.ApplySettings(EnabledAnalysisSettings() with
-        {
-            TranscriptDetail = AudioTranscriptDetail.Brief
-        });
-
-        Assert.IsTrue(coordinator.TryEnqueue(CreateSegment()));
-        await WaitUntilAsync(() => !coordinator.Diagnostic.RequestActive);
-
-        Assert.IsNotNull(analyzer.LastOptions);
-        Assert.IsFalse(analyzer.LastOptions.RequestTranscript);
-        Assert.AreEqual(AudioTranscriptDetail.Brief, analyzer.LastOptions.TranscriptDetail);
+        StringAssert.Contains(provider.GetCurrentContext(), "some transcript text");
     }
 
     [TestMethod]
@@ -486,12 +469,7 @@ public sealed class AudioAnalysisTests
             new AudioSemanticAnalysis(
                 AudioDetectedKind.Speech,
                 transcript,
-                "Speech was detected.",
-                ["speech"],
-                confidence,
-                AudioSensitivity.Normal,
-                true,
-                new AudioPolicySignals(1, 1, 0, false)),
+                confidence),
             null);
 
     private static AudioAnalysisResponse Failure(AudioAnalysisStatus status) =>
@@ -502,14 +480,11 @@ public sealed class AudioAnalysisTests
             id,
             id,
             AudioSourceKind.SystemAudio,
-            AudioDetectedKind.Music,
+            AudioDetectedKind.Speech,
             createdAt.AddSeconds(-1),
             createdAt,
-            "Music",
-            ["music"],
             null,
             0.9,
-            AudioSensitivity.Normal,
             "Fake",
             "fake/audio",
             AudioAnalysisStatus.Success,

@@ -283,28 +283,10 @@
                     <TextBlock Margin="16,0,0,0"
                                FontWeight="SemiBold"
                                Text="Audio detail" />
-                    <UniformGrid Margin="16,4,0,0"
-                                 Columns="3">
-                        <RadioButton x:Name="AudioDetailBriefRadioButton"
-                                     GroupName="AudioDetail"
-                                     Content="Brief"
-                                     ToolTip="Send concise event summaries without transcript text."
-                                     Checked="OnAudioTranscriptDetailChanged" />
-                        <RadioButton x:Name="AudioDetailDetailedRadioButton"
-                                     GroupName="AudioDetail"
-                                     Content="Detailed"
-                                     ToolTip="Send summaries with short transcript excerpts when available."
-                                     Checked="OnAudioTranscriptDetailChanged" />
-                        <RadioButton x:Name="AudioDetailTranscriptRadioButton"
-                                     GroupName="AudioDetail"
-                                     Content="Transcript"
-                                     ToolTip="Send longer bounded transcript detail from the temporary in-memory buffer when available."
-                                     Checked="OnAudioTranscriptDetailChanged" />
-                    </UniformGrid>
-                    <TextBlock x:Name="AudioDetailLegendTextBlock"
-                               Margin="18,4,0,8"
-                               FontSize="10"
+                    <TextBlock Margin="16,4,0,8"
+                               FontSize="11"
                                Foreground="#FF64748B"
+                               Text="Full transcripts are always requested. Context depth controls how much detail reaches the Agent."
                                TextWrapping="Wrap" />
                     <Grid Margin="16,0,0,10">
                         <Grid.ColumnDefinitions>
@@ -316,7 +298,7 @@
                         <ComboBox x:Name="OpenRouterAudioModelComboBox"
                                   Grid.Column="1"
                                   DisplayMemberPath="Name"
-                                  ToolTip="Only models advertising audio input and structured output are listed." />
+                                  ToolTip="Speech-to-text models for audio transcription via OpenRouter." />
                     </Grid>
 
                     <Expander Margin="0,0,0,10"

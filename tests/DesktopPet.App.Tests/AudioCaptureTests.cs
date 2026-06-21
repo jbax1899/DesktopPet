@@ -54,7 +54,6 @@ public sealed class AudioCaptureTests
         Assert.IsFalse(settings.MicrophoneEnabled);
         Assert.IsFalse(settings.SystemAudioEnabled);
         Assert.IsFalse(settings.AnalysisEnabled);
-        Assert.AreEqual(AudioTranscriptDetail.Detailed, settings.TranscriptDetail);
         Assert.AreEqual(5, settings.ContextDepth);
         Assert.AreEqual(300, settings.TranscriptRetentionSeconds);
         Assert.AreEqual(100, settings.StoredObservationCount);

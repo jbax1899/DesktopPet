@@ -92,7 +92,7 @@ public sealed class DesktopPetApplication : IDisposable
             _audioObservationStore,
             _transcriptWorkingBuffer,
             _audioContextSettingsStore.Load);
-        _audioSegmentAnalyzer = new OpenRouterAudioSegmentAnalyzer(
+        _audioSegmentAnalyzer = new OpenRouterSttAnalyzer(
             _httpClient,
             _openRouterSettingsStore.Load,
             _audioContextSettingsStore.Load);

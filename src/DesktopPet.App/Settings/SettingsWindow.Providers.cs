@@ -78,7 +78,7 @@ public partial class SettingsWindow
             return;
         }
 
-        var models = await _openRouterModelsService.GetAudioModelsAsync(CancellationToken.None);
+        var models = await _openRouterModelsService.GetSttModelsAsync(CancellationToken.None);
         _audioModels.Clear();
         foreach (var model in models)
         {

@@ -9,7 +9,6 @@ public static class AudioObservationHistoryFormatter
     public static string? Format(
         IReadOnlyList<AudioObservation>? observations,
         IReadOnlyList<TranscriptWorkingChunk>? transcripts,
-        AudioTranscriptDetail detail,
         int contextDepth,
         DateTimeOffset? asOf = null)
     {
@@ -29,11 +28,10 @@ public static class AudioObservationHistoryFormatter
         var builder = new StringBuilder();
 
         foreach (var observation in observations
-                     .Where(item => item.Sensitivity != AudioSensitivity.Sensitive)
                      .OrderByDescending(item => item.CreatedAt)
                      .Take(Math.Clamp(contextDepth, 0, 20)))
         {
-            var entry = FormatEntry(observation, transcriptBySegment, detail, now);
+            var entry = FormatEntry(observation, transcriptBySegment, now);
             if (string.IsNullOrWhiteSpace(entry))
             {
                 continue;
@@ -64,40 +62,24 @@ public static class AudioObservationHistoryFormatter
     private static string FormatEntry(
         AudioObservation observation,
         IReadOnlyDictionary<string, TranscriptWorkingChunk> transcriptBySegment,
-        AudioTranscriptDetail detail,
         DateTimeOffset now)
     {
         var source = observation.Source == AudioSourceKind.Microphone
             ? "microphone"
             : "system audio";
         var age = FormatAge(now - observation.CreatedAt);
-        var summaryLimit = detail switch
-        {
-            AudioTranscriptDetail.Brief => 140,
-            AudioTranscriptDetail.Transcript => 360,
-            _ => 240
-        };
-        var builder = new StringBuilder();
-        builder.Append($"{age} [{source}, {observation.DetectedKind}]: ");
-        builder.Append(Limit(CollapseWhitespace(observation.Summary), summaryLimit));
-
-        if (detail == AudioTranscriptDetail.Brief
-            || observation.Sensitivity == AudioSensitivity.PrivateConversation)
-        {
-            return builder.ToString();
-        }
 
         var transcript = transcriptBySegment.TryGetValue(observation.SegmentId, out var chunk)
             ? chunk.Text
             : observation.TranscriptExcerpt;
         if (string.IsNullOrWhiteSpace(transcript))
         {
-            return builder.ToString();
+            return string.Empty;
         }
 
-        var transcriptLimit = detail == AudioTranscriptDetail.Transcript ? 800 : 240;
-        builder.Append(" Transcript: ");
-        builder.Append(Limit(CollapseWhitespace(transcript), transcriptLimit));
+        var builder = new StringBuilder();
+        builder.Append($"{age} [{source}]: ");
+        builder.Append(Limit(CollapseWhitespace(transcript), 240));
         return builder.ToString();
     }
 
@@ -160,7 +142,6 @@ public sealed class AudioObservationContextProvider
             return AudioObservationHistoryFormatter.Format(
                 _observationStore.List(),
                 _transcriptBuffer.List(),
-                settings.TranscriptDetail,
                 settings.ContextDepth);
         }
         catch

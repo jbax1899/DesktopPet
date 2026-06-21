@@ -100,14 +100,6 @@ public enum AudioDetectedKind
     Unknown
 }
 
-public enum AudioSensitivity
-{
-    Normal,
-    PrivateConversation,
-    Sensitive,
-    Unknown
-}
-
 public enum AudioAnalysisStatus
 {
     Success,
@@ -120,21 +112,10 @@ public enum AudioAnalysisStatus
     Failed
 }
 
-public sealed record AudioPolicySignals(
-    double Novelty,
-    double Relevance,
-    double InterruptionCost,
-    bool ProviderSuggestedCommentary);
-
 public sealed record AudioSemanticAnalysis(
     AudioDetectedKind DetectedKind,
     string? Transcript,
-    string Summary,
-    IReadOnlyList<string> EventLabels,
-    double Confidence,
-    AudioSensitivity Sensitivity,
-    bool ShouldStore,
-    AudioPolicySignals? PolicySignals);
+    double Confidence);
 
 public sealed record AudioAnalysisFailure(string SafeMessage);
 
@@ -146,10 +127,6 @@ public sealed record AudioAnalysisResponse(
     AudioAnalysisFailure? Failure);
 
 public sealed record AudioAnalysisOptions(
-    bool RequestTranscript,
-    int MaximumSummaryCharacters = 240,
-    int MaximumEventLabels = 5,
-    AudioTranscriptDetail TranscriptDetail = AudioTranscriptDetail.Detailed,
     int MaximumTranscriptCharacters = 1200);
 
 public interface IAudioSegmentAnalyzer
@@ -179,11 +156,8 @@ public sealed record AudioObservation(
     AudioDetectedKind DetectedKind,
     DateTimeOffset StartedAt,
     DateTimeOffset EndedAt,
-    string Summary,
-    IReadOnlyList<string> EventLabels,
     string? TranscriptExcerpt,
     double Confidence,
-    AudioSensitivity Sensitivity,
     string Provider,
     string Model,
     AudioAnalysisStatus AnalysisStatus,

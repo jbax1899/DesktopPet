@@ -41,7 +41,6 @@ public sealed class AudioContextSettingsStore
             Read(root, nameof(AudioContextSettings.AnalysisEnabled), defaults.AnalysisEnabled),
             Read(root, nameof(AudioContextSettings.PersistMicrophoneTranscriptExcerpt), defaults.PersistMicrophoneTranscriptExcerpt),
             Read(root, nameof(AudioContextSettings.PersistSystemAudioTranscriptExcerpt), defaults.PersistSystemAudioTranscriptExcerpt),
-            ReadEnum(root, nameof(AudioContextSettings.TranscriptDetail), defaults.TranscriptDetail),
             ReadInt(root, nameof(AudioContextSettings.ContextDepth), defaults.ContextDepth),
             ReadDurationSeconds(
                 root,
@@ -95,26 +94,5 @@ public sealed class AudioContextSettingsStore
         return root.TryGetProperty(name, out var value) && value.TryGetDouble(out var result)
             ? result
             : fallback;
-    }
-
-    private static TEnum ReadEnum<TEnum>(JsonElement root, string name, TEnum fallback)
-        where TEnum : struct, Enum
-    {
-        if (!root.TryGetProperty(name, out var value))
-        {
-            return fallback;
-        }
-
-        if (value.ValueKind == JsonValueKind.Number
-            && value.TryGetInt32(out var numeric)
-            && Enum.IsDefined(typeof(TEnum), numeric))
-        {
-            return (TEnum)Enum.ToObject(typeof(TEnum), numeric);
-        }
-
-        return value.ValueKind == JsonValueKind.String
-            && Enum.TryParse<TEnum>(value.GetString(), ignoreCase: true, out var parsed)
-                ? parsed
-                : fallback;
     }
 }

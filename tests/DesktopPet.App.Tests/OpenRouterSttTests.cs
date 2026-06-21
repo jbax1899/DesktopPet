@@ -7,12 +7,12 @@ using DesktopPet.App.Cloud;
 namespace DesktopPet.App.Tests;
 
 [TestClass]
-public sealed class OpenRouterAudioTests
+public sealed class OpenRouterSttTests
 {
     [TestMethod]
     public void WaveEncodingProducesMonoPcm16Header()
     {
-        var wav = OpenRouterAudioSegmentAnalyzer.EncodeWave([0f, 1f, -1f], 16000);
+        var wav = OpenRouterSttAnalyzer.EncodeWave([0f, 1f, -1f], 16000);
 
         Assert.AreEqual("RIFF", Encoding.ASCII.GetString(wav, 0, 4));
         Assert.AreEqual("WAVE", Encoding.ASCII.GetString(wav, 8, 4));
@@ -23,49 +23,40 @@ public sealed class OpenRouterAudioTests
     }
 
     [TestMethod]
-    public void PayloadContainsAudioSchemaModelAndOptionalZdr()
+    public void PayloadContainsModelAudioInputAndOptionalZdr()
     {
-        var settings = new OpenRouterSettings("key", "vision", "audio/model", true);
-        var payload = OpenRouterAudioSegmentAnalyzer.BuildPayload(
+        var settings = new OpenRouterSettings("key", "vision", "openai/whisper-large-v3", true);
+        var payload = OpenRouterSttAnalyzer.BuildPayload(
             settings,
-            "audio/model",
-            "UklGRg==",
-            new AudioAnalysisOptions(true));
+            "openai/whisper-large-v3",
+            "UklGRg==");
         var json = JsonSerializer.Serialize(payload);
 
-        StringAssert.Contains(json, "\"model\":\"audio/model\"");
-        StringAssert.Contains(json, "\"type\":\"input_audio\"");
+        StringAssert.Contains(json, "\"model\":\"openai/whisper-large-v3\"");
         StringAssert.Contains(json, "\"input_audio\":{\"data\":\"UklGRg==\",\"format\":\"wav\"}");
-        StringAssert.Contains(json, "\"type\":\"json_schema\"");
         StringAssert.Contains(json, "\"zdr\":true");
-        StringAssert.Contains(json, "concise transcript");
     }
 
     [TestMethod]
-    public void BriefPayloadExplicitlyDisablesTranscript()
+    public void PayloadOmitsZdrWhenDisabled()
     {
-        var payload = OpenRouterAudioSegmentAnalyzer.BuildPayload(
-            new OpenRouterSettings("key", "vision", "audio/model", true),
-            "audio/model",
-            "UklGRg==",
-            new AudioAnalysisOptions(
-                RequestTranscript: false,
-                TranscriptDetail: AudioTranscriptDetail.Brief));
+        var settings = new OpenRouterSettings("key", "vision", "openai/whisper-large-v3", false);
+        var payload = OpenRouterSttAnalyzer.BuildPayload(
+            settings,
+            "openai/whisper-large-v3",
+            "UklGRg==");
         var json = JsonSerializer.Serialize(payload);
 
-        StringAssert.Contains(json, "Do not include a transcript");
+        Assert.IsFalse(json.Contains("zdr", StringComparison.Ordinal));
     }
 
     [TestMethod]
-    public async Task StructuredResponseMapsToProviderNeutralAnalysis()
+    public async Task SttResponseMapsToTranscriptAnalysis()
     {
         var handler = new RecordingHandler(_ => JsonResponse("""
         {
-          "choices": [{
-            "message": {
-              "content": "{\"detected_kind\":\"speech\",\"transcript\":\"hello\",\"summary\":\"A greeting.\",\"event_labels\":[\"speech\"],\"confidence\":1.4,\"sensitivity\":\"normal\",\"should_store\":true,\"policy_signals\":{\"novelty\":-1,\"relevance\":2,\"interruption_cost\":0.2,\"provider_suggested_commentary\":false}}"
-            }
-          }]
+          "text": "hello world",
+          "usage": { "seconds": 2.5, "cost": 0.0005 }
         }
         """));
         var analyzer = CreateAnalyzer(handler);
@@ -73,35 +64,28 @@ public sealed class OpenRouterAudioTests
 
         var result = await analyzer.AnalyzeAsync(
             segment,
-            new AudioAnalysisOptions(true),
+            new AudioAnalysisOptions(),
             CancellationToken.None);
 
         Assert.AreEqual(AudioAnalysisStatus.Success, result.Status);
-        Assert.AreEqual(AudioDetectedKind.Speech, result.Analysis!.DetectedKind);
-        Assert.AreEqual(1, result.Analysis.Confidence);
-        Assert.AreEqual(0, result.Analysis.PolicySignals!.Novelty);
-        Assert.AreEqual(1, result.Analysis.PolicySignals.Relevance);
+        Assert.AreEqual("hello world", result.Analysis!.Transcript);
+        Assert.AreEqual(AudioDetectedKind.Speech, result.Analysis.DetectedKind);
+        Assert.AreEqual(1.0, result.Analysis.Confidence);
     }
 
     [TestMethod]
-    public async Task TranscriptIsBoundedByAnalysisOptions()
+    public async Task TranscriptIsBoundedByMaximumCharacters()
     {
         var handler = new RecordingHandler(_ => JsonResponse("""
         {
-          "choices": [{
-            "message": {
-              "content": "{\"detected_kind\":\"speech\",\"transcript\":\"abcdefgh\",\"summary\":\"Speech.\",\"event_labels\":[],\"confidence\":0.9,\"sensitivity\":\"normal\",\"should_store\":true,\"policy_signals\":null}"
-            }
-          }]
+          "text": "abcdefgh"
         }
         """));
         using var segment = CreateSegment();
 
         var result = await CreateAnalyzer(handler).AnalyzeAsync(
             segment,
-            new AudioAnalysisOptions(
-                RequestTranscript: true,
-                MaximumTranscriptCharacters: 4),
+            new AudioAnalysisOptions(MaximumTranscriptCharacters: 4),
             CancellationToken.None);
 
         Assert.AreEqual("abcd", result.Analysis!.Transcript);
@@ -111,10 +95,10 @@ public sealed class OpenRouterAudioTests
     public async Task MalformedEmptyHttpTimeoutAndCancellationMapToExplicitStatuses()
     {
         await AssertStatusAsync(
-            new RecordingHandler(_ => JsonResponse("""{"choices":[{"message":{"content":"{"}}]}""")),
+            new RecordingHandler(_ => JsonResponse("""{"text": null}""")),
             AudioAnalysisStatus.InvalidResponse);
         await AssertStatusAsync(
-            new RecordingHandler(_ => JsonResponse("""{"choices":[]}""")),
+            new RecordingHandler(_ => JsonResponse("""{}""")),
             AudioAnalysisStatus.InvalidResponse);
         await AssertStatusAsync(
             new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)),
@@ -132,56 +116,66 @@ public sealed class OpenRouterAudioTests
         using var segment = CreateSegment();
         var cancelled = await CreateAnalyzer(timeoutHandler).AnalyzeAsync(
             segment,
-            new AudioAnalysisOptions(true),
+            new AudioAnalysisOptions(),
             cancellation.Token);
         Assert.AreEqual(AudioAnalysisStatus.Cancelled, cancelled.Status);
     }
 
     [TestMethod]
-    public async Task AudioModelFilteringRequiresAudioAndStructuredOutput()
+    public async Task EmptyTranscriptReturnsInvalidResponse()
+    {
+        var handler = new RecordingHandler(_ => JsonResponse("""
+        {
+          "text": ""
+        }
+        """));
+        using var segment = CreateSegment();
+
+        var result = await CreateAnalyzer(handler).AnalyzeAsync(
+            segment,
+            new AudioAnalysisOptions(),
+            CancellationToken.None);
+
+        Assert.AreEqual(AudioAnalysisStatus.InvalidResponse, result.Status);
+    }
+
+    [TestMethod]
+    public async Task AudioModelFilteringReturnsSttModels()
     {
         var handler = new RecordingHandler(_ => JsonResponse("""
         {
           "data": [
             {
-              "id": "audio-structured",
-              "name": "Audio Structured",
-              "architecture": { "input_modalities": ["text", "audio"] },
-              "supported_parameters": ["response_format"]
+              "id": "openai/whisper-large-v3",
+              "name": "Whisper Large V3",
+              "architecture": { "input_modalities": ["audio"], "output_modalities": ["transcription"] },
+              "supported_parameters": ["max_tokens"]
             },
             {
-              "id": "audio-unstructured",
-              "name": "Audio Unstructured",
-              "architecture": { "input_modalities": ["audio"] },
-              "supported_parameters": []
-            },
-            {
-              "id": "vision",
-              "name": "Vision",
-              "architecture": { "input_modalities": ["image"] },
-              "supported_parameters": ["response_format"]
+              "id": "openai/gpt-4o",
+              "name": "GPT-4o",
+              "architecture": { "input_modalities": ["text", "image"], "output_modalities": ["text"] },
+              "supported_parameters": ["temperature"]
             }
           ]
         }
         """));
         var service = new OpenRouterModelsService(
             new HttpClient(handler),
-            () => new OpenRouterSettings("key", "vision", "audio-structured", true));
+            () => new OpenRouterSettings("key", "vision", null, false));
 
-        var models = await service.GetAudioModelsAsync(CancellationToken.None);
+        var models = await service.GetSttModelsAsync(CancellationToken.None);
 
         Assert.HasCount(1, models);
-        Assert.AreEqual("audio-structured", models[0].Id);
-        Assert.IsTrue(models[0].SupportsAudioInput);
-        Assert.IsTrue(models[0].SupportsStructuredOutput);
+        Assert.AreEqual("openai/whisper-large-v3", models[0].Id);
     }
 
-    private static OpenRouterAudioSegmentAnalyzer CreateAnalyzer(
+    private static OpenRouterSttAnalyzer CreateAnalyzer(
         HttpMessageHandler handler,
         TimeSpan? timeout = null) =>
         new(
             new HttpClient(handler),
-            () => new OpenRouterSettings("key", "vision", "audio/model", true),
+            () => new OpenRouterSettings("key", "vision", "openai/whisper-large-v3", false),
             () => AudioContextSettings.Default,
             timeout is null ? null : () => timeout.Value);
 
@@ -202,7 +196,7 @@ public sealed class OpenRouterAudioTests
         using var segment = CreateSegment();
         var result = await CreateAnalyzer(handler, timeout).AnalyzeAsync(
             segment,
-            new AudioAnalysisOptions(true),
+            new AudioAnalysisOptions(),
             CancellationToken.None);
         Assert.AreEqual(expected, result.Status);
     }

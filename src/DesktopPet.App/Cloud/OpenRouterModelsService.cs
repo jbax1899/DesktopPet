@@ -31,9 +31,55 @@ public sealed class OpenRouterModelsService
         return await GetModelsAsync("image", requireStructuredOutput: false, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<OpenRouterModelInfo>> GetAudioModelsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<OpenRouterModelInfo>> GetSttModelsAsync(CancellationToken cancellationToken)
     {
-        return await GetModelsAsync("audio", requireStructuredOutput: true, cancellationToken);
+        var settings = _settingsProvider();
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            return [];
+        }
+
+        using var timeout = new CancellationTokenSource(RequestTimeout);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://openrouter.ai/api/v1/models?output_modalities=transcription");
+            request.Headers.Add("Authorization", $"Bearer {settings.ApiKey}");
+
+            using var response = await _httpClient.SendAsync(request, linked.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            var modelsResponse = await response.Content.ReadFromJsonAsync<ModelsResponse>(JsonOptions, linked.Token);
+            if (modelsResponse?.Data is null)
+            {
+                return [];
+            }
+
+            return modelsResponse.Data
+                .Where(m => m.Architecture?.OutputModalities?.Contains("transcription") == true)
+                .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(m => new OpenRouterModelInfo(
+                    m.Id,
+                    m.Name,
+                    m.SupportedParameters?.Contains("response_format") == true,
+                    m.Architecture?.InputModalities?.Contains("image") == true,
+                    m.Architecture?.InputModalities?.Contains("audio") == true))
+                .ToArray();
+        }
+        catch (OperationCanceledException)
+        {
+            return [];
+        }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
     }
 
     private async Task<IReadOnlyList<OpenRouterModelInfo>> GetModelsAsync(
@@ -102,5 +148,6 @@ public sealed class OpenRouterModelsService
         [property: JsonPropertyName("supported_parameters")] IReadOnlyList<string>? SupportedParameters);
 
     private sealed record ModelArchitecture(
-        [property: JsonPropertyName("input_modalities")] IReadOnlyList<string>? InputModalities);
+        [property: JsonPropertyName("input_modalities")] IReadOnlyList<string>? InputModalities,
+        [property: JsonPropertyName("output_modalities")] IReadOnlyList<string>? OutputModalities);
 }

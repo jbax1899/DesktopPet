@@ -733,8 +733,8 @@ public partial class MemoryWindow : Window
             return new ObservationListItemView(
                 observation,
                 source,
-                $"{observation.DetectedKind} · {observation.Confidence:P0} confidence",
-                observation.Summary,
+                $"Transcript · {observation.Confidence:P0} confidence",
+                observation.TranscriptExcerpt ?? "(no excerpt retained)",
                 transcriptStatus,
                 observation.CreatedAt,
                 ObservationOutcome.Recorded,

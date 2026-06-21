@@ -49,8 +49,13 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Selected turns are sent chronologically through `conversation_history`.
   Typed dialogue is protected from displacement by ambient messages.
 - Successful direct and ambient replies save the exact dynamic-variable
-  snapshot sent to ElevenLabs. Chat History provides a local-only context
-  inspector and live preview.
+  snapshot sent to ElevenLabs. The Memories window orders its tabs as Chat
+  History, Observations, and Memories. Each tab has a top action bar for
+  selected-item deletion and clearing, while Memories also opens a small Add
+  dialog.
+- Chat History uses labeled Chat and Details columns. The compact local-only
+  Details pane previews the next request with no selection; selecting a
+  recorded reply switches it to that reply's saved snapshot.
 - Manual memories are joined into `memories_context`. Automatic capture and
   relevance retrieval are not implemented, so every saved memory is currently
   included.
@@ -83,6 +88,11 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - The Memories window combines visual observations and ambient decisions in an
   auditable Observations tab. Their retention limits are configurable in
   Advanced settings and default to 200 observations and 100 decisions.
+- Individual visual, ambient, and audio observation entries can be deleted.
+  Deleting a visual record also removes its thumbnail and linked ambient
+  decision; deleting an audio record also removes its temporary transcript
+  chunk when it is still in memory.
+- Clicking an already-selected chat, observation, or memory deselects it.
 - Ambient visual observations can save local JPEG thumbnails for inspection.
   Clearing observations also removes those thumbnails.
 

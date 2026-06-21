@@ -154,6 +154,22 @@ public sealed class AudioAnalysisTests
     }
 
     [TestMethod]
+    public void TranscriptBufferDeletesSelectedSegment()
+    {
+        var buffer = new TranscriptWorkingBuffer();
+        using var first = CreateSegment();
+        using var second = CreateSegment();
+        buffer.Add(first, "first", 0.9);
+        buffer.Add(second, "second", 0.9);
+
+        buffer.DeleteSegment(first.Id);
+
+        var remaining = buffer.List();
+        Assert.HasCount(1, remaining);
+        Assert.AreEqual(second.Id, remaining[0].SegmentId);
+    }
+
+    [TestMethod]
     public void ObservationStoreSupportsRetentionDeleteClearAndChanged()
     {
         var maximum = 2;

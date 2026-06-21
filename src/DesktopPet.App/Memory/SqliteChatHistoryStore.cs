@@ -135,6 +135,21 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
             JsonSerializer.Serialize(contextSnapshot, JsonOptions));
     }
 
+    public void Delete(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return;
+        }
+
+        ExecuteDelete("DELETE FROM chat_messages WHERE id = $id;", id);
+    }
+
+    public void Clear()
+    {
+        ExecuteDelete("DELETE FROM chat_messages;");
+    }
+
     private void UpdateValue(string id, string columnName, string? value)
     {
         using var connection = _database.OpenConnection();
@@ -142,6 +157,22 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
         command.CommandText = $"UPDATE chat_messages SET {columnName} = $value WHERE id = $id;";
         command.Parameters.AddWithValue("$value", value is null ? DBNull.Value : value);
         command.Parameters.AddWithValue("$id", id);
+
+        if (command.ExecuteNonQuery() > 0)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ExecuteDelete(string commandText, string? id = null)
+    {
+        using var connection = _database.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = commandText;
+        if (id is not null)
+        {
+            command.Parameters.AddWithValue("$id", id);
+        }
 
         if (command.ExecuteNonQuery() > 0)
         {

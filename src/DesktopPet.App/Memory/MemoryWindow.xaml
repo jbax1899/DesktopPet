@@ -3,12 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:DesktopPet.App.Memory"
         Title="Desktop Pet Memories"
-        Width="620"
-        Height="520"
-        MinWidth="500"
-        MinHeight="400"
+        Width="1080"
+        Height="650"
+        MinWidth="760"
+        MinHeight="480"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="78" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="16">
         <TabControl x:Name="MainTabControl"
                     SelectionChanged="OnTabChanged">
@@ -19,271 +27,196 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <DockPanel Grid.Row="0"
-                               Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right"
-                                Padding="10,4"
-                                Click="OnContextPreviewClicked"
-                                Content="Context preview" />
-                        <TextBlock VerticalAlignment="Center"
-                                   Foreground="#64748B"
-                                   Text="Select a bot reply to inspect its recorded request context." />
-                    </DockPanel>
+                    <StackPanel Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Orientation="Horizontal">
+                        <Button x:Name="DeleteChatButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnDeleteChatClicked"
+                                Content="Delete"
+                                IsEnabled="False" />
+                        <Button x:Name="ClearChatButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnClearChatClicked"
+                                Content="Clear All"
+                                IsEnabled="False" />
+                    </StackPanel>
 
-                    <ListBox x:Name="ChatHistoryListBox"
-                             Grid.Row="1"
-                             BorderBrush="#CBD5E1"
-                             BorderThickness="1"
-                             HorizontalContentAlignment="Stretch"
-                             SelectionChanged="OnChatHistorySelectionChanged"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment"
-                                        Value="Stretch" />
-                                <Setter Property="Padding"
-                                        Value="0" />
-                                <Setter Property="BorderThickness"
-                                        Value="0" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="10,6">
-                                    <Border x:Name="ChatBubble"
-                                            MaxWidth="420"
-                                            Padding="10,8"
-                                            HorizontalAlignment="Left"
-                                            Background="#F3F4F6"
-                                            BorderBrush="#E5E7EB"
-                                            BorderThickness="1"
-                                            CornerRadius="8">
-                                        <StackPanel>
-                                            <TextBlock FontSize="13"
-                                                       Foreground="#111827"
-                                                       Text="{Binding Text}"
-                                                       TextWrapping="Wrap" />
-                                            <DockPanel Margin="0,6,0,0"
-                                                       LastChildFill="False">
-                                                <TextBlock DockPanel.Dock="Left"
-                                                           VerticalAlignment="Center"
-                                                           FontSize="11"
-                                                           Foreground="#6B7280"
-                                                           Text="{Binding CreatedAtUtc, StringFormat='{}{0:g} UTC'}" />
-                                                <Button x:Name="DesktopContextButton"
-                                                        DockPanel.Dock="Right"
-                                                        Width="22"
-                                                        Height="22"
-                                                        Margin="10,0,0,0"
-                                                        Padding="0"
-                                                        Click="OnDesktopContextClicked"
-                                                        Content="i"
-                                                        FontFamily="Segoe UI"
-                                                        FontSize="12"
-                                                        FontWeight="Bold"
-                                                        Foreground="#475569"
-                                                        ToolTip="Show desktop context sent to ElevenLabs"
-                                                        ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                                        Visibility="Collapsed">
-                                                    <Button.Template>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border x:Name="InfoCircle"
-                                                                    Background="#F8FAFC"
-                                                                    BorderBrush="#94A3B8"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="11">
-                                                                <ContentPresenter HorizontalAlignment="Center"
-                                                                                  VerticalAlignment="Center" />
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver"
-                                                                         Value="True">
-                                                                    <Setter TargetName="InfoCircle"
-                                                                            Property="Background"
-                                                                            Value="#E2E8F0" />
-                                                                </Trigger>
-                                                                <Trigger Property="IsKeyboardFocused"
-                                                                         Value="True">
-                                                                    <Setter TargetName="InfoCircle"
-                                                                            Property="BorderBrush"
-                                                                            Value="#2563EB" />
-                                                                    <Setter TargetName="InfoCircle"
-                                                                            Property="BorderThickness"
-                                                                            Value="2" />
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Button.Template>
-                                                    <Button.ContextMenu>
-                                                        <ContextMenu MaxWidth="460"
-                                                                     Padding="12"
-                                                                     Placement="Bottom"
-                                                                     StaysOpen="False">
-                                                            <StackPanel>
-                                                                <TextBlock FontSize="13"
-                                                                           FontWeight="SemiBold"
-                                                                           Foreground="#0F172A"
-                                                                           Text="Desktop context sent to ElevenLabs" />
-                                                                <TextBlock Margin="0,3,0,10"
-                                                                           FontSize="11"
-                                                                           Foreground="#64748B"
-                                                                           Text="Reduced, permission-filtered context attached to this reply."
-                                                                           TextWrapping="Wrap" />
-                                                                <ItemsControl ItemsSource="{Binding DesktopContextFields}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <Grid Margin="0,0,0,7">
-                                                                                <Grid.ColumnDefinitions>
-                                                                                    <ColumnDefinition Width="105" />
-                                                                                    <ColumnDefinition Width="*" />
-                                                                                </Grid.ColumnDefinitions>
-                                                                                <TextBlock Grid.Column="0"
-                                                                                           Margin="0,0,10,0"
-                                                                                           FontSize="12"
-                                                                                           FontWeight="SemiBold"
-                                                                                           Foreground="#475569"
-                                                                                           Text="{Binding Label}" />
-                                                                                <TextBlock Grid.Column="1"
-                                                                                           FontSize="12"
-                                                                                           Foreground="#1E293B"
-                                                                                           Text="{Binding Value}"
-                                                                                           TextWrapping="Wrap" />
-                                                                            </Grid>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </StackPanel>
-                                                        </ContextMenu>
-                                                    </Button.ContextMenu>
-                                                </Button>
-                                                <Button x:Name="PlayAudioButton"
-                                                        DockPanel.Dock="Right"
-                                                        Width="28"
-                                                        Height="22"
-                                                        Margin="10,0,0,0"
-                                                        Padding="0"
-                                                        Click="OnPlayAudioClicked"
-                                                        Content="&gt;"
-                                                        Tag="{Binding Message}"
-                                                        ToolTip="Play cached audio"
-                                                        Visibility="Collapsed" />
-                                            </DockPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsUser}"
-                                                 Value="True">
-                                        <Setter TargetName="ChatBubble"
-                                                Property="HorizontalAlignment"
-                                                Value="Right" />
-                                        <Setter TargetName="ChatBubble"
-                                                Property="Background"
-                                                Value="#DCFCE7" />
-                                        <Setter TargetName="ChatBubble"
-                                                Property="BorderBrush"
-                                                Value="#86EFAC" />
-                                    </DataTrigger>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding IsBot}"
-                                                       Value="True" />
-                                            <Condition Binding="{Binding HasAudio}"
-                                                       Value="True" />
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter TargetName="PlayAudioButton"
-                                                Property="Visibility"
-                                                Value="Visible" />
-                                    </MultiDataTrigger>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding IsBot}"
-                                                       Value="True" />
-                                            <Condition Binding="{Binding HasDesktopContext}"
-                                                       Value="True" />
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter TargetName="DesktopContextButton"
-                                                Property="Visibility"
-                                                Value="Visible" />
-                                    </MultiDataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="Memories">
-                <Grid Margin="0,12,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Grid Grid.Row="0"
-                          Margin="0,0,0,12">
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBox x:Name="NewMemoryTextBox"
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,0,0,6"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Text="Chat" />
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="2"
+                                   Margin="0,0,0,6"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Text="Details" />
+
+                        <ListBox x:Name="ChatHistoryListBox"
+                                 Grid.Row="1"
                                  Grid.Column="0"
-                                 MinHeight="34"
-                                 Margin="0,0,8,0"
-                                 Padding="8,5"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto" />
-                        <Button Grid.Column="1"
-                                MinWidth="78"
-                                Padding="10,4"
-                                Click="OnAddClicked"
-                                Content="Add" />
-                    </Grid>
+                                 BorderBrush="#CBD5E1"
+                                 BorderThickness="1"
+                                 HorizontalContentAlignment="Stretch"
+                                 PreviewMouseLeftButtonDown="OnListBoxPreviewMouseLeftButtonDown"
+                                 SelectionChanged="OnChatHistorySelectionChanged"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="10,6">
+                                        <Border x:Name="ChatBubble"
+                                                MaxWidth="420"
+                                                Padding="10,8"
+                                                HorizontalAlignment="Left"
+                                                Background="#F3F4F6"
+                                                BorderBrush="#E5E7EB"
+                                                BorderThickness="1"
+                                                CornerRadius="8">
+                                            <StackPanel>
+                                                <TextBlock FontSize="13"
+                                                           Foreground="#111827"
+                                                           Text="{Binding Text}"
+                                                           TextWrapping="Wrap" />
+                                                <DockPanel Margin="0,6,0,0"
+                                                           LastChildFill="False">
+                                                    <TextBlock DockPanel.Dock="Left"
+                                                               VerticalAlignment="Center"
+                                                               FontSize="11"
+                                                               Foreground="#6B7280"
+                                                               Text="{Binding CreatedAtUtc, StringFormat='{}{0:g} UTC'}" />
+                                                    <Button x:Name="DesktopContextButton"
+                                                            DockPanel.Dock="Right"
+                                                            Width="22"
+                                                            Height="22"
+                                                            Margin="10,0,0,0"
+                                                            Padding="0"
+                                                            Click="OnDesktopContextClicked"
+                                                            Content="i"
+                                                            FontFamily="Segoe UI"
+                                                            FontSize="12"
+                                                            FontWeight="Bold"
+                                                            Foreground="#475569"
+                                                            ToolTip="Show desktop context sent to ElevenLabs"
+                                                            Visibility="Collapsed">
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu MaxWidth="460"
+                                                                         Padding="12"
+                                                                         Placement="Bottom"
+                                                                         StaysOpen="False">
+                                                                <StackPanel>
+                                                                    <TextBlock FontSize="13"
+                                                                               FontWeight="SemiBold"
+                                                                               Foreground="#0F172A"
+                                                                               Text="Desktop context sent to ElevenLabs" />
+                                                                    <TextBlock Margin="0,3,0,10"
+                                                                               FontSize="11"
+                                                                               Foreground="#64748B"
+                                                                               Text="Reduced, permission-filtered context attached to this reply."
+                                                                               TextWrapping="Wrap" />
+                                                                    <ItemsControl ItemsSource="{Binding DesktopContextFields}">
+                                                                        <ItemsControl.ItemTemplate>
+                                                                            <DataTemplate>
+                                                                                <Grid Margin="0,0,0,7">
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="105" />
+                                                                                        <ColumnDefinition Width="*" />
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <TextBlock Grid.Column="0"
+                                                                                               Margin="0,0,10,0"
+                                                                                               FontSize="12"
+                                                                                               FontWeight="SemiBold"
+                                                                                               Foreground="#475569"
+                                                                                               Text="{Binding Label}" />
+                                                                                    <TextBlock Grid.Column="1"
+                                                                                               FontSize="12"
+                                                                                               Foreground="#1E293B"
+                                                                                               Text="{Binding Value}"
+                                                                                               TextWrapping="Wrap" />
+                                                                                </Grid>
+                                                                            </DataTemplate>
+                                                                        </ItemsControl.ItemTemplate>
+                                                                    </ItemsControl>
+                                                                </StackPanel>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                    <Button x:Name="PlayAudioButton"
+                                                            DockPanel.Dock="Right"
+                                                            Width="28"
+                                                            Height="22"
+                                                            Margin="10,0,0,0"
+                                                            Padding="0"
+                                                            Click="OnPlayAudioClicked"
+                                                            Content="&gt;"
+                                                            Tag="{Binding Message}"
+                                                            ToolTip="Play cached audio"
+                                                            Visibility="Collapsed" />
+                                                </DockPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsUser}" Value="True">
+                                            <Setter TargetName="ChatBubble" Property="HorizontalAlignment" Value="Right" />
+                                            <Setter TargetName="ChatBubble" Property="Background" Value="#DCFCE7" />
+                                            <Setter TargetName="ChatBubble" Property="BorderBrush" Value="#86EFAC" />
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsBot}" Value="True" />
+                                                <Condition Binding="{Binding HasAudio}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="PlayAudioButton" Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsBot}" Value="True" />
+                                                <Condition Binding="{Binding HasDesktopContext}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="DesktopContextButton" Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
 
-                    <ListBox x:Name="MemoryListBox"
-                             Grid.Row="1"
-                             BorderBrush="#CBD5E1"
-                             BorderThickness="1"
-                             SelectionChanged="OnMemorySelectionChanged">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Padding="4,6">
-                                    <StackPanel>
-                                        <TextBlock FontSize="13"
-                                                   Foreground="#111827"
-                                                   Text="{Binding Text}"
-                                                   TextWrapping="Wrap" />
-                                        <TextBlock Margin="0,4,0,0"
-                                                   FontSize="11"
-                                                   Foreground="#6B7280"
-                                                   Text="{Binding CreatedAtUtc, StringFormat='{}{0:g} UTC'}" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Grid Grid.Row="2"
-                          Margin="0,12,0,0">
-                        <StackPanel HorizontalAlignment="Right"
-                                    Orientation="Horizontal">
-                            <Button MinWidth="78"
-                                    Margin="0,0,8,0"
-                                    Padding="10,4"
-                                    Click="OnDeleteClicked"
-                                    Content="Delete"
-                                    IsEnabled="False"
-                                    x:Name="DeleteMemoryButton" />
-                            <Button x:Name="ClearMemoriesButton"
-                                    MinWidth="78"
-                                    Padding="10,4"
-                                    Click="OnClearClicked"
-                                    Content="Clear all"
-                                    IsEnabled="False" />
-                        </StackPanel>
+                        <Border Grid.Column="2"
+                                Grid.Row="1"
+                                Padding="12"
+                                BorderBrush="#CBD5E1"
+                                BorderThickness="1">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ContextVariablesItemsControl"
+                                              Opacity="0.65">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <local:ContextVariableCard />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
                     </Grid>
                 </Grid>
             </TabItem>
@@ -291,24 +224,39 @@
             <TabItem Header="Observations">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
+                    <StackPanel Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Orientation="Horizontal">
+                        <Button x:Name="DeleteObservationButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnDeleteObservationClicked"
+                                Content="Delete"
+                                IsEnabled="False" />
+                        <Button x:Name="ClearObservationsButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnClearObservationsClicked"
+                                Content="Clear All"
+                                IsEnabled="False"
+                                ToolTip="Clear visual, ambient, and audio observations plus temporary audio transcripts." />
+                    </StackPanel>
+
                     <ListBox x:Name="ObservationsListBox"
-                             Grid.Row="0"
+                             Grid.Row="1"
                              BorderBrush="#CBD5E1"
                              BorderThickness="1"
                              HorizontalContentAlignment="Stretch"
+                             PreviewMouseLeftButtonDown="OnListBoxPreviewMouseLeftButtonDown"
+                             SelectionChanged="OnObservationSelectionChanged"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment"
-                                        Value="Stretch" />
-                                <Setter Property="Padding"
-                                        Value="0" />
-                                <Setter Property="BorderThickness"
-                                        Value="0" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="BorderThickness" Value="0" />
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
@@ -324,7 +272,6 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-
                                         <StackPanel Grid.Column="0">
                                             <DockPanel Margin="0,0,0,6">
                                                 <TextBlock DockPanel.Dock="Left"
@@ -335,28 +282,25 @@
                                                            Foreground="#64748B"
                                                            Text="{Binding CapturedAt, StringFormat='{}{0:g}'}" />
                                             </DockPanel>
-
                                             <TextBlock FontSize="11"
                                                        Foreground="#64748B"
                                                        Text="{Binding Activity}"
                                                        TextWrapping="Wrap" />
-
                                             <TextBlock Margin="0,8,0,0"
                                                        Foreground="#334155"
                                                        Text="{Binding Summary}"
                                                        TextWrapping="Wrap" />
-
                                             <TextBlock Margin="0,5,0,0"
                                                        FontSize="11"
                                                        Foreground="#475569"
                                                        Text="{Binding Excerpt}"
                                                        TextWrapping="Wrap"
                                                        Visibility="{Binding ExcerptVisibility}" />
-
                                             <StackPanel Margin="0,4,0,0"
                                                         Orientation="Horizontal">
                                                 <Ellipse x:Name="OutcomeDot"
-                                                         Width="8" Height="8"
+                                                         Width="8"
+                                                         Height="8"
                                                          Margin="0,0,4,0"
                                                          VerticalAlignment="Center"
                                                          ToolTip="{Binding Outcome}" />
@@ -365,7 +309,6 @@
                                                            Text="{Binding Status}" />
                                             </StackPanel>
                                         </StackPanel>
-
                                         <local:ThumbnailBox Grid.Column="1"
                                                             Margin="10,0,0,0"
                                                             ThumbnailPath="{Binding ThumbnailPath}"
@@ -401,15 +344,57 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+                </Grid>
+            </TabItem>
 
-                    <Grid Grid.Row="1"
-                          Margin="0,12,0,0">
-                        <Button HorizontalAlignment="Right"
-                                Padding="10,4"
-                                Click="OnClearObservationsClicked"
-                                Content="Clear all"
-                                ToolTip="Clear visual, ambient, and audio observations plus temporary audio transcripts." />
-                    </Grid>
+            <TabItem Header="Memories">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Orientation="Horizontal">
+                        <Button Style="{StaticResource ActionButton}"
+                                Click="OnAddClicked"
+                                Content="Add" />
+                        <Button x:Name="DeleteMemoryButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnDeleteMemoryClicked"
+                                Content="Delete"
+                                IsEnabled="False" />
+                        <Button x:Name="ClearMemoriesButton"
+                                Style="{StaticResource ActionButton}"
+                                Click="OnClearMemoriesClicked"
+                                Content="Clear All"
+                                IsEnabled="False" />
+                    </StackPanel>
+
+                    <ListBox x:Name="MemoryListBox"
+                             Grid.Row="1"
+                             BorderBrush="#CBD5E1"
+                             BorderThickness="1"
+                             PreviewMouseLeftButtonDown="OnListBoxPreviewMouseLeftButtonDown"
+                             SelectionChanged="OnMemorySelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="4,6">
+                                    <StackPanel>
+                                        <TextBlock FontSize="13"
+                                                   Foreground="#111827"
+                                                   Text="{Binding Text}"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   FontSize="11"
+                                                   Foreground="#6B7280"
+                                                   Text="{Binding CreatedAtUtc, StringFormat='{}{0:g} UTC'}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
             </TabItem>
         </TabControl>

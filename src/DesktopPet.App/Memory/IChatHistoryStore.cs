@@ -16,4 +16,8 @@ public interface IChatHistoryStore
     void SetDesktopContext(string id, string? desktopContext);
 
     void SetContextSnapshot(string id, AgentContextSnapshot contextSnapshot);
+
+    void Delete(string id);
+
+    void Clear();
 }

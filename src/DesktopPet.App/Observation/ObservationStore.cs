@@ -71,6 +71,24 @@ public sealed class ObservationStore
         }
     }
 
+    public bool Delete(string id)
+    {
+        lock (_sync)
+        {
+            var records = Load();
+            var removed = records.FirstOrDefault(record => record.Id == id);
+            if (removed is null)
+            {
+                return false;
+            }
+
+            records.Remove(removed);
+            Save(records);
+            DeleteThumbnail(removed.ThumbnailPath);
+            return true;
+        }
+    }
+
     public void Clear()
     {
         lock (_sync)
@@ -108,12 +126,17 @@ public sealed class ObservationStore
         var kept = ordered.Take(maximumRecords).ToArray();
         foreach (var removed in ordered.Skip(maximumRecords))
         {
-            if (!string.IsNullOrWhiteSpace(removed.ThumbnailPath) && File.Exists(removed.ThumbnailPath))
-            {
-                File.Delete(removed.ThumbnailPath);
-            }
+            DeleteThumbnail(removed.ThumbnailPath);
         }
 
         Save(kept);
+    }
+
+    private static void DeleteThumbnail(string? thumbnailPath)
+    {
+        if (!string.IsNullOrWhiteSpace(thumbnailPath) && File.Exists(thumbnailPath))
+        {
+            File.Delete(thumbnailPath);
+        }
     }
 }

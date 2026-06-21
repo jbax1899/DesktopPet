@@ -183,6 +183,45 @@ public sealed class ObservationSettingsTests
         Assert.IsFalse(File.Exists(oldThumbnail));
     }
 
+    [TestMethod]
+    public void DeletingObservationRemovesRecordAndThumbnail()
+    {
+        var store = new ObservationStore(_directory);
+        var thumbnail = Path.Combine(_directory, "selected.jpg");
+        File.WriteAllText(thumbnail, "thumbnail");
+        store.Add(CreateRecord("selected", DateTimeOffset.UtcNow, thumbnail));
+
+        Assert.IsTrue(store.Delete("selected"));
+
+        Assert.IsEmpty(store.List());
+        Assert.IsFalse(File.Exists(thumbnail));
+        Assert.IsFalse(store.Delete("missing"));
+    }
+
+    [TestMethod]
+    public void AmbientDecisionStoreDeletesSelectedRecord()
+    {
+        var path = Path.Combine(_directory, "ambient-decisions.json");
+        var store = new AmbientDecisionStore(path);
+        var now = DateTimeOffset.UtcNow;
+        var change = new DesktopObservationChange(
+            DesktopObservationChangeType.CheckIn,
+            new ReducedDesktopObservation(
+                "app.exe",
+                "App",
+                "Work",
+                now,
+                DesktopContextCapabilities.Metadata),
+            "app|checkin|work");
+        store.Add(change, spoke: false, AmbientDecisionReason.BelowThreshold);
+        var selected = store.List().Single();
+
+        Assert.IsTrue(store.Delete(selected));
+
+        Assert.IsEmpty(store.List());
+        Assert.IsFalse(store.Delete(selected));
+    }
+
     private static VisionObservation CreateVisionObservation(double novelty) => new(
         "Summary",
         null,

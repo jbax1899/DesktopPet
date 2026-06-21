@@ -134,6 +134,12 @@ public sealed class AudioAnalysisCoordinator : IDisposable
         _observationStore.Clear();
     }
 
+    public void DeleteObservation(AudioObservation observation)
+    {
+        _transcriptBuffer.DeleteSegment(observation.SegmentId);
+        _observationStore.Delete(observation.Id);
+    }
+
     public void Dispose()
     {
         List<CompletedAudioSegment> dropped;

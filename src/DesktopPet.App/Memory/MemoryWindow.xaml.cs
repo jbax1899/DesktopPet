@@ -1,16 +1,31 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
 using WpfButton = System.Windows.Controls.Button;
+using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
+using WpfItemsControl = System.Windows.Controls.ItemsControl;
+using WpfListBox = System.Windows.Controls.ListBox;
+using WpfListBoxItem = System.Windows.Controls.ListBoxItem;
 
 namespace DesktopPet.App.Memory;
 
 public partial class MemoryWindow : Window
 {
+    private static readonly string[] ContextVariableOrder =
+    [
+        "temporal_context",
+        "pet_name",
+        "user_name",
+        "memories_context",
+        "desktop_observation_history",
+        "conversation_history"
+    ];
+
     private readonly IMemoryStore _memoryStore;
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
@@ -29,7 +44,6 @@ public partial class MemoryWindow : Window
     private List<MemoryEntry> _memories = [];
     private List<ChatHistoryMessageView> _chatMessages = [];
     private List<ObservationListItemView> _observationItems = [];
-    private ContextInspectorWindow? _contextInspectorWindow;
 
     public MemoryWindow(
         IMemoryStore memoryStore,
@@ -72,11 +86,11 @@ public partial class MemoryWindow : Window
         RefreshChatHistory();
         RefreshMemories();
         RefreshObservations();
+        ShowLiveContextSnapshot();
     }
 
     protected override void OnClosed(EventArgs e)
     {
-        _contextInspectorWindow?.Close();
         _chatHistoryStore.Changed -= OnChatHistoryChanged;
         _memoryStore.Changed -= OnMemoriesChanged;
         _audioObservationStore.Changed -= OnAudioObservationsChanged;
@@ -85,32 +99,18 @@ public partial class MemoryWindow : Window
         base.OnClosed(e);
     }
 
-    private void OnContextPreviewClicked(object sender, RoutedEventArgs e)
-    {
-        var selectedMessage = (ChatHistoryListBox.SelectedItem as ChatHistoryMessageView)?.Message;
-        if (_contextInspectorWindow is null)
-        {
-            _contextInspectorWindow = new ContextInspectorWindow(
-                BuildLiveContextSnapshot,
-                selectedMessage)
-            {
-                Owner = this
-            };
-            _contextInspectorWindow.Closed += (_, _) => _contextInspectorWindow = null;
-        }
-        else
-        {
-            _contextInspectorWindow.SetSelectedMessage(selectedMessage);
-        }
-
-        _contextInspectorWindow.Show();
-        _contextInspectorWindow.Activate();
-    }
-
     private void OnChatHistorySelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         var selectedMessage = (ChatHistoryListBox.SelectedItem as ChatHistoryMessageView)?.Message;
-        _contextInspectorWindow?.SetSelectedMessage(selectedMessage);
+        DeleteChatButton.IsEnabled = selectedMessage is not null;
+
+        if (selectedMessage is null)
+        {
+            ShowLiveContextSnapshot();
+            return;
+        }
+
+        ShowRecordedContextSnapshot(selectedMessage);
     }
 
     private AgentContextSnapshot BuildLiveContextSnapshot()
@@ -134,6 +134,136 @@ public partial class MemoryWindow : Window
         return AgentContextBuilder.Build(
             request,
             _uiSettingsProvider().GetEffectiveChatHistoryContext());
+    }
+
+    private void ShowLiveContextSnapshot()
+    {
+        ContextVariablesItemsControl.FontStyle = FontStyles.Normal;
+        ContextVariablesItemsControl.ItemsSource = ToContextVariables(BuildLiveContextSnapshot());
+    }
+
+    private void ShowRecordedContextSnapshot(ChatHistoryMessage message)
+    {
+        ContextVariablesItemsControl.FontStyle = FontStyles.Italic;
+
+        if (message.Role != ChatHistoryRole.Bot)
+        {
+            ContextVariablesItemsControl.ItemsSource = Array.Empty<ContextVariableView>();
+            return;
+        }
+
+        if (message.ContextSnapshot is null)
+        {
+            ContextVariablesItemsControl.ItemsSource = Array.Empty<ContextVariableView>();
+            return;
+        }
+
+        ContextVariablesItemsControl.ItemsSource = ToContextVariables(message.ContextSnapshot);
+    }
+
+    private static IReadOnlyList<ContextVariableView> ToContextVariables(AgentContextSnapshot snapshot)
+    {
+        var requestedOrder = ContextVariableOrder
+            .Select((name, index) => (name, index))
+            .ToDictionary(item => item.name, item => item.index, StringComparer.Ordinal);
+
+        return snapshot.Values
+            .OrderBy(pair => requestedOrder.TryGetValue(pair.Key, out var index)
+                ? index
+                : ContextVariableOrder.Length)
+            .ThenBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => new ContextVariableView(pair.Key, pair.Value))
+            .ToArray();
+    }
+
+    private void OnListBoxPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not WpfListBox listBox
+            || e.OriginalSource is not DependencyObject source
+            || WpfItemsControl.ContainerFromElement(listBox, source) is not WpfListBoxItem item
+            || !item.IsSelected
+            || IsInsideButton(source, item))
+        {
+            return;
+        }
+
+        listBox.SelectedItem = null;
+        e.Handled = true;
+    }
+
+    private static bool IsInsideButton(DependencyObject source, DependencyObject item)
+    {
+        for (var current = source; current is not null && current != item;)
+        {
+            if (current is WpfButtonBase)
+            {
+                return true;
+            }
+
+            current = GetParent(current);
+        }
+
+        return false;
+    }
+
+    private static DependencyObject? GetParent(DependencyObject child)
+    {
+        return child switch
+        {
+            Visual or System.Windows.Media.Media3D.Visual3D => VisualTreeHelper.GetParent(child),
+            FrameworkContentElement contentElement => contentElement.Parent,
+            _ => LogicalTreeHelper.GetParent(child)
+        };
+    }
+
+    private void OnDeleteChatClicked(object sender, RoutedEventArgs e)
+    {
+        if (ChatHistoryListBox.SelectedItem is not ChatHistoryMessageView selected)
+        {
+            return;
+        }
+
+        try
+        {
+            _chatHistoryStore.Delete(selected.Message.Id);
+            _chatAudioStore.Delete(selected.Message.AudioFileName);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void OnClearChatClicked(object sender, RoutedEventArgs e)
+    {
+        if (_chatMessages.Count == 0)
+        {
+            return;
+        }
+
+        var result = System.Windows.MessageBox.Show(
+            this,
+            "Clear all chat history?",
+            "Desktop Pet Chat History",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var messagesToClear = _chatMessages.ToArray();
+            _chatHistoryStore.Clear();
+            foreach (var message in messagesToClear)
+            {
+                _chatAudioStore.Delete(message.Message.AudioFileName);
+            }
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private async void OnPlayAudioClicked(object sender, RoutedEventArgs e)
@@ -173,23 +303,26 @@ public partial class MemoryWindow : Window
 
     private void OnAddClicked(object sender, RoutedEventArgs e)
     {
+        var dialog = new AddMemoryWindow
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
         try
         {
-            var text = NewMemoryTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return;
-            }
-
-            _memoryStore.Add(text);
-            NewMemoryTextBox.Clear();
+            _memoryStore.Add(dialog.MemoryText);
         }
         catch (Exception)
         {
         }
     }
 
-    private void OnDeleteClicked(object sender, RoutedEventArgs e)
+    private void OnDeleteMemoryClicked(object sender, RoutedEventArgs e)
     {
         if (MemoryListBox.SelectedItem is not MemoryEntry selectedMemory)
         {
@@ -205,7 +338,7 @@ public partial class MemoryWindow : Window
         }
     }
 
-    private void OnClearClicked(object sender, RoutedEventArgs e)
+    private void OnClearMemoriesClicked(object sender, RoutedEventArgs e)
     {
         if (_memories.Count == 0)
         {
@@ -257,18 +390,59 @@ public partial class MemoryWindow : Window
             ChatHistoryListBox.UpdateLayout();
             ChatHistoryListBox.ScrollIntoView(_chatMessages[^1]);
         }
-        else if (selectedIndex == 1 && _memories.Count > 0)
+        else if (selectedIndex == 1 && _observationItems.Count > 0)
+        {
+            ObservationsListBox.UpdateLayout();
+            ObservationsListBox.ScrollIntoView(_observationItems[^1]);
+        }
+        else if (selectedIndex == 2 && _memories.Count > 0)
         {
             MemoryListBox.UpdateLayout();
             MemoryListBox.ScrollIntoView(_memories[^1]);
         }
-        else if (selectedIndex == 2)
+    }
+
+    private void OnObservationSelectionChanged(
+        object sender,
+        System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        DeleteObservationButton.IsEnabled =
+            ObservationsListBox.SelectedItem is ObservationListItemView;
+    }
+
+    private void OnDeleteObservationClicked(object sender, RoutedEventArgs e)
+    {
+        if (ObservationsListBox.SelectedItem is not ObservationListItemView selected)
         {
-            if (_observationItems.Count > 0)
+            return;
+        }
+
+        try
+        {
+            SuppressWatcherEvents();
+            switch (selected.Source)
             {
-                ObservationsListBox.UpdateLayout();
-                ObservationsListBox.ScrollIntoView(_observationItems[^1]);
+                case ObservationRecord visual:
+                    foreach (var ambient in _ambientDecisionStore.List()
+                                 .Where(decision => HasMatchingVisualObservation(decision, [visual])))
+                    {
+                        _ambientDecisionStore.Delete(ambient);
+                    }
+
+                    _observationStore.Delete(visual.Id);
+                    break;
+                case AmbientDecisionRecord ambient:
+                    _ambientDecisionStore.Delete(ambient);
+                    break;
+                case AudioObservation audio:
+                    _audioAnalysisCoordinator.DeleteObservation(audio);
+                    break;
             }
+
+            RefreshObservations();
+        }
+        catch (Exception)
+        {
         }
     }
 
@@ -313,6 +487,9 @@ public partial class MemoryWindow : Window
                 .Select(message => new ChatHistoryMessageView(message, _chatAudioStore.Exists(message.AudioFileName)))
                 .ToList();
             ChatHistoryListBox.ItemsSource = _chatMessages;
+            DeleteChatButton.IsEnabled = false;
+            ClearChatButton.IsEnabled = _chatMessages.Count > 0;
+            ShowLiveContextSnapshot();
 
             if (_chatMessages.Count > 0)
             {
@@ -339,6 +516,8 @@ public partial class MemoryWindow : Window
                 MemoryListBox.UpdateLayout();
                 MemoryListBox.ScrollIntoView(_memories[^1]);
             }
+
+            RefreshLiveContextIfUnselected();
         }
         catch (Exception)
         {
@@ -363,15 +542,27 @@ public partial class MemoryWindow : Window
                 .OrderBy(item => item.CapturedAt)
                 .ToList();
             ObservationsListBox.ItemsSource = _observationItems;
+            DeleteObservationButton.IsEnabled = false;
+            ClearObservationsButton.IsEnabled = _observationItems.Count > 0;
 
             if (_observationItems.Count > 0)
             {
                 ObservationsListBox.UpdateLayout();
                 ObservationsListBox.ScrollIntoView(_observationItems[^1]);
             }
+
+            RefreshLiveContextIfUnselected();
         }
         catch (Exception)
         {
+        }
+    }
+
+    private void RefreshLiveContextIfUnselected()
+    {
+        if (ChatHistoryListBox.SelectedItem is null)
+        {
+            ShowLiveContextSnapshot();
         }
     }
 
@@ -476,6 +667,7 @@ public partial class MemoryWindow : Window
     private sealed record DesktopContextField(string Label, string Value);
 
     private sealed record ObservationListItemView(
+        object Source,
         string Application,
         string? Activity,
         string Summary,
@@ -491,6 +683,7 @@ public partial class MemoryWindow : Window
         public static ObservationListItemView FromVisualObservation(ObservationRecord observation)
         {
             return new ObservationListItemView(
+                observation,
                 observation.Application,
                 observation.WindowTitle,
                 observation.Analysis.Summary,
@@ -505,6 +698,7 @@ public partial class MemoryWindow : Window
         {
             var application = ExtractApplication(decision.Observation);
             return new ObservationListItemView(
+                decision,
                 application,
                 "Metadata observation",
                 ExtractSummary(decision.Observation),
@@ -532,6 +726,7 @@ public partial class MemoryWindow : Window
                 : $"Excerpt: {observation.TranscriptExcerpt}";
 
             return new ObservationListItemView(
+                observation,
                 source,
                 $"{observation.DetectedKind} · {observation.Confidence:P0} confidence",
                 observation.Summary,

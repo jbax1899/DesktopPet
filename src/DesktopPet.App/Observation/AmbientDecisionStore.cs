@@ -71,6 +71,21 @@ public sealed class AmbientDecisionStore
         }
     }
 
+    public bool Delete(AmbientDecisionRecord record)
+    {
+        lock (_sync)
+        {
+            var records = Load();
+            var removed = records.Remove(record);
+            if (removed)
+            {
+                Save(records);
+            }
+
+            return removed;
+        }
+    }
+
     public void ApplyRetentionLimit()
     {
         lock (_sync)

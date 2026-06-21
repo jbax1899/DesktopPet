@@ -10,10 +10,15 @@ public sealed class DesktopPetDatabase
     private readonly string _databasePath;
 
     public DesktopPetDatabase()
-    {
-        _dataDirectory = Path.Combine(
+        : this(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopPet");
+            "DesktopPet"))
+    {
+    }
+
+    internal DesktopPetDatabase(string dataDirectory)
+    {
+        _dataDirectory = dataDirectory;
         _databasePath = Path.Combine(_dataDirectory, "memory.db");
     }
 

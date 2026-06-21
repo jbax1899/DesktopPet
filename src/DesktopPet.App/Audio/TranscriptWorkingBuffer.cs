@@ -54,6 +54,14 @@ public sealed class TranscriptWorkingBuffer
         }
     }
 
+    public void DeleteSegment(string segmentId)
+    {
+        lock (_sync)
+        {
+            _chunks.RemoveAll(item => item.SegmentId == segmentId);
+        }
+    }
+
     private void Prune()
     {
         var now = _timeProvider.GetUtcNow();

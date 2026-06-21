@@ -20,22 +20,12 @@
                 MaxWidth="1120"
                 MaxHeight="220"
                 Padding="22,12,14,12"
+                Background="#FFE5E7EB"
                 BorderThickness="0"
                 CornerRadius="18"
                 RenderOptions.ClearTypeHint="Enabled"
                 SnapsToDevicePixels="True"
                 Visibility="Collapsed">
-            <Border.Background>
-                <RadialGradientBrush Center="0.5,0.46"
-                                     GradientOrigin="0.5,0.46"
-                                     RadiusX="0.64"
-                                     RadiusY="1.15">
-                    <GradientStop Color="#D8F8FAFC" Offset="0" />
-                    <GradientStop Color="#A8E5E7EB" Offset="0.52" />
-                    <GradientStop Color="#44CBD5E1" Offset="0.82" />
-                    <GradientStop Color="#00CBD5E1" Offset="1" />
-                </RadialGradientBrush>
-            </Border.Background>
             <Border.Effect>
                 <DropShadowEffect BlurRadius="30"
                                   Color="#FF111827"
@@ -49,7 +39,14 @@
                        Foreground="#1E8F55"
                        LineHeight="24"
                        TextAlignment="Center"
-                       TextWrapping="Wrap" />
+                       TextWrapping="Wrap">
+                <TextBlock.Effect>
+                    <DropShadowEffect BlurRadius="2"
+                                      Color="#FF000000"
+                                      Opacity="0.9"
+                                      ShadowDepth="0" />
+                </TextBlock.Effect>
+            </TextBlock>
         </Border>
 
         <Border x:Name="ErrorShell"

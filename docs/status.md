@@ -28,7 +28,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - The action pad opens Chat, Memories, and Settings. Microphone input remains a
   disabled placeholder.
 - Typed chat stays in the conversation overlay with content-sized bubbles,
-  transcript display, and safe interruption behavior.
+  a solid light-gray transcript bubble with outlined green text, and safe
+  interruption behavior.
 - ElevenLabs replies use short-lived Agent WebSocket sessions. Standalone TTS
   streams MP3 through NAudio, drives mouth movement, and caches completed reply
   audio for replay.

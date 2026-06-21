@@ -25,7 +25,10 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 - Transparent always-on-top pet overlay with draggable, clamped, saved
   placement, tray controls, click-through, a configurable global chat
   shortcut (Shift+Space), and a push-to-talk shortcut (Ctrl+Space).
-- The action pad opens Chat, Memories, and Settings.
+- The action pad opens Chat, Memories, and Settings.   Settings uses a three-tab layout: General (profile and input), Cloud
+  Providers (ElevenLabs and OpenRouter), and Data Capture (audio capture
+  with a System row for system-wide audio, vision/screen context with
+  commentary presets including Off, and per-window permissions).
 - Push-to-talk records from the default microphone while Ctrl+Space is held.
   On release, the recording is transcribed via OpenRouter STT and sent as a
   chat message, triggering a full AI response. Screenshots are captured when

@@ -4,18 +4,19 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using DesktopPet.App.Cloud;
 using DesktopPet.App.Observation;
 
 namespace DesktopPet.App.Settings;
 
 public partial class SettingsWindow
 {
+    private const string SystemRowExecutablePath = "";
+
     private void LoadObservationSettings()
     {
         var settings = _permissionService.Current;
         _loadingObservationSettings = true;
-        ObservationEnabledCheckBox.IsChecked = settings.ObservationEnabled;
-        AmbientCommentsEnabledCheckBox.IsChecked = settings.AmbientCommentsEnabled;
         CaptureScreenshotOnChatSendCheckBox.IsChecked = settings.CaptureScreenshotOnChatSend;
         SetCommentaryPreset(ObservationSettingLimits.MatchPreset(
             settings.CooldownSeconds,
@@ -67,10 +68,23 @@ public partial class SettingsWindow
         }
 
         _observationRows.Clear();
+
+        // System row — controls system-wide audio capture.
+        var audioSettings = _audioContextSettingsStore.Load();
+        var systemRow = new ApplicationRuleRow
+        {
+            ExecutablePath = SystemRowExecutablePath,
+            DisplayName = "System"
+        };
+        systemRow.AllowAudio = audioSettings.SystemAudioEnabled;
+        _observationRows.Add(systemRow);
+
         foreach (var row in rows.Values.OrderBy(row => row.DisplayName, StringComparer.CurrentCultureIgnoreCase))
         {
             _observationRows.Add(row);
         }
+
+        UpdatePerAppColumnEnabledState();
     }
 
     private bool TryBuildObservationSettings(
@@ -78,8 +92,10 @@ public partial class SettingsWindow
         out string validationMessage)
     {
         var current = _permissionService.Current;
+
+        // Skip the System row (empty ExecutablePath) when building rules.
         var rules = _observationRows
-            .Where(row => row.HasDecision)
+            .Where(row => row.HasDecision && row.ExecutablePath != SystemRowExecutablePath)
             .Select(row => row.ToRule())
             .ToArray();
 
@@ -97,10 +113,17 @@ public partial class SettingsWindow
             return false;
         }
 
+        var commentaryPreset = GetSelectedCommentaryPreset();
+
+        // Derive ObservationEnabled: true if any non-System row allows metadata or vision.
+        var observationEnabled = _observationRows
+            .Any(r => r.ExecutablePath != SystemRowExecutablePath
+                      && (r.AllowMetadata || r.AllowVisual));
+
         settings = ObservationSettingsStore.Normalize(current with
         {
-            ObservationEnabled = ObservationEnabledCheckBox.IsChecked == true,
-            AmbientCommentsEnabled = AmbientCommentsEnabledCheckBox.IsChecked == true,
+            ObservationEnabled = observationEnabled,
+            AmbientCommentsEnabled = commentaryPreset != CommentaryPreset.Off,
             CaptureScreenshotOnChatSend = CaptureScreenshotOnChatSendCheckBox.IsChecked == true,
             CooldownSeconds = ParseInt(CooldownSecondsTextBox, current.CooldownSeconds),
             DuplicateWindowSeconds = ParseInt(DuplicateWindowSecondsTextBox, current.DuplicateWindowSeconds),
@@ -143,6 +166,7 @@ public partial class SettingsWindow
     {
         var preset = GetSelectedCommentaryPreset();
         var custom = preset == CommentaryPreset.Custom;
+        var off = preset == CommentaryPreset.Off;
         CooldownSecondsTextBox.IsEnabled = custom;
         CheckInSecondsTextBox.IsEnabled = custom;
         DuplicateWindowSecondsTextBox.IsEnabled = custom;
@@ -154,14 +178,17 @@ public partial class SettingsWindow
             DuplicateWindowSecondsTextBox.Text = timing.DuplicateWindowSeconds.ToString();
         }
 
-        CommentaryLegendTextBlock.Text = custom
-            ? "Use the exact timing values in Advanced."
-            : $"Comments every ~{ObservationSettingLimits.GetPreset(preset).CooldownSeconds} sec; "
-                + $"checks every {ObservationSettingLimits.GetPreset(preset).CheckInSeconds} sec; "
-                + $"duplicates suppressed for {ObservationSettingLimits.GetPreset(preset).DuplicateWindowSeconds} sec.";
+        CommentaryLegendTextBlock.Text = off
+            ? "Ambient comments are disabled."
+            : custom
+                ? string.Empty
+                : $"Comments every ~{ObservationSettingLimits.GetPreset(preset).CooldownSeconds} sec; "
+                    + $"checks every {ObservationSettingLimits.GetPreset(preset).CheckInSeconds} sec; "
+                    + $"duplicates suppressed for {ObservationSettingLimits.GetPreset(preset).DuplicateWindowSeconds} sec.";
     }
 
     private CommentaryPreset GetSelectedCommentaryPreset() =>
+        CommentaryOffRadioButton.IsChecked == true ? CommentaryPreset.Off :
         CommentaryQuietRadioButton.IsChecked == true ? CommentaryPreset.Quiet :
         CommentaryTalkativeRadioButton.IsChecked == true ? CommentaryPreset.Talkative :
         CommentaryCustomRadioButton.IsChecked == true ? CommentaryPreset.Custom :
@@ -169,10 +196,65 @@ public partial class SettingsWindow
 
     private void SetCommentaryPreset(CommentaryPreset preset)
     {
+        CommentaryOffRadioButton.IsChecked = preset == CommentaryPreset.Off;
         CommentaryQuietRadioButton.IsChecked = preset == CommentaryPreset.Quiet;
         CommentaryBalancedRadioButton.IsChecked = preset == CommentaryPreset.Balanced;
         CommentaryTalkativeRadioButton.IsChecked = preset == CommentaryPreset.Talkative;
         CommentaryCustomRadioButton.IsChecked = preset == CommentaryPreset.Custom;
+    }
+
+    private void OnVisionCheckBoxChecked(object sender, RoutedEventArgs e)
+    {
+        var openRouterSettings = _openRouterSettingsStore.Load();
+        if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey)
+            || string.IsNullOrWhiteSpace(openRouterSettings.VisionModelId))
+        {
+            if (sender is System.Windows.Controls.CheckBox checkBox)
+            {
+                checkBox.IsChecked = false;
+            }
+
+            System.Windows.MessageBox.Show(
+                "Vision analysis requires an OpenRouter API key and vision model.\n\nConfigure these in the Cloud Providers tab first.",
+                "Vision Not Configured",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        UpdatePerAppColumnEnabledState();
+    }
+
+    private void OnAudioCheckBoxToggled(object sender, RoutedEventArgs e)
+    {
+        UpdatePerAppColumnEnabledState();
+    }
+
+    private void OnMetadataCheckBoxToggled(object sender, RoutedEventArgs e)
+    {
+        UpdatePerAppColumnEnabledState();
+    }
+
+    private void OnVisionCheckBoxToggled(object sender, RoutedEventArgs e)
+    {
+        UpdatePerAppColumnEnabledState();
+    }
+
+    private void UpdatePerAppColumnEnabledState()
+    {
+        var systemRow = _observationRows.FirstOrDefault(r => r.ExecutablePath == SystemRowExecutablePath);
+        if (systemRow is null) return;
+
+        var metadataOverridden = systemRow.AllowMetadata;
+        var visionOverridden = systemRow.AllowVisual;
+        var audioOverridden = systemRow.AllowAudio;
+
+        foreach (var row in _observationRows)
+        {
+            if (row.ExecutablePath == SystemRowExecutablePath) continue;
+            row.IsMetadataEnabled = !metadataOverridden;
+            row.IsVisionEnabled = !visionOverridden;
+            row.IsAudioEnabled = !audioOverridden;
+        }
     }
 
     private void OnCommentThresholdSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -273,6 +355,8 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
     private bool _allowStructure;
     private bool _allowVisual;
     private bool _allowAudio;
+    private bool _isMetadataEnabled = true;
+    private bool _isVisionEnabled = true;
     private bool _isAudioEnabled = true;
 
     public required string ExecutablePath { get; init; }
@@ -364,7 +448,19 @@ public sealed class ApplicationRuleRow : INotifyPropertyChanged
         set => SetField(ref _isAudioEnabled, value);
     }
 
-    public bool HasDecision => IsDenied || AllowMetadata || AllowStructure || AllowVisual || AllowAudio;
+    public bool IsMetadataEnabled
+    {
+        get => _isMetadataEnabled;
+        set => SetField(ref _isMetadataEnabled, value);
+    }
+
+    public bool IsVisionEnabled
+    {
+        get => _isVisionEnabled;
+        set => SetField(ref _isVisionEnabled, value);
+    }
+
+    public bool HasDecision => AllowMetadata || AllowStructure || AllowVisual || AllowAudio;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

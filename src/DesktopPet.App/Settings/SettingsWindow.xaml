@@ -38,309 +38,193 @@
                     Content="Save" />
         </StackPanel>
 
-        <ScrollViewer Margin="0,0,0,16"
-                      VerticalScrollBarVisibility="Auto">
-            <Grid Margin="0,0,16,0">
-                <Grid.RowDefinitions>
-                    <!-- ElevenLabs -->
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <!-- Separator -->
-                    <RowDefinition Height="Auto" />
-                    <!-- OpenRouter -->
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <!-- Separator -->
-                    <RowDefinition Height="Auto" />
-                    <!-- Profile -->
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <!-- Separator -->
-                    <RowDefinition Height="Auto" />
-                    <!-- Input -->
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <!-- Separator -->
-                    <RowDefinition Height="Auto" />
-                    <!-- Screen Context -->
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="150" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <!-- ═══ ElevenLabs ═══ -->
-                <StackPanel Grid.Row="0"
-                            Grid.ColumnSpan="2"
-                            Margin="0,0,0,10"
-                            Orientation="Horizontal">
-                    <TextBlock FontWeight="SemiBold"
-                               Text="ElevenLabs" />
-                    <TextBlock x:Name="ElevenLabsCreditText"
-                               Margin="10,0,0,0"
-                               Foreground="#FF64748B" />
-                </StackPanel>
-
-                <TextBlock Grid.Row="1"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="ElevenLabs API key" />
-                <PasswordBox x:Name="ElevenLabsApiKeyPasswordBox"
-                             Grid.Row="1"
-                             Grid.Column="1"
-                             Margin="0,0,0,12" />
-
-                <TextBlock Grid.Row="2"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="ElevenLabs Agent ID" />
-                <TextBox x:Name="ElevenLabsAgentIdTextBox"
-                         Grid.Row="2"
-                         Grid.Column="1"
-                         Margin="0,0,0,12" />
-
-                <TextBlock Grid.Row="3"
-                           Grid.Column="0"
-                           Margin="0,0,12,0"
-                           VerticalAlignment="Center"
-                           Text="Preferred voice ID" />
-                <StackPanel Grid.Row="3"
-                            Grid.Column="1">
-                    <TextBox x:Name="ElevenLabsVoiceIdTextBox" />
-                    <Button Margin="0,8,0,0"
-                            Padding="10,4"
-                            HorizontalAlignment="Left"
-                            Click="OnManagePronunciationsClicked"
-                            Content="Manage custom pronunciations…" />
-                </StackPanel>
-
-                <!-- ═══════════════════ -->
-                <Border Grid.Row="4" Grid.ColumnSpan="2"
-                        Style="{StaticResource SectionSeparator}" />
-
-                <!-- ═══ OpenRouter ═══ -->
-                <StackPanel Grid.Row="5"
-                            Grid.ColumnSpan="2"
-                            Margin="0,0,0,10"
-                            Orientation="Horizontal">
-                    <TextBlock FontWeight="SemiBold"
-                               Text="OpenRouter" />
-                    <TextBlock x:Name="OpenRouterCreditText"
-                               Margin="10,0,0,0"
-                               Foreground="#FF64748B" />
-                </StackPanel>
-
-                <TextBlock Grid.Row="6"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="API key" />
-                <PasswordBox x:Name="OpenRouterApiKeyPasswordBox"
-                             Grid.Row="6"
-                             Grid.Column="1"
-                             Margin="0,0,0,12" />
-
-                <TextBlock Grid.Row="7"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="Vision model" />
-                <ComboBox x:Name="OpenRouterVisionModelComboBox"
-                          Grid.Row="7"
-                          Grid.Column="1"
-                          Margin="0,0,0,12"
-                          ToolTip="Select a vision-capable model for screenshot analysis.">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <DockPanel>
-                                <TextBlock Text="{Binding Name}" />
-                                <TextBlock Text="{Binding CostSummary}"
-                                           DockPanel.Dock="Right"
-                                           Foreground="#FF94A3B8"
-                                           Margin="12,0,0,0"
-                                           FontSize="11" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-
-                <StackPanel Grid.Row="8"
-                            Grid.ColumnSpan="2"
-                            Margin="0,0,0,6"
-                            Orientation="Horizontal">
-                    <CheckBox x:Name="OpenRouterRequireZdrCheckBox"
-                              VerticalAlignment="Center"
-                              IsChecked="True"
-                              Content="Require zero data retention"
-                              ToolTip="Only route to providers that do not retain your data." />
-                </StackPanel>
-
-                <TextBlock Grid.Row="9"
-                           Grid.ColumnSpan="2"
-                           Margin="0,4,0,4"
-                           Foreground="#FF475569"
-                           TextWrapping="Wrap">
-                    <Run x:Name="OpenRouterModelCapabilitiesText"
-                         Text="Select a model to see capabilities." />
-                </TextBlock>
-
-                <!-- ═══════════════════ -->
-                <Border Grid.Row="10" Grid.ColumnSpan="2"
-                        Style="{StaticResource SectionSeparator}" />
-
-                <!-- ═══ Profile ═══ -->
-                <TextBlock Grid.Row="11"
-                           Grid.ColumnSpan="2"
-                           Margin="0,0,0,10"
-                           FontWeight="SemiBold"
-                           Text="Profile" />
-
-                <TextBlock Grid.Row="12"
-                           Grid.Column="0"
-                           Margin="0,0,12,12"
-                           VerticalAlignment="Center"
-                           Text="Your name" />
-                <TextBox x:Name="UserNameTextBox"
-                         Grid.Row="12"
-                         Grid.Column="1"
-                         Margin="0,0,0,12" />
-
-                <TextBlock Grid.Row="13"
-                           Grid.Column="0"
-                           Margin="0,0,12,0"
-                           VerticalAlignment="Center"
-                           Text="Nickname" />
-                <TextBox x:Name="NicknameTextBox"
-                         Grid.Row="13"
-                         Grid.Column="1"
-                         Margin="0,0,0,0" />
-
-                <!-- ═══════════════════ -->
-                <Border Grid.Row="14" Grid.ColumnSpan="2"
-                        Style="{StaticResource SectionSeparator}" />
-
-                <!-- ═══ Input ═══ -->
-                <TextBlock Grid.Row="15"
-                           Grid.ColumnSpan="2"
-                           Margin="0,0,0,10"
-                           FontWeight="SemiBold"
-                           Text="Input" />
-
-                <TextBlock Grid.Row="16"
-                           Grid.Column="0"
-                           Margin="0,0,12,0"
-                           VerticalAlignment="Center"
-                           Text="Chat shortcut" />
-                <StackPanel Grid.Row="16"
-                            Grid.Column="1"
-                            Orientation="Horizontal">
-                    <Button x:Name="ChatShortcutButton"
-                            MinWidth="130"
-                            Padding="10,4"
-                            Click="OnRecordShortcutClicked" />
-                    <Button Margin="8,0,0,0"
-                            Padding="10,4"
-                            Click="OnResetShortcutClicked"
-                            Content="Reset" />
-                </StackPanel>
-
-                <!-- ═══ Ambient Audio ═══ -->
-                <StackPanel Grid.Row="17"
-                            Grid.ColumnSpan="2"
-                            Margin="0,18,0,0">
-                    <TextBlock Margin="0,0,0,10"
-                               FontWeight="SemiBold"
-                               Text="Ambient Audio Capture" />
-                    <TextBlock Margin="0,0,0,10"
-                               FontSize="11"
-                               Foreground="#FF64748B"
-                               Text="Raw audio is never saved. Full transcripts stay in memory temporarily; only reduced observations and optional short excerpts are stored."
-                               TextWrapping="Wrap" />
-                    <CheckBox x:Name="AmbientAudioEnabledCheckBox"
-                              Margin="0,0,0,8"
-                              FontWeight="SemiBold"
-                              Content="Enable ambient audio capture"
-                              ToolTip="Master switch for temporary in-memory audio capture. No raw audio is written to disk." />
-                    <CheckBox x:Name="MicrophoneCaptureEnabledCheckBox"
-                              Margin="16,0,0,6"
-                              Content="Capture the default microphone" />
-                    <CheckBox x:Name="SystemAudioCaptureEnabledCheckBox"
-                              Margin="16,0,0,10"
-                              Content="Capture the default system output"
-                              Checked="OnSystemAudioCaptureChanged"
-                              Unchecked="OnSystemAudioCaptureChanged" />
-                    <CheckBox x:Name="AudioAnalysisEnabledCheckBox"
-                              Margin="0,0,0,8"
-                              FontWeight="SemiBold"
-                              Content="Analyze completed audio segments"
-                              ToolTip="Send only completed activity-gated segments to the selected OpenRouter audio model." />
-                    <TextBlock Margin="16,0,0,8"
-                               FontSize="11"
-                               Foreground="#FF64748B"
-                               Text="Reduced audio observations are visible in Memories → Observations and can be included in Agent context. Raw audio is never forwarded to ElevenLabs."
-                               TextWrapping="Wrap" />
-                    <TextBlock Margin="16,0,0,0"
-                               FontWeight="SemiBold"
-                               Text="Transcript verbosity" />
-                    <TextBlock Margin="16,4,0,2"
-                               FontSize="11"
-                               Foreground="#FF64748B"
-                               TextWrapping="Wrap">
-                        Controls how much of each transcript appears in Agent context.
-                    </TextBlock>
-                    <Grid Margin="16,4,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="58" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Slider x:Name="TranscriptVerbositySlider"
-                                Minimum="1" Maximum="10" TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                ToolTip="Low = labels only, high = full transcript text."
-                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                ValueChanged="OnTranscriptVerbositySliderChanged" />
-                        <TextBlock x:Name="TranscriptVerbosityValueText"
-                                   Grid.Column="1" Margin="8,0,4,0"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   Text="5" />
-                        <TextBlock Grid.Column="2"
-                                   VerticalAlignment="Center"
-                                   FontSize="10"
-                                   Foreground="#FF64748B"
-                                   Text="/ 10" />
-                    </Grid>
-                    <TextBlock x:Name="TranscriptVerbosityLegendTextBlock"
-                               Margin="16,0,0,8"
-                               FontSize="10"
-                               Foreground="#FF64748B"
-                               TextWrapping="Wrap" />
-                    <Grid Margin="16,0,0,10">
+        <TabControl HorizontalContentAlignment="Stretch">
+            <!-- ═══ General ═══ -->
+            <TabItem Header="General">
+                <ScrollViewer Margin="0,12,0,0"
+                              VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="16,0,16,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="OpenRouter audio model" />
-                        <ComboBox x:Name="OpenRouterAudioModelComboBox"
+
+                        <!-- ═══ Profile ═══ -->
+                        <TextBlock Grid.Row="0"
+                                   Grid.ColumnSpan="2"
+                                   Margin="0,0,0,10"
+                                   FontWeight="SemiBold"
+                                   Text="Profile" />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,12"
+                                   VerticalAlignment="Center"
+                                   Text="Your name" />
+                        <TextBox x:Name="UserNameTextBox"
+                                 Grid.Row="1"
+                                 Grid.Column="1"
+                                 Margin="0,0,0,12" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Text="Nickname" />
+                        <TextBox x:Name="NicknameTextBox"
+                                 Grid.Row="2"
+                                 Grid.Column="1"
+                                 Margin="0,0,0,0" />
+
+                        <!-- ═══════════════════ -->
+                        <Border Grid.Row="3" Grid.ColumnSpan="2"
+                                Style="{StaticResource SectionSeparator}" />
+
+                        <!-- ═══ Input ═══ -->
+                        <TextBlock Grid.Row="4"
+                                   Grid.ColumnSpan="2"
+                                   Margin="0,0,0,10"
+                                   FontWeight="SemiBold"
+                                   Text="Input" />
+
+                        <TextBlock Grid.Row="5"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Text="Chat shortcut" />
+                        <StackPanel Grid.Row="5"
+                                    Grid.Column="1"
+                                    Orientation="Horizontal">
+                            <Button x:Name="ChatShortcutButton"
+                                    MinWidth="130"
+                                    Padding="10,4"
+                                    Click="OnRecordShortcutClicked" />
+                            <Button Margin="8,0,0,0"
+                                    Padding="10,4"
+                                    Click="OnResetShortcutClicked"
+                                    Content="Reset" />
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ═══ Cloud Providers ═══ -->
+            <TabItem Header="Cloud Providers">
+                <ScrollViewer Margin="0,12,0,0"
+                              VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="16,0,16,0">
+                        <Grid.RowDefinitions>
+                            <!-- ElevenLabs -->
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <!-- Separator -->
+                            <RowDefinition Height="Auto" />
+                            <!-- OpenRouter -->
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- ═══ ElevenLabs ═══ -->
+                        <StackPanel Grid.Row="0"
+                                    Grid.ColumnSpan="2"
+                                    Margin="0,0,0,10"
+                                    Orientation="Horizontal">
+                            <TextBlock FontWeight="SemiBold"
+                                       Text="ElevenLabs" />
+                            <TextBlock x:Name="ElevenLabsCreditText"
+                                       Margin="10,0,0,0"
+                                       Foreground="#FF64748B" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,12"
+                                   VerticalAlignment="Center"
+                                   Text="ElevenLabs API key" />
+                        <PasswordBox x:Name="ElevenLabsApiKeyPasswordBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Margin="0,0,0,12" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,12"
+                                   VerticalAlignment="Center"
+                                   Text="ElevenLabs Agent ID" />
+                        <TextBox x:Name="ElevenLabsAgentIdTextBox"
+                                 Grid.Row="2"
+                                 Grid.Column="1"
+                                 Margin="0,0,0,12" />
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Text="Preferred voice ID" />
+                        <StackPanel Grid.Row="3"
+                                    Grid.Column="1">
+                            <TextBox x:Name="ElevenLabsVoiceIdTextBox" />
+                            <Button Margin="0,8,0,0"
+                                    Padding="10,4"
+                                    HorizontalAlignment="Left"
+                                    Click="OnManagePronunciationsClicked"
+                                    Content="Manage custom pronunciations…" />
+                        </StackPanel>
+
+                        <!-- ═══════════════════ -->
+                        <Border Grid.Row="4" Grid.ColumnSpan="2"
+                                Style="{StaticResource SectionSeparator}" />
+
+                        <!-- ═══ OpenRouter ═══ -->
+                        <StackPanel Grid.Row="5"
+                                    Grid.ColumnSpan="2"
+                                    Margin="0,0,0,10"
+                                    Orientation="Horizontal">
+                            <TextBlock FontWeight="SemiBold"
+                                       Text="OpenRouter" />
+                            <TextBlock x:Name="OpenRouterCreditText"
+                                       Margin="10,0,0,0"
+                                       Foreground="#FF64748B" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,12"
+                                   VerticalAlignment="Center"
+                                   Text="API key" />
+                        <PasswordBox x:Name="OpenRouterApiKeyPasswordBox"
+                                     Grid.Row="6"
+                                     Grid.Column="1"
+                                     Margin="0,0,0,12" />
+
+                        <TextBlock Grid.Row="7"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,12"
+                                   VerticalAlignment="Center"
+                                   Text="Vision model" />
+                        <ComboBox x:Name="OpenRouterVisionModelComboBox"
+                                  Grid.Row="7"
                                   Grid.Column="1"
-                                  ToolTip="Speech-to-text models for audio transcription via OpenRouter.">
+                                  Margin="0,0,0,12"
+                                  ToolTip="Select a vision-capable model for screenshot analysis.">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel>
@@ -354,403 +238,462 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                    </Grid>
 
-                    <Expander Margin="0,0,0,10"
-                              Header="Audio analysis advanced">
-                        <Grid Margin="16,8,0,0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="8"
+                                    Grid.ColumnSpan="2"
+                                    Margin="0,0,0,6"
+                                    Orientation="Horizontal">
+                            <CheckBox x:Name="OpenRouterRequireZdrCheckBox"
+                                      VerticalAlignment="Center"
+                                      IsChecked="True"
+                                      Content="Require zero data retention"
+                                      ToolTip="Only route to providers that do not retain your data." />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="9"
+                                   Grid.ColumnSpan="2"
+                                   Margin="0,4,0,4"
+                                   Foreground="#FF475569"
+                                   TextWrapping="Wrap">
+                            <Run x:Name="OpenRouterModelCapabilitiesText"
+                                 Text="Select a model to see capabilities." />
+                        </TextBlock>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ═══ Data Capture ═══ -->
+            <TabItem Header="Data Capture">
+                <ScrollViewer Margin="0,12,0,0"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,0,16,0">
+
+                        <!-- ═══ Audio ═══ -->
+                        <TextBlock Margin="0,0,0,10"
+                                   FontWeight="SemiBold"
+                                   Text="Audio" />
+                        <TextBlock Margin="0,0,0,10"
+                                   FontSize="11"
+                                   Foreground="#FF64748B"
+                                   Text="Raw audio is never saved. Full transcripts stay in memory temporarily; only reduced observations and optional short excerpts are stored. Enable audio per-application in the Windows section below."
+                                   TextWrapping="Wrap" />
+                        <TextBlock Margin="0,0,0,4"
+                                   FontWeight="SemiBold"
+                                   Text="Transcript verbosity" />
+                        <TextBlock Margin="0,2,0,4"
+                                   FontSize="11"
+                                   Foreground="#FF64748B"
+                                   TextWrapping="Wrap">
+                            Controls how much of each transcript appears in Agent context.
+                        </TextBlock>
+                        <Grid Margin="0,4,0,6">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="TranscriptVerbositySlider"
+                                    Minimum="1" Maximum="10" TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    ToolTip="Low = labels only, high = full transcript text."
+                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                    ValueChanged="OnTranscriptVerbositySliderChanged" />
+                            <TextBlock x:Name="TranscriptVerbosityValueText"
+                                       Grid.Column="1" Margin="8,0,4,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Text="5" />
+                            <TextBlock Grid.Column="2"
+                                       VerticalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="#FF64748B"
+                                       Text="/ 10" />
+                        </Grid>
+                        <TextBlock x:Name="TranscriptVerbosityLegendTextBlock"
+                                   Margin="0,0,0,8"
+                                   FontSize="10"
+                                   Foreground="#FF64748B"
+                                   TextWrapping="Wrap" />
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <CheckBox x:Name="PersistMicrophoneExcerptCheckBox"
-                                      Grid.Row="0"
-                                      Grid.ColumnSpan="2"
-                                      Margin="0,0,0,6"
-                                      Content="Persist microphone transcript excerpts" />
-                            <CheckBox x:Name="PersistSystemAudioExcerptCheckBox"
-                                      Grid.Row="1"
-                                      Grid.ColumnSpan="2"
-                                      Margin="0,0,0,8"
-                                      Content="Persist system-audio transcript excerpts" />
-                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Transcript retention (seconds)" />
-                            <TextBox x:Name="TranscriptRetentionSecondsTextBox"
-                                     Grid.Row="2" Grid.Column="1"
-                                     Style="{StaticResource AdvancedNumberTextBox}" />
-                            <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Audio context depth" />
-                            <TextBox x:Name="AudioContextDepthTextBox"
-                                     Grid.Row="3" Grid.Column="1" Margin="0,6,0,0"
-                                     Style="{StaticResource AdvancedNumberTextBox}"
-                                     ToolTip="Number of recent reduced audio observations included with Agent requests. Zero disables audio context." />
-                            <TextBlock Grid.Row="4" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
-                            <TextBox x:Name="StoredAudioObservationCountTextBox"
-                                     Grid.Row="4" Grid.Column="1" Margin="0,6,0,0"
-                                     Style="{StaticResource AdvancedNumberTextBox}" />
-                            <TextBlock Grid.Row="5" Margin="0,6,0,0" VerticalAlignment="Center" Text="Minimum confidence (0–1)" />
-                            <TextBox x:Name="MinimumAudioConfidenceTextBox"
-                                     Grid.Row="5" Grid.Column="1" Margin="0,6,0,0"
-                                     Width="74"
-                                     HorizontalContentAlignment="Right"
-                                     Padding="4,2" />
-                            <TextBlock Grid.Row="6" Margin="0,6,0,0" VerticalAlignment="Center" Text="Request timeout (seconds)" />
-                            <TextBox x:Name="AudioAnalysisTimeoutSecondsTextBox"
-                                     Grid.Row="6" Grid.Column="1" Margin="0,6,0,0"
-                                     Style="{StaticResource AdvancedNumberTextBox}" />
-                            <TextBlock Grid.Row="7" Margin="0,6,0,0" VerticalAlignment="Center"
-                                       Text="Max segment duration (seconds)"
-                                       ToolTip="Maximum length of a single audio segment before it is sent for transcription. Longer values capture more continuous speech but use more memory." />
-                            <TextBox x:Name="MaxSegmentDurationSecondsTextBox"
-                                     Grid.Row="7" Grid.Column="1" Margin="0,6,0,0"
-                                     Style="{StaticResource AdvancedNumberTextBox}"
-                                     ToolTip="Maximum length of a single audio segment (5–60 seconds). Default is 30." />
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="OpenRouter audio model" />
+                            <ComboBox x:Name="OpenRouterAudioModelComboBox"
+                                      Grid.Column="1"
+                                      ToolTip="Speech-to-text models for audio transcription via OpenRouter.">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <TextBlock Text="{Binding Name}" />
+                                            <TextBlock Text="{Binding CostSummary}"
+                                                       DockPanel.Dock="Right"
+                                                       Foreground="#FF94A3B8"
+                                                       Margin="12,0,0,0"
+                                                       FontSize="11" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </Grid>
-                    </Expander>
 
-                    <Border Padding="10"
-                            Background="#FFF8FAFC"
-                            BorderBrush="#FFE2E8F0"
-                            BorderThickness="1"
-                            CornerRadius="5">
-                        <StackPanel>
-                            <TextBlock FontWeight="SemiBold"
-                                       Text="Live diagnostics" />
-                            <TextBlock Margin="0,3,0,8"
-                                       FontSize="11"
+                        <Expander Margin="0,0,0,10"
+                                  Header="Advanced">
+                            <Grid Margin="16,8,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox x:Name="PersistMicrophoneExcerptCheckBox"
+                                          Grid.Row="0"
+                                          Grid.ColumnSpan="2"
+                                          Margin="0,0,0,6"
+                                          Content="Persist microphone transcript excerpts" />
+                                <CheckBox x:Name="PersistSystemAudioExcerptCheckBox"
+                                          Grid.Row="1"
+                                          Grid.ColumnSpan="2"
+                                          Margin="0,0,0,8"
+                                          Content="Persist system-audio transcript excerpts" />
+                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Transcript retention (seconds)" />
+                                <TextBox x:Name="TranscriptRetentionSecondsTextBox"
+                                         Grid.Row="2" Grid.Column="1"
+                                         Style="{StaticResource AdvancedNumberTextBox}" />
+                                <TextBlock Grid.Row="3" Margin="0,6,0,0" VerticalAlignment="Center" Text="Audio context depth" />
+                                <TextBox x:Name="AudioContextDepthTextBox"
+                                         Grid.Row="3" Grid.Column="1" Margin="0,6,0,0"
+                                         Style="{StaticResource AdvancedNumberTextBox}"
+                                         ToolTip="Number of recent reduced audio observations included with Agent requests. Zero disables audio context." />
+                                <TextBlock Grid.Row="4" Margin="0,6,0,0" VerticalAlignment="Center" Text="Stored observations" />
+                                <TextBox x:Name="StoredAudioObservationCountTextBox"
+                                         Grid.Row="4" Grid.Column="1" Margin="0,6,0,0"
+                                         Style="{StaticResource AdvancedNumberTextBox}" />
+                                <TextBlock Grid.Row="5" Margin="0,6,0,0" VerticalAlignment="Center" Text="Minimum confidence (0–1)" />
+                                <TextBox x:Name="MinimumAudioConfidenceTextBox"
+                                         Grid.Row="5" Grid.Column="1" Margin="0,6,0,0"
+                                         Width="74"
+                                         HorizontalContentAlignment="Right"
+                                         Padding="4,2" />
+                                <TextBlock Grid.Row="6" Margin="0,6,0,0" VerticalAlignment="Center" Text="Request timeout (seconds)" />
+                                <TextBox x:Name="AudioAnalysisTimeoutSecondsTextBox"
+                                         Grid.Row="6" Grid.Column="1" Margin="0,6,0,0"
+                                         Style="{StaticResource AdvancedNumberTextBox}" />
+                                <TextBlock Grid.Row="7" Margin="0,6,0,0" VerticalAlignment="Center"
+                                           Text="Max segment duration (seconds)"
+                                           ToolTip="Maximum length of a single audio segment before it is sent for transcription. Longer values capture more continuous speech but use more memory." />
+                                <TextBox x:Name="MaxSegmentDurationSecondsTextBox"
+                                         Grid.Row="7" Grid.Column="1" Margin="0,6,0,0"
+                                         Style="{StaticResource AdvancedNumberTextBox}"
+                                         ToolTip="Maximum length of a single audio segment (5–60 seconds). Default is 30." />
+                            </Grid>
+                        </Expander>
+
+                        <!-- ═══════════════════ -->
+                        <Border Style="{StaticResource SectionSeparator}" />
+
+                        <!-- ═══ Vision ═══ -->
+                        <TextBlock Margin="0,0,0,10"
+                                   FontWeight="SemiBold"
+                                   Text="Vision" />
+
+                        <TextBlock FontWeight="SemiBold" Text="Commentary" />
+                        <UniformGrid Margin="0,4,0,0" Columns="5">
+                            <RadioButton x:Name="CommentaryOffRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Off"
+                                         ToolTip="Disable ambient comments entirely."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryQuietRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Quiet"
+                                         ToolTip="At least 600 seconds between comments, 600-second check-ins, and 1,200-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryBalancedRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Balanced"
+                                         ToolTip="At least 300 seconds between comments, 300-second check-ins, and 900-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryTalkativeRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Talkative"
+                                         ToolTip="At least 120 seconds between comments, 180-second check-ins, and 600-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryCustomRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Custom"
+                                         ToolTip="Unlock the three exact commentary timing fields in Advanced."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                        </UniformGrid>
+                        <TextBlock x:Name="CommentaryLegendTextBlock" Margin="2,4,0,10" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
+
+                        <TextBlock FontWeight="SemiBold" Text="Comment threshold" />
+                        <Grid Margin="0,4,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="CommentThresholdSlider"
+                                    Minimum="0" Maximum="100" TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    ToolTip="Minimum weighted interest score required before Pebble may make a vision-backed comment. Lower values comment more often."
+                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                    ValueChanged="OnCommentThresholdSliderChanged" />
+                            <TextBox x:Name="CommentThresholdTextBox"
+                                     Grid.Column="1" Margin="8,0,4,0"
+                                     HorizontalContentAlignment="Right"
+                                     ToolTip="Exact comment threshold from 0% to 100%. Lower values allow more vision-backed comments."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     TextChanged="OnCommentThresholdTextChanged"
+                                     PreviewTextInput="OnNumericPreviewTextInput" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="%" />
+                        </Grid>
+
+                        <TextBlock FontWeight="SemiBold" Text="Vision detail" />
+
+                        <TextBlock Margin="0,6,0,2" FontSize="11" Text="Detail level" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="VisionDetailSlider"
+                                    Minimum="1" Maximum="10" TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    ToolTip="How much raw content to include. Low = summarized, high = verbatim."
+                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                    ValueChanged="OnVisionDetailSliderChanged" />
+                            <TextBlock x:Name="VisionDetailValueText"
+                                       Grid.Column="1" Margin="8,0,4,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Text="5" />
+                            <TextBlock Grid.Column="2"
+                                       VerticalAlignment="Center"
+                                       FontSize="10"
                                        Foreground="#FF64748B"
-                                       Text="Completed segments are discarded after analysis. Diagnostics never include audio, transcripts, or provider response bodies."
-                                       TextWrapping="Wrap" />
-                            <TextBlock FontWeight="SemiBold"
-                                       Text="Microphone" />
-                            <TextBlock x:Name="MicrophoneDiagnosticTextBlock"
-                                       Margin="0,2,0,8"
-                                       FontSize="11"
-                                       Foreground="#FF475569"
-                                       TextWrapping="Wrap" />
-                            <TextBlock FontWeight="SemiBold"
-                                       Text="System audio" />
-                            <TextBlock x:Name="SystemAudioDiagnosticTextBlock"
-                                       Margin="0,2,0,0"
-                                       FontSize="11"
-                                       Foreground="#FF475569"
-                                       TextWrapping="Wrap" />
-                            <TextBlock Margin="0,8,0,0"
-                                       FontWeight="SemiBold"
-                                       Text="Analysis" />
-                            <TextBlock x:Name="AnalysisDiagnosticTextBlock"
-                                       Margin="0,2,0,0"
-                                       FontSize="11"
-                                       Foreground="#FF475569"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <!-- ═══════════════════ -->
-                <Border Grid.Row="18" Grid.ColumnSpan="2"
-                        Style="{StaticResource SectionSeparator}" />
-
-                <!-- ═══ Screen Context ═══ -->
-                <StackPanel Grid.Row="19"
-                            Grid.RowSpan="7"
-                            Grid.ColumnSpan="2">
-                    <TextBlock Margin="0,0,0,10"
-                               FontWeight="SemiBold"
-                               Text="Screen Context" />
-                    <CheckBox x:Name="ObservationEnabledCheckBox"
-                              Margin="0,0,0,8"
-                              FontWeight="SemiBold"
-                              Content="Enable screen context observation"
-                              ToolTip="Master switch for screen context. Saved application permissions remain unchanged." />
-                    <CheckBox x:Name="AmbientCommentsEnabledCheckBox"
-                              Margin="0,0,0,10"
-                              Content="Allow ambient comments"
-                              ToolTip="Let the pet occasionally comment on meaningful changes in permitted applications." />
-
-                    <TextBlock FontWeight="SemiBold" Text="Commentary" />
-                    <UniformGrid Margin="0,4,0,0" Columns="4">
-                        <RadioButton x:Name="CommentaryQuietRadioButton"
-                                     GroupName="Commentary"
-                                     Content="Quiet"
-                                     ToolTip="At least 600 seconds between comments, 600-second check-ins, and 1,200-second duplicate suppression."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnCommentaryLevelChanged" />
-                        <RadioButton x:Name="CommentaryBalancedRadioButton"
-                                     GroupName="Commentary"
-                                     Content="Balanced"
-                                     ToolTip="At least 300 seconds between comments, 300-second check-ins, and 900-second duplicate suppression."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnCommentaryLevelChanged" />
-                        <RadioButton x:Name="CommentaryTalkativeRadioButton"
-                                     GroupName="Commentary"
-                                     Content="Talkative"
-                                     ToolTip="At least 120 seconds between comments, 180-second check-ins, and 600-second duplicate suppression."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnCommentaryLevelChanged" />
-                        <RadioButton x:Name="CommentaryCustomRadioButton"
-                                     GroupName="Commentary"
-                                     Content="Custom"
-                                     ToolTip="Unlock the three exact commentary timing fields in Advanced."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     Checked="OnCommentaryLevelChanged" />
-                    </UniformGrid>
-                    <TextBlock x:Name="CommentaryLegendTextBlock" Margin="2,4,0,10" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
-
-                    <TextBlock FontWeight="SemiBold" Text="Comment threshold" />
-                    <Grid Margin="0,4,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="58" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Slider x:Name="CommentThresholdSlider"
-                                Minimum="0" Maximum="100" TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                ToolTip="Minimum weighted interest score required before Pebble may make a vision-backed comment. Lower values comment more often."
-                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                ValueChanged="OnCommentThresholdSliderChanged" />
-                        <TextBox x:Name="CommentThresholdTextBox"
-                                 Grid.Column="1" Margin="8,0,4,0"
-                                 HorizontalContentAlignment="Right"
-                                 ToolTip="Exact comment threshold from 0% to 100%. Lower values allow more vision-backed comments."
-                                 ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                 TextChanged="OnCommentThresholdTextChanged"
-                                 PreviewTextInput="OnNumericPreviewTextInput" />
-                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="%" />
-                    </Grid>
-
-                    <TextBlock FontWeight="SemiBold" Text="Vision detail" />
-                    <TextBlock Margin="0,4,0,2"
-                               FontSize="11"
-                               Foreground="#FF64748B"
-                               TextWrapping="Wrap">
-                        Control how much detail the vision model reports and how verbose its descriptions are.
-                    </TextBlock>
-
-                    <TextBlock Margin="0,6,0,2" FontSize="11" Text="Detail level" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="58" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Slider x:Name="VisionDetailSlider"
-                                Minimum="1" Maximum="10" TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                ToolTip="How much raw content to include. Low = summarized, high = verbatim."
-                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                ValueChanged="OnVisionDetailSliderChanged" />
-                        <TextBlock x:Name="VisionDetailValueText"
-                                   Grid.Column="1" Margin="8,0,4,0"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   Text="5" />
-                        <TextBlock Grid.Column="2"
-                                   VerticalAlignment="Center"
+                                       Text="/ 10" />
+                        </Grid>
+                        <TextBlock x:Name="VisionDetailLegendTextBlock"
+                                   Margin="2,2,0,6"
                                    FontSize="10"
                                    Foreground="#FF64748B"
-                                   Text="/ 10" />
-                    </Grid>
-                    <TextBlock x:Name="VisionDetailLegendTextBlock"
-                               Margin="2,2,0,6"
-                               FontSize="10"
-                               Foreground="#FF64748B"
-                               TextWrapping="Wrap" />
+                                   TextWrapping="Wrap" />
 
-                    <TextBlock Margin="0,4,0,2" FontSize="11" Text="Verbosity" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="58" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Slider x:Name="VisionVerbositySlider"
-                                Minimum="1" Maximum="10" TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                ToolTip="How descriptive the output is. Low = succinct, high = verbose."
-                                ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                ValueChanged="OnVisionVerbositySliderChanged" />
-                        <TextBlock x:Name="VisionVerbosityValueText"
-                                   Grid.Column="1" Margin="8,0,4,0"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   Text="5" />
-                        <TextBlock Grid.Column="2"
-                                   VerticalAlignment="Center"
+                        <TextBlock Margin="0,4,0,2" FontSize="11" Text="Verbosity" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="VisionVerbositySlider"
+                                    Minimum="1" Maximum="10" TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    ToolTip="How descriptive the output is. Low = succinct, high = verbose."
+                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                    ValueChanged="OnVisionVerbositySliderChanged" />
+                            <TextBlock x:Name="VisionVerbosityValueText"
+                                       Grid.Column="1" Margin="8,0,4,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Text="5" />
+                            <TextBlock Grid.Column="2"
+                                       VerticalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="#FF64748B"
+                                       Text="/ 10" />
+                        </Grid>
+                        <TextBlock x:Name="VisionVerbosityLegendTextBlock"
+                                   Margin="2,2,0,8"
                                    FontSize="10"
                                    Foreground="#FF64748B"
-                                   Text="/ 10" />
-                    </Grid>
-                    <TextBlock x:Name="VisionVerbosityLegendTextBlock"
-                               Margin="2,2,0,8"
-                               FontSize="10"
-                               Foreground="#FF64748B"
-                               TextWrapping="Wrap" />
+                                   TextWrapping="Wrap" />
 
-                    <Expander Header="Advanced"
-                              Margin="0,4,0,10"
-                              IsExpanded="False"
-                              ToolTip="Show exact timing, scoring, provider-cost, context, and retention controls."
-                              ToolTipService.ShowsToolTipOnKeyboardFocus="True">
-                        <StackPanel Margin="12,8,0,4">
-                            <TextBlock FontWeight="SemiBold" Text="Commentary" />
-                            <UniformGrid Columns="2" Margin="0,6,0,0">
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (seconds)" /><TextBox x:Name="CooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (seconds)" /><TextBox x:Name="CheckInSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (seconds)" /><TextBox x:Name="DuplicateWindowSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Privacy safety weight (%)" /><TextBox x:Name="PrivacyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly non-sensitive content raises the comment score. All four weights must total 100%." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Low interruption cost weight (%)" /><TextBox x:Name="InterruptionWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly a low estimated interruption cost raises the comment score. All four weights must total 100%." /></StackPanel>
-                            </UniformGrid>
+                        <Expander Header="Advanced"
+                                  Margin="0,4,0,10"
+                                  IsExpanded="False"
+                                  ToolTip="Show exact timing, scoring, provider-cost, context, and retention controls."
+                                  ToolTipService.ShowsToolTipOnKeyboardFocus="True">
+                            <StackPanel Margin="12,8,0,4">
+                                <TextBlock FontWeight="SemiBold" Text="Commentary" />
+                                <UniformGrid Columns="2" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (seconds)" /><TextBox x:Name="CooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (seconds)" /><TextBox x:Name="CheckInSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (seconds)" /><TextBox x:Name="DuplicateWindowSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Privacy safety weight (%)" /><TextBox x:Name="PrivacyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly non-sensitive content raises the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Low interruption cost weight (%)" /><TextBox x:Name="InterruptionWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly a low estimated interruption cost raises the comment score. All four weights must total 100%." /></StackPanel>
+                                </UniformGrid>
 
-                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Observation timing" />
-                            <UniformGrid Columns="2" Margin="0,6,0,0">
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Foreground polling (seconds)" /><TextBox x:Name="PollIntervalSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often DesktopPet checks the foreground window. Lower values react faster but do more local work." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Minimum activity dwell (seconds)" /><TextBox x:Name="MinimumDwellSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Ignore rapid application or title changes until the activity has remained stable for this long." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="UI inspection cooldown (seconds)" /><TextBox x:Name="StructureCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between Windows UI Automation inspections for the same application." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Screenshot delay (milliseconds)" /><TextBox x:Name="CaptureDelayMillisecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Wait this long after an application or title change before capturing, allowing the new screen to finish drawing." /></StackPanel>
-                            </UniformGrid>
+                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Observation timing" />
+                                <UniformGrid Columns="2" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Foreground polling (seconds)" /><TextBox x:Name="PollIntervalSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often DesktopPet checks the foreground window. Lower values react faster but do more local work." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Minimum activity dwell (seconds)" /><TextBox x:Name="MinimumDwellSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Ignore rapid application or title changes until the activity has remained stable for this long." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="UI inspection cooldown (seconds)" /><TextBox x:Name="StructureCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between Windows UI Automation inspections for the same application." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Screenshot delay (milliseconds)" /><TextBox x:Name="CaptureDelayMillisecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Wait this long after an application or title change before capturing, allowing the new screen to finish drawing." /></StackPanel>
+                                </UniformGrid>
 
-                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Vision and context" />
-                            <CheckBox x:Name="CaptureScreenshotOnChatSendCheckBox"
-                                      Margin="0,6,0,6"
-                                      Content="Capture the active window when sending a chat message"
-                                      ToolTip="When enabled, a typed chat request captures and analyzes the active application window if Desktop observation is on, the application has Vision permission, and OpenRouter vision is configured."
-                                      ToolTipService.ShowsToolTipOnKeyboardFocus="True" />
-                            <UniformGrid Columns="2" Margin="0,6,0,0">
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Vision analysis cooldown (seconds)" /><TextBox x:Name="VisionCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between OpenRouter vision analyses. Lower values can increase provider usage and cost." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Vision request timeout (seconds)" /><TextBox x:Name="VisionTimeoutSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Cancel a vision provider request if it has not completed within this time." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Maximum screenshot width" /><TextBox x:Name="ScreenshotWidthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this width before vision analysis. Larger images may cost more." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Maximum screenshot height" /><TextBox x:Name="ScreenshotHeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this height before vision analysis. Aspect ratio is preserved." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Observation context depth" /><TextBox x:Name="ObservationContextDepthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Number of recent visual observations supplied to vision analysis, typed replies, and ambient replies. Zero disables this history." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Suggested comment topics" /><TextBox x:Name="CommentTopicLimitTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum number of vision-suggested topics included when asking the Agent to compose an ambient comment." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Regular conversation messages" /><TextBox x:Name="RegularHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent non-ambient conversation messages included with each Agent request." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Ambient conversation messages" /><TextBox x:Name="AmbientHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent ambient replies included with each Agent request." /></StackPanel>
-                            </UniformGrid>
+                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Vision and context" />
+                                <CheckBox x:Name="CaptureScreenshotOnChatSendCheckBox"
+                                          Margin="0,6,0,6"
+                                          Content="Capture the active window when sending a chat message"
+                                          ToolTip="When enabled, a typed chat request captures and analyzes the active application window if observation is on, the application has Vision permission, and OpenRouter vision is configured."
+                                          ToolTipService.ShowsToolTipOnKeyboardFocus="True" />
+                                <UniformGrid Columns="2" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Vision analysis cooldown (seconds)" /><TextBox x:Name="VisionCooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between OpenRouter vision analyses. Lower values can increase provider usage and cost." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Vision request timeout (seconds)" /><TextBox x:Name="VisionTimeoutSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Cancel a vision provider request if it has not completed within this time." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Maximum screenshot width" /><TextBox x:Name="ScreenshotWidthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this width before vision analysis. Larger images may cost more." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Maximum screenshot height" /><TextBox x:Name="ScreenshotHeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Downscale captured windows to no more than this height before vision analysis. Aspect ratio is preserved." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Observation context depth" /><TextBox x:Name="ObservationContextDepthTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Number of recent visual observations supplied to vision analysis, typed replies, and ambient replies. Zero disables this history." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Suggested comment topics" /><TextBox x:Name="CommentTopicLimitTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum number of vision-suggested topics included when asking the Agent to compose an ambient comment." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Regular conversation messages" /><TextBox x:Name="RegularHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent non-ambient conversation messages included with each Agent request." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Ambient conversation messages" /><TextBox x:Name="AmbientHistoryMessageCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum recent ambient replies included with each Agent request." /></StackPanel>
+                                </UniformGrid>
 
-                            <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Retention" />
-                            <UniformGrid Columns="2" Margin="0,6,0,0">
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Recent observations in memory" /><TextBox x:Name="RecentObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum reduced foreground observations retained in memory for detecting changes and supplying recent activity." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (seconds)" /><TextBox x:Name="RecentObservationAgeSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
-                                <StackPanel Margin="0,0,12,6"><TextBlock Text="Stored visual observations" /><TextBox x:Name="StoredObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum visual observation records retained on disk. Lowering this deletes the oldest records and their thumbnails on Save." /></StackPanel>
-                                <StackPanel Margin="0,0,0,6"><TextBlock Text="Stored ambient decisions" /><TextBox x:Name="StoredDecisionCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum ambient policy decision records retained on disk. Lowering this removes the oldest records on Save." /></StackPanel>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Expander>
+                                <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Retention" />
+                                <UniformGrid Columns="2" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Recent observations in memory" /><TextBox x:Name="RecentObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum reduced foreground observations retained in memory for detecting changes and supplying recent activity." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (seconds)" /><TextBox x:Name="RecentObservationAgeSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Stored visual observations" /><TextBox x:Name="StoredObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum visual observation records retained on disk. Lowering this deletes the oldest records and their thumbnails on Save." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Stored ambient decisions" /><TextBox x:Name="StoredDecisionCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum ambient policy decision records retained on disk. Lowering this removes the oldest records on Save." /></StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Expander>
 
-                    <TextBlock Foreground="#FF475569"
-                               Text="Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window."
-                               TextWrapping="Wrap" />
-                    <TextBlock x:Name="VisionWarningTextBlock"
-                               Margin="0,4,0,8"
-                               Foreground="#FF9A3412"
-                               Text="Vision analysis requires an OpenRouter API key and vision model selection above."
-                               TextWrapping="Wrap" />
+                        <!-- ═══════════════════ -->
+                        <Border Style="{StaticResource SectionSeparator}" />
 
-                    <DataGrid x:Name="ApplicationsGrid"
-                          MaxHeight="250"
-                          VerticalAlignment="Top"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          HeadersVisibility="Column"
-                          IsReadOnly="False"
-                          SelectionMode="Single">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Width="2*"
-                                            Binding="{Binding DisplayName}"
-                                            IsReadOnly="True">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="Application"
-                                           ToolTip="Running or previously configured application." />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="3*"
-                                            Binding="{Binding ExecutablePath}"
-                                            IsReadOnly="True">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="Executable"
-                                           ToolTip="Executable path used to identify the application." />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTemplateColumn Width="75"
-                                                CanUserSort="False">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock Text="Deny"
-                                           ToolTip="Block all screen context for this application." />
-                            </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              IsChecked="{Binding IsDenied, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              ToolTip="Block all screen context for this application." />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Width="100"
-                                                CanUserSort="False">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock Text="Metadata"
-                                           ToolTip="Allow window details, visible accessibility labels, and focused controls." />
-                            </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              IsChecked="{Binding AllowMetadataAndStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              ToolTip="Allow window details, visible accessibility labels, and focused controls." />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Width="90"
-                                                CanUserSort="False">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock Text="Vision"
-                                           ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
-                            </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <!-- TODO: Remove custom audio column once NAudio 3.x ships process loopback (PR #1225) -->
-                        <DataGridTemplateColumn Width="80"
-                                                CanUserSort="False">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock Text="Audio"
-                                           ToolTip="Capture audio output from this application. Disabled when system-wide audio is active." />
-                            </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox x:Name="AudioSpeakerCheckBox"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              IsChecked="{Binding AllowAudio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              IsEnabled="{Binding IsAudioEnabled}"
-                                              ToolTip="Capture audio output from this application." />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                    </DataGrid>
-                </StackPanel>
-            </Grid>
-        </ScrollViewer>
+                        <!-- ═══ Windows ═══ -->
+                        <TextBlock Margin="0,0,0,4"
+                                   FontWeight="SemiBold"
+                                   Text="Windows" />
+                        <TextBlock Margin="0,0,0,10"
+                                   FontSize="11"
+                                   Foreground="#FF64748B"
+                                   TextWrapping="Wrap">
+                            Per-application permissions for metadata, vision, and audio capture. The System row controls system-wide audio; when enabled, per-app audio toggles are overridden.
+                        </TextBlock>
+                        <TextBlock Foreground="#FF475569"
+                                   TextWrapping="Wrap">
+                            Metadata identifies the active window and reads visible accessibility labels. Vision sees the permitted window.
+                        </TextBlock>
+
+                        <DataGrid x:Name="ApplicationsGrid"
+                              MaxHeight="250"
+                              VerticalAlignment="Top"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              IsReadOnly="False"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="2*"
+                                                Binding="{Binding DisplayName}"
+                                                IsReadOnly="True">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="Application"
+                                               ToolTip="Running or previously configured application." />
+                                </DataGridTextColumn.Header>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ExecutablePath}" Value="">
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="3*"
+                                                Binding="{Binding ExecutablePath}"
+                                                IsReadOnly="True">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="Executable"
+                                               ToolTip="Executable path used to identify the application." />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="100"
+                                                    CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="Metadata"
+                                               ToolTip="Allow window details, visible accessibility labels, and focused controls." />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  IsChecked="{Binding AllowMetadataAndStructure, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsMetadataEnabled}"
+                                                  Checked="OnMetadataCheckBoxToggled"
+                                                  Unchecked="OnMetadataCheckBoxToggled"
+                                                  ToolTip="Allow window details, visible accessibility labels, and focused controls." />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="90"
+                                                    CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="Vision"
+                                               ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  IsChecked="{Binding AllowVisual, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsVisionEnabled}"
+                                                  Checked="OnVisionCheckBoxChecked"
+                                                  Unchecked="OnVisionCheckBoxToggled"
+                                                  ToolTip="Allow in-memory window capture when vision analysis is available. Also enables Metadata." />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- TODO: Remove custom audio column once NAudio 3.x ships process loopback (PR #1225) -->
+                            <DataGridTemplateColumn Width="80"
+                                                    CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="Audio"
+                                               ToolTip="Capture audio output from this application. The System row enables system-wide capture, overriding per-app settings." />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox x:Name="AudioSpeakerCheckBox"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  IsChecked="{Binding AllowAudio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsAudioEnabled}"
+                                                  Checked="OnAudioCheckBoxToggled"
+                                                  Unchecked="OnAudioCheckBoxToggled"
+                                                  ToolTip="Capture audio output from this application." />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

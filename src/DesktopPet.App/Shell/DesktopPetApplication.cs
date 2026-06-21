@@ -262,7 +262,6 @@ public sealed class DesktopPetApplication : IDisposable
                 _profileSettingsStore,
                 _audioContextSettingsStore,
                 _audioCaptureCoordinator,
-                _audioAnalysisCoordinator,
                 _audioObservationStore,
                 _errorMessageStore,
                 ApplyUiSettings,

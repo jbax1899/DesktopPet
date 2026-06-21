@@ -19,7 +19,6 @@ public partial class SettingsWindow : Window
     private readonly ProfileSettingsStore _profileSettingsStore;
     private readonly AudioContextSettingsStore _audioContextSettingsStore;
     private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
-    private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
     private readonly AudioObservationStore _audioObservationStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
     private readonly Func<UiSettings, PetError?> _applyUiSettings;
@@ -50,7 +49,6 @@ public partial class SettingsWindow : Window
         ProfileSettingsStore profileSettingsStore,
         AudioContextSettingsStore audioContextSettingsStore,
         AudioCaptureCoordinator audioCaptureCoordinator,
-        AudioAnalysisCoordinator audioAnalysisCoordinator,
         AudioObservationStore audioObservationStore,
         CharacterErrorMessageStore errorMessageStore,
         Func<UiSettings, PetError?> applyUiSettings,
@@ -69,7 +67,6 @@ public partial class SettingsWindow : Window
         _profileSettingsStore = profileSettingsStore;
         _audioContextSettingsStore = audioContextSettingsStore;
         _audioCaptureCoordinator = audioCaptureCoordinator;
-        _audioAnalysisCoordinator = audioAnalysisCoordinator;
         _audioObservationStore = audioObservationStore;
         _errorMessageStore = errorMessageStore;
         _applyUiSettings = applyUiSettings;
@@ -92,7 +89,6 @@ public partial class SettingsWindow : Window
         _ = LoadVisionModelsAsync();
         _ = LoadAudioModelsAsync();
         _ = LoadCreditsAsync();
-        RefreshAudioDiagnostics();
         _audioDiagnosticsTimer.Start();
     }
 
@@ -148,11 +144,17 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
+            // Derive audio settings from the System row and per-app rows.
+            var systemRow = _observationRows.FirstOrDefault(r => r.ExecutablePath == SystemRowExecutablePath);
+            var systemAudioEnabled = systemRow?.AllowAudio == true;
+            var anyPerAppAudio = _observationRows
+                .Any(r => r.ExecutablePath != SystemRowExecutablePath && r.AllowAudio);
+
             var audioSettings = new AudioContextSettings(
-                AmbientAudioEnabledCheckBox.IsChecked == true,
-                MicrophoneCaptureEnabledCheckBox.IsChecked == true,
-                SystemAudioCaptureEnabledCheckBox.IsChecked == true,
-                AudioAnalysisEnabledCheckBox.IsChecked == true,
+                Enabled: systemAudioEnabled || anyPerAppAudio,
+                MicrophoneEnabled: systemAudioEnabled,
+                SystemAudioEnabled: systemAudioEnabled,
+                AnalysisEnabled: true,
                 PersistMicrophoneExcerptCheckBox.IsChecked == true,
                 PersistSystemAudioExcerptCheckBox.IsChecked == true,
                 ClampInt(AudioContextDepthTextBox.Text, 0, 20, 5),
@@ -163,7 +165,7 @@ public partial class SettingsWindow : Window
                 (int)TranscriptVerbositySlider.Value,
                 ClampInt(MaxSegmentDurationSecondsTextBox.Text, 5, 60, 30),
                 _observationRows
-                    .Where(row => row.AllowAudio)
+                    .Where(row => row.ExecutablePath != SystemRowExecutablePath && row.AllowAudio)
                     .Select(row => new AudioApplicationRule(row.ExecutablePath, row.DisplayName, row.AllowAudio))
                     .ToArray());
             _audioContextSettingsStore.Save(audioSettings);
@@ -175,7 +177,6 @@ public partial class SettingsWindow : Window
                 audioSettings.SystemAudioEnabled,
                 TimeSpan.FromSeconds(audioSettings.MaximumSegmentDurationSeconds));
             _audioObservationStore.ApplyRetentionLimit();
-            RefreshAudioDiagnostics();
 
             var uiSettings = currentUiSettings with
             {
@@ -219,10 +220,6 @@ public partial class SettingsWindow : Window
         NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
 
         var audioSettings = _audioContextSettingsStore.Load();
-        AmbientAudioEnabledCheckBox.IsChecked = audioSettings.Enabled;
-        MicrophoneCaptureEnabledCheckBox.IsChecked = audioSettings.MicrophoneEnabled;
-        SystemAudioCaptureEnabledCheckBox.IsChecked = audioSettings.SystemAudioEnabled;
-        AudioAnalysisEnabledCheckBox.IsChecked = audioSettings.AnalysisEnabled;
         PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
         PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
         AudioContextDepthTextBox.Text = audioSettings.ContextDepth.ToString();
@@ -248,22 +245,6 @@ public partial class SettingsWindow : Window
         }
 
         LoadObservationSettings();
-
-        // Apply per-app audio rules to observation rows.
-        var audioRules = audioSettings.AudioApplicationRules;
-        var audioRuleLookup = audioRules.ToDictionary(
-            r => r.ExecutablePath,
-            r => r.AllowCapture,
-            StringComparer.OrdinalIgnoreCase);
-        foreach (var row in _observationRows)
-        {
-            if (audioRuleLookup.TryGetValue(row.ExecutablePath, out var allowAudio))
-            {
-                row.AllowAudio = allowAudio;
-            }
-        }
-
-        UpdatePerAppAudioEnabledState();
     }
 
     private static int ParseInt(System.Windows.Controls.TextBox textBox, int fallback) =>

@@ -2,6 +2,7 @@ namespace DesktopPet.App.Observation;
 
 public enum CommentaryPreset
 {
+    Off,
     Quiet,
     Balanced,
     Talkative,
@@ -57,6 +58,7 @@ public static class ObservationSettingLimits
 
     public static CommentaryTiming GetPreset(CommentaryPreset preset) => preset switch
     {
+        CommentaryPreset.Off => new(7200, 7200, 14400),
         CommentaryPreset.Talkative => new(120, 180, 600),
         CommentaryPreset.Quiet => new(600, 600, 1200),
         _ => new(300, 300, 900)
@@ -64,7 +66,7 @@ public static class ObservationSettingLimits
 
     public static CommentaryPreset MatchPreset(int cooldownSeconds, int checkInSeconds, int duplicateWindowSeconds)
     {
-        foreach (var preset in new[] { CommentaryPreset.Talkative, CommentaryPreset.Balanced, CommentaryPreset.Quiet })
+        foreach (var preset in new[] { CommentaryPreset.Off, CommentaryPreset.Talkative, CommentaryPreset.Balanced, CommentaryPreset.Quiet })
         {
             var timing = GetPreset(preset);
             if (timing.CooldownSeconds == cooldownSeconds

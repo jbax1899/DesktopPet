@@ -38,6 +38,9 @@ public sealed class UiSettingsStore
             ChatShortcut = settings.ChatShortcut.IsValid()
                 ? settings.ChatShortcut
                 : KeyboardShortcut.DefaultChatShortcut,
+            PushToTalkShortcut = settings.PushToTalkShortcut.IsValid()
+                ? settings.PushToTalkShortcut
+                : KeyboardShortcut.DefaultPushToTalkShortcut,
             ChatHistoryContext = settings.GetEffectiveChatHistoryContext()
         };
     }

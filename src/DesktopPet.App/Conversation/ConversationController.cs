@@ -1,3 +1,4 @@
+using DesktopPet.App.Audio;
 using DesktopPet.App.Cloud;
 using DesktopPet.App.Errors;
 using DesktopPet.App.Memory;
@@ -29,6 +30,7 @@ public sealed class ConversationController : IDisposable
     private readonly ObservationStore _observationStore;
     private readonly IObservationPermissionService _observationPermissionService;
     private readonly Func<string?> _audioObservationContextProvider;
+    private readonly IAudioSegmentAnalyzer _audioSegmentAnalyzer;
     private readonly SemaphoreSlim _playbackGate = new(1, 1);
 
     private int _newestSubmittedTurnId;
@@ -52,7 +54,8 @@ public sealed class ConversationController : IDisposable
         IAmbientActivityState ambientActivityState,
         ObservationStore observationStore,
         IObservationPermissionService observationPermissionService,
-        Func<string?> audioObservationContextProvider)
+        Func<string?> audioObservationContextProvider,
+        IAudioSegmentAnalyzer audioSegmentAnalyzer)
     {
         _overlayWindow = overlayWindow;
         _chatService = chatService;
@@ -69,6 +72,7 @@ public sealed class ConversationController : IDisposable
         _observationStore = observationStore;
         _observationPermissionService = observationPermissionService;
         _audioObservationContextProvider = audioObservationContextProvider;
+        _audioSegmentAnalyzer = audioSegmentAnalyzer;
 
         _overlayWindow.MessageSubmitted += OnMessageSubmitted;
         _overlayWindow.UserInputActivity += OnUserInputActivity;
@@ -97,6 +101,44 @@ public sealed class ConversationController : IDisposable
             ShowError(ex, PetErrorCode.PlaybackFailed);
             _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
             throw;
+        }
+    }
+
+    public async Task SubmitVoiceInputAsync(CompletedAudioSegment segment, CancellationToken cancellationToken)
+    {
+        using (segment)
+        {
+            if (!_audioSegmentAnalyzer.IsAvailable)
+            {
+                _overlayWindow.ShowError("Speech-to-text is not configured. Set an OpenRouter API key and audio model in Settings.");
+                return;
+            }
+
+            try
+            {
+                var response = await _audioSegmentAnalyzer.AnalyzeAsync(
+                    segment,
+                    new AudioAnalysisOptions(MaximumTranscriptCharacters: 0),
+                    cancellationToken);
+
+                var transcript = response.Analysis?.Transcript;
+                if (response.Status is not (AudioAnalysisStatus.Success or AudioAnalysisStatus.Partial)
+                    || string.IsNullOrWhiteSpace(transcript))
+                {
+                    _overlayWindow.ShowError(response.Failure?.SafeMessage ?? "Could not transcribe the recording.");
+                    return;
+                }
+
+                await SubmitAsync(transcript.Trim());
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex, PetErrorCode.ChatFailed);
+                _characterStateController.ShowTemporaryMood(PetMood.Alarmed, ErrorMoodDuration);
+            }
         }
     }
 

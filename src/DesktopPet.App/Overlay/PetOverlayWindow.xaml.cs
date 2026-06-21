@@ -567,6 +567,11 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
             return PetMood.Speaking;
         }
 
+        if (_moodScopes.ContainsValue(PetMood.Listening))
+        {
+            return PetMood.Listening;
+        }
+
         if (_moodScopes.ContainsValue(PetMood.Thinking))
         {
             return PetMood.Thinking;
@@ -579,11 +584,12 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
 
     private void ApplyMoodIcon(PetMood mood)
     {
-        MoodBadge.Visibility = mood is PetMood.Thinking or PetMood.Alarmed
+        MoodBadge.Visibility = mood is PetMood.Thinking or PetMood.Alarmed or PetMood.Listening
             ? Visibility.Visible
             : Visibility.Collapsed;
         ThinkingMoodIcon.Visibility = mood == PetMood.Thinking ? Visibility.Visible : Visibility.Collapsed;
         AlarmedMoodIcon.Visibility = mood == PetMood.Alarmed ? Visibility.Visible : Visibility.Collapsed;
+        ListeningMoodIcon.Visibility = mood == PetMood.Listening ? Visibility.Visible : Visibility.Collapsed;
 
         if (mood != PetMood.Thinking)
         {

@@ -111,6 +111,15 @@
                            Text="!"
                            Visibility="Collapsed" />
 
+                <Viewbox x:Name="ListeningMoodIcon"
+                         Width="16"
+                         Height="16"
+                         Visibility="Collapsed">
+                    <Path Data="{StaticResource MicrophoneIconGeometry}"
+                          Fill="#2563EB"
+                          Stretch="Uniform" />
+                </Viewbox>
+
                 <TextBlock x:Name="SleepyMoodIcon"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"

@@ -6,5 +6,6 @@ public enum PetMood
     Thinking,
     Speaking,
     Sleepy,
-    Alarmed
+    Alarmed,
+    Listening
 }

@@ -23,10 +23,13 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 ### Pet and conversation
 
 - Transparent always-on-top pet overlay with draggable, clamped, saved
-  placement, tray controls, click-through, and a configurable global chat
-  shortcut.
-- The action pad opens Chat, Memories, and Settings. Microphone input remains a
-  disabled placeholder.
+  placement, tray controls, click-through, a configurable global chat
+  shortcut (Shift+Space), and a push-to-talk shortcut (Ctrl+Space).
+- The action pad opens Chat, Memories, and Settings.
+- Push-to-talk records from the default microphone while Ctrl+Space is held.
+  On release, the recording is transcribed via OpenRouter STT and sent as a
+  chat message, triggering a full AI response. Screenshots are captured when
+  enabled. A Listening mood shows while recording.
 - Typed chat stays in the conversation overlay with content-sized bubbles,
   a solid light-gray transcript bubble with outlined green text, and safe
   interruption behavior.
@@ -210,7 +213,6 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 ## Later Work
 
-- Optional push-to-talk microphone input, not a live voice session.
 - Better credential storage, output-device selection, and richer subtitle or
   speech-bubble presentation.
 - Blinking, more natural idle motion, and a cleaner renderer/performance

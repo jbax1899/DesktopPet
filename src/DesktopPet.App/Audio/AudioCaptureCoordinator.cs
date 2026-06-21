@@ -14,6 +14,12 @@ public sealed class AudioCaptureCoordinator : IDisposable
     private DateTimeOffset _speechSuppressedUntil;
     private bool _disposed;
 
+    private IAudioCaptureSource? _pushToTalkSource;
+    private readonly List<float> _pushToTalkBuffer = [];
+    private DateTimeOffset _pushToTalkStartedAt;
+    private int _pushToTalkSampleRate;
+    private bool _isPushToTalkRecording;
+
     public AudioCaptureCoordinator()
         : this(kind => kind switch
         {
@@ -101,6 +107,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
         lock (_sync)
         {
+            StopPushToTalkSource();
             foreach (var session in _sessions.Values)
             {
                 StopSource(session, clearDiagnostics: true);
@@ -112,6 +119,155 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
 
         _silenceTimer.Dispose();
+    }
+
+    public bool IsPushToTalkRecording
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _isPushToTalkRecording;
+            }
+        }
+    }
+
+    public void StartPushToTalkRecording()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_isPushToTalkRecording)
+            {
+                return;
+            }
+
+            var micSession = _sessions[AudioSourceKind.Microphone];
+            if (micSession.State == AudioCaptureState.Capturing)
+            {
+                StopSource(micSession, clearDiagnostics: false);
+            }
+
+            _pushToTalkBuffer.Clear();
+            _pushToTalkSampleRate = 0;
+            _pushToTalkStartedAt = _timeProvider.GetUtcNow();
+            _isPushToTalkRecording = true;
+
+            IAudioCaptureSource? source = null;
+            try
+            {
+                source = _sourceFactory(AudioSourceKind.Microphone);
+                source.SamplesAvailable += OnPushToTalkSamplesAvailable;
+                source.CaptureFailed += OnPushToTalkCaptureFailed;
+                _pushToTalkSource = source;
+                source.Start();
+                _pushToTalkSampleRate = 0;
+            }
+            catch (Exception)
+            {
+                if (source is not null)
+                {
+                    source.SamplesAvailable -= OnPushToTalkSamplesAvailable;
+                    source.CaptureFailed -= OnPushToTalkCaptureFailed;
+                    source.Dispose();
+                }
+
+                _pushToTalkSource = null;
+                _isPushToTalkRecording = false;
+                throw;
+            }
+        }
+    }
+
+    public CompletedAudioSegment? StopPushToTalkRecording()
+    {
+        lock (_sync)
+        {
+            if (!_isPushToTalkRecording)
+            {
+                return null;
+            }
+
+            StopPushToTalkSource();
+            _isPushToTalkRecording = false;
+
+            var now = _timeProvider.GetUtcNow();
+            var duration = now - _pushToTalkStartedAt;
+            if (duration < TimeSpan.FromMilliseconds(500) || _pushToTalkBuffer.Count == 0 || _pushToTalkSampleRate <= 0)
+            {
+                _pushToTalkBuffer.Clear();
+                return null;
+            }
+
+            var segment = new CompletedAudioSegment(
+                Guid.NewGuid().ToString("N"),
+                AudioSourceKind.Microphone,
+                _pushToTalkStartedAt,
+                now,
+                _pushToTalkSampleRate,
+                _pushToTalkBuffer.ToArray());
+            _pushToTalkBuffer.Clear();
+            return segment;
+        }
+    }
+
+    private void OnPushToTalkSamplesAvailable(object? sender, AudioSamplesAvailableEventArgs e)
+    {
+        if (sender is not IAudioCaptureSource source)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (!ReferenceEquals(_pushToTalkSource, source) || !_isPushToTalkRecording)
+            {
+                return;
+            }
+
+            if (_pushToTalkSampleRate <= 0)
+            {
+                _pushToTalkSampleRate = e.SampleRate;
+            }
+
+            _pushToTalkBuffer.AddRange(e.MonoSamples);
+        }
+    }
+
+    private void OnPushToTalkCaptureFailed(object? sender, Exception? exception)
+    {
+        if (sender is not IAudioCaptureSource source)
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (!ReferenceEquals(_pushToTalkSource, source))
+            {
+                return;
+            }
+
+            source.SamplesAvailable -= OnPushToTalkSamplesAvailable;
+            source.CaptureFailed -= OnPushToTalkCaptureFailed;
+            _pushToTalkSource = null;
+            _isPushToTalkRecording = false;
+            _pushToTalkBuffer.Clear();
+            _ = Task.Run(source.Dispose);
+        }
+    }
+
+    private void StopPushToTalkSource()
+    {
+        var source = _pushToTalkSource;
+        _pushToTalkSource = null;
+        if (source is not null)
+        {
+            source.SamplesAvailable -= OnPushToTalkSamplesAvailable;
+            source.CaptureFailed -= OnPushToTalkCaptureFailed;
+            source.Stop();
+            source.Dispose();
+        }
     }
 
     private void ApplySource(SourceSession session, bool enabled, TimeSpan maxDuration)

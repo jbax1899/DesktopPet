@@ -65,6 +65,9 @@ public sealed class DesktopPetApplication : IDisposable
     private SettingsWindow? _settingsWindow;
     private MemoryWindow? _memoryWindow;
     private GlobalHotkeyService? _chatHotkeyService;
+    private PushToTalkHotkeyService? _pushToTalkHotkeyService;
+    private IDisposable? _listeningMoodScope;
+    private bool _isPushToTalkRecording;
 
     public DesktopPetApplication(WpfApplication application)
     {
@@ -189,7 +192,8 @@ public sealed class DesktopPetApplication : IDisposable
             _ambientActivityState,
             _observationStore,
             _observationPermissionService,
-            _audioObservationContextProvider.GetCurrentContext);
+            _audioObservationContextProvider.GetCurrentContext,
+            _audioSegmentAnalyzer);
         _ambientCommentCoordinator = new AmbientCommentCoordinator(
             _observationCoordinator,
             _observationPermissionService,
@@ -219,6 +223,8 @@ public sealed class DesktopPetApplication : IDisposable
         _overlayWindow.SetInitialPosition(uiSettings.OverlayPosition);
         _overlayWindow.Show();
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
+        _pushToTalkHotkeyService = new PushToTalkHotkeyService(OnPushToTalkKeyPressed, OnPushToTalkKeyReleased);
+        _pushToTalkHotkeyService.EnsureHookInstalled();
         ApplyUiSettings(uiSettings);
         _observationCoordinator.Start();
         _audioCaptureCoordinator.ApplySettings(_audioContextSettingsStore.Load());
@@ -235,6 +241,8 @@ public sealed class DesktopPetApplication : IDisposable
         _audioCaptureCoordinator.Dispose();
         _audioAnalysisCoordinator.Dispose();
         _chatHotkeyService?.Dispose();
+        _pushToTalkHotkeyService?.Dispose();
+        _listeningMoodScope?.Dispose();
         _trayController.Dispose();
         _audioPlayer.Dispose();
         _httpClient.Dispose();
@@ -301,9 +309,49 @@ public sealed class DesktopPetApplication : IDisposable
         _conversationOverlayWindow.ToggleInput();
     }
 
-    private static void StartSpeak()
+    private void StartSpeak()
     {
-        // Voice input is intentionally a visible stub until the microphone path exists.
+        if (_isPushToTalkRecording)
+        {
+            OnPushToTalkKeyReleased();
+        }
+        else
+        {
+            OnPushToTalkKeyPressed();
+        }
+    }
+
+    private void OnPushToTalkKeyPressed()
+    {
+        if (_isPushToTalkRecording)
+        {
+            return;
+        }
+
+        _desktopContextProvider.PrepareCurrentContext();
+        _audioCaptureCoordinator.StartPushToTalkRecording();
+        _isPushToTalkRecording = true;
+        _listeningMoodScope = _overlayWindow.BeginMood(PetMood.Listening);
+    }
+
+    private async void OnPushToTalkKeyReleased()
+    {
+        if (!_isPushToTalkRecording)
+        {
+            return;
+        }
+
+        _isPushToTalkRecording = false;
+        _listeningMoodScope?.Dispose();
+        _listeningMoodScope = null;
+
+        var segment = _audioCaptureCoordinator.StopPushToTalkRecording();
+        if (segment is null)
+        {
+            return;
+        }
+
+        await _conversationController.SubmitVoiceInputAsync(segment, CancellationToken.None);
     }
 
     private PetError? ApplyUiSettings(UiSettings settings)

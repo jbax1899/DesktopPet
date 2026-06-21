@@ -16,13 +16,6 @@ permission-based awareness of the active application.
 
 Screen observation and ambient comments are disabled by default.
 
-## Stack
-
-- .NET 10 / C#
-- WPF for the desktop UI
-- ElevenLabs for Agent chat and text-to-speech
-- OpenRouter for optional screenshot analysis
-
 ## Requirements
 
 - Windows
@@ -48,15 +41,6 @@ The ElevenLabs Agent prompt can use these dynamic variables:
 - `conversation_history`
 - `desktop_context`
 - `desktop_observation_history`
-
-Each variable should have a harmless fallback in the Agent configuration.
-The Agent prompt should treat `temporal_context` as the authoritative current
-date, time, and timezone when interpreting relative dates in conversation
-history.
-
-The Settings window controls how many regular and ambient history messages are
-included with each Agent request. Both counts support 0–50; defaults are 14
-regular and 6 ambient messages.
 
 ## Run
 

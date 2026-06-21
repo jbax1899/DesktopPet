@@ -194,6 +194,7 @@ public sealed class DesktopPetApplication : IDisposable
             _ambientDecisionStore,
             _observationStore,
             _chatHistoryStore,
+            _foregroundWindowCollector,
             _windowCaptureService,
             _visualContextAnalyzer);
         _trayController = new TrayController(

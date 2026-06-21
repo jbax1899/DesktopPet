@@ -17,8 +17,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private readonly AmbientDecisionStore _decisionStore;
     private readonly ObservationStore _observationStore;
     private readonly IChatHistoryStore _chatHistoryStore;
-    private readonly IWindowCaptureService? _windowCaptureService;
-    private readonly IVisualContextAnalyzer? _visualAnalyzer;
+    private readonly IForegroundWindowCollector _foregroundWindowCollector;
+    private readonly IWindowCaptureService _windowCaptureService;
+    private readonly IVisualContextAnalyzer _visualAnalyzer;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private CancellationTokenSource? _currentCancellation;
@@ -37,8 +38,9 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         AmbientDecisionStore decisionStore,
         ObservationStore observationStore,
         IChatHistoryStore chatHistoryStore,
-        IWindowCaptureService? windowCaptureService = null,
-        IVisualContextAnalyzer? visualAnalyzer = null)
+        IForegroundWindowCollector foregroundWindowCollector,
+        IWindowCaptureService windowCaptureService,
+        IVisualContextAnalyzer visualAnalyzer)
     {
         _observationCoordinator = observationCoordinator;
         _permissionService = permissionService;
@@ -51,6 +53,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         _decisionStore = decisionStore;
         _observationStore = observationStore;
         _chatHistoryStore = chatHistoryStore;
+        _foregroundWindowCollector = foregroundWindowCollector;
         _windowCaptureService = windowCaptureService;
         _visualAnalyzer = visualAnalyzer;
 
@@ -108,8 +111,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
         VisionObservation? visionObservation = null;
         string? thumbnailPath = null;
-        if (_visualAnalyzer is not null && _visualAnalyzer.IsAvailable
-            && _windowCaptureService is not null
+        if (_visualAnalyzer.IsAvailable
             && _permissionService.IsAllowed(change.Observation.ExecutablePath, DesktopContextCapabilities.Visual))
         {
             System.Diagnostics.Debug.WriteLine($"Ambient: Attempting vision analysis for {change.Observation.ExecutablePath}.");
@@ -128,9 +130,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         else
         {
             var reasons = new List<string>();
-            if (_visualAnalyzer is null) reasons.Add("no visual analyzer");
-            else if (!_visualAnalyzer.IsAvailable) reasons.Add("visual analyzer not available");
-            if (_windowCaptureService is null) reasons.Add("no capture service");
+            if (!_visualAnalyzer.IsAvailable) reasons.Add("visual analyzer not available");
             if (!_permissionService.IsAllowed(change.Observation.ExecutablePath, DesktopContextCapabilities.Visual))
                 reasons.Add("visual permission not granted");
             System.Diagnostics.Debug.WriteLine($"Ambient: Skipping vision analysis. {string.Join(", ", reasons)}.");
@@ -224,11 +224,6 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         long turnId,
         CancellationToken cancellationToken)
     {
-        if (_windowCaptureService is null || _visualAnalyzer is null)
-        {
-            return null;
-        }
-
         try
         {
             if (change.Type is DesktopObservationChangeType.ForegroundApplicationChanged
@@ -243,8 +238,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 }
             }
 
-            var foregroundCollector = new ForegroundWindowCollector(_permissionService);
-            var foregroundSnapshot = foregroundCollector.CollectPermittedMetadata();
+            var foregroundSnapshot = _foregroundWindowCollector.CollectPermittedMetadata();
             if (foregroundSnapshot is null)
             {
                 return null;
@@ -271,12 +265,12 @@ internal sealed class AmbientCommentCoordinator : IDisposable
 
                 var lastSpokeAt = _policy.GetLastSpokenAt();
                 var recentObservations = _observationCoordinator.RecentObservations;
-                var visionObservation = await (_visualAnalyzer as OpenRouterVisionAnalyzer)?.AnalyzeDetailedAsync(
+                var visionObservation = await _visualAnalyzer.AnalyzeDetailedAsync(
                     capture.Image,
                     new VisualAnalysisRequest(change.Observation.ApplicationName, change.Observation.ActivityDescription),
                     recentObservations,
                     lastSpokeAt,
-                    cancellationToken)!;
+                    cancellationToken);
 
                 if (visionObservation is null)
                 {

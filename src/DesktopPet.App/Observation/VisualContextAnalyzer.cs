@@ -14,4 +14,11 @@ public interface IVisualContextAnalyzer
         CapturedWindowImage image,
         VisualAnalysisRequest request,
         CancellationToken cancellationToken);
+
+    Task<VisionObservation?> AnalyzeDetailedAsync(
+        CapturedWindowImage image,
+        VisualAnalysisRequest request,
+        IReadOnlyList<ReducedDesktopObservation> recentObservations,
+        DateTimeOffset? lastSpokeAt,
+        CancellationToken cancellationToken);
 }

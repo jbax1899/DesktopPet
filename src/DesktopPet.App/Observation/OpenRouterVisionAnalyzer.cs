@@ -315,14 +315,24 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
             {
                 var obs = observationHistory[i];
                 var timeAgo = FormatTimeAgo(DateTimeOffset.UtcNow - obs.CapturedAt);
-                parts.Add($"  [{timeAgo} ago] {obs.Analysis.Summary}");
+                parts.Add($"  [{timeAgo} ago] {obs.Application} — {obs.Analysis.Summary}");
+                if (!string.IsNullOrWhiteSpace(obs.Analysis.VisibleActivity))
+                {
+                    parts.Add($"    Activity: {obs.Analysis.VisibleActivity}");
+                }
                 if (obs.Analysis.NotableChanges.Count > 0)
                 {
-                    parts.Add($"    Notable: {string.Join("; ", obs.Analysis.NotableChanges.Take(2))}");
+                    parts.Add($"    Notable: {string.Join("; ", obs.Analysis.NotableChanges.Take(3))}");
+                }
+                if (obs.Analysis.PossibleCommentTopics.Count > 0)
+                {
+                    parts.Add($"    Topics: {string.Join("; ", obs.Analysis.PossibleCommentTopics.Take(2))}");
                 }
             }
             parts.Add("");
-            parts.Add("IMPORTANT: Do NOT repeat what has already been observed. Focus on what is NEW, CHANGED, or DIFFERENT since the last observation. If the scene is substantially the same, note what has progressed or evolved.");
+            parts.Add("CRITICAL: The summary field must describe ONLY what is new, changed, or has progressed since the most recent observation above.");
+            parts.Add("Do NOT re-describe UI elements, layout, or content that was already covered. If the scene is substantially the same, focus on what has progressed, moved, or evolved.");
+            parts.Add("For example: if the previous observation already described a YouTube video page, do not re-describe the page layout — instead note what changed (new video playing, different timestamp, comments scrolled, etc.).");
         }
 
         parts.Add(BuildDetailInstruction(detailLevel, verbosityLevel));
@@ -377,7 +387,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
             <= 4 => "One or two sentences describing what is visible",
             <= 6 => "A short paragraph describing what is visible, with key details",
             <= 8 => "A detailed paragraph describing what is visible, including text, UI elements, and layout",
-            _ => "A rich, detailed description of everything visible — text, UI elements, layout, colors, content, and atmosphere"
+            _ => "A detailed description focused on what has CHANGED or PROGRESSED since the previous observation. Describe new or evolved elements in rich detail. Do not re-describe elements already covered in the observation history."
         };
 
         return $$"""

@@ -70,7 +70,7 @@ public partial class SettingsWindow
         _observationRows.Clear();
 
         // System row — controls system-wide audio capture.
-        var audioSettings = _audioContextSettingsStore.Load();
+        var audioSettings = _settings.AudioContext.Load();
         var systemRow = new ApplicationRuleRow
         {
             ExecutablePath = SystemRowExecutablePath,
@@ -211,7 +211,7 @@ public partial class SettingsWindow
     {
         if (_loadingSettings || _loadingObservationSettings) return;
 
-        var openRouterSettings = _openRouterSettingsStore.Load();
+        var openRouterSettings = _settings.OpenRouter.Load();
         if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey)
             || string.IsNullOrWhiteSpace(openRouterSettings.VisionModelId))
         {

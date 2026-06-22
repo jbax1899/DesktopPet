@@ -14,7 +14,7 @@ public partial class SettingsWindow
         }
 
         var window = new PronunciationWindow(
-            _elevenLabsSettingsStore,
+            _settings.ElevenLabs,
             _pronunciationService,
             apiKey)
         {
@@ -25,7 +25,7 @@ public partial class SettingsWindow
 
     private async Task LoadVisionModelsAsync()
     {
-        var openRouterSettings = _openRouterSettingsStore.Load();
+        var openRouterSettings = _settings.OpenRouter.Load();
         if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey))
         {
             OpenRouterModelCapabilitiesText.Text = "Enter an API key to load available vision models.";
@@ -71,7 +71,7 @@ public partial class SettingsWindow
 
     private async Task LoadAudioModelsAsync()
     {
-        var settings = _openRouterSettingsStore.Load();
+        var settings = _settings.OpenRouter.Load();
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
             return;

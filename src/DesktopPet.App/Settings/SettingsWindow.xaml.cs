@@ -10,14 +10,10 @@ namespace DesktopPet.App.Settings;
 
 public partial class SettingsWindow : Window
 {
-    private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
+    private readonly SettingsHub _settings;
     private readonly ElevenLabsPronunciationService _pronunciationService;
-    private readonly OpenRouterSettingsStore _openRouterSettingsStore;
     private readonly OpenRouterModelsService _openRouterModelsService;
     private readonly CreditInfoService _creditInfoService;
-    private readonly UiSettingsStore _uiSettingsStore;
-    private readonly ProfileSettingsStore _profileSettingsStore;
-    private readonly AudioContextSettingsStore _audioContextSettingsStore;
     private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
     private readonly AudioObservationStore _audioObservationStore;
     private readonly CharacterErrorMessageStore _errorMessageStore;
@@ -43,14 +39,10 @@ public partial class SettingsWindow : Window
     private bool _syncingTranscriptVerbosity;
 
     public SettingsWindow(
-        ElevenLabsSettingsStore elevenLabsSettingsStore,
+        SettingsHub settings,
         ElevenLabsPronunciationService pronunciationService,
-        OpenRouterSettingsStore openRouterSettingsStore,
         OpenRouterModelsService openRouterModelsService,
         CreditInfoService creditInfoService,
-        UiSettingsStore uiSettingsStore,
-        ProfileSettingsStore profileSettingsStore,
-        AudioContextSettingsStore audioContextSettingsStore,
         AudioCaptureCoordinator audioCaptureCoordinator,
         AudioObservationStore audioObservationStore,
         CharacterErrorMessageStore errorMessageStore,
@@ -61,14 +53,10 @@ public partial class SettingsWindow : Window
         AmbientDecisionStore ambientDecisionStore,
         IDesktopEnvironmentCaptureCoordinator observationCoordinator)
     {
-        _elevenLabsSettingsStore = elevenLabsSettingsStore;
+        _settings = settings;
         _pronunciationService = pronunciationService;
-        _openRouterSettingsStore = openRouterSettingsStore;
         _openRouterModelsService = openRouterModelsService;
         _creditInfoService = creditInfoService;
-        _uiSettingsStore = uiSettingsStore;
-        _profileSettingsStore = profileSettingsStore;
-        _audioContextSettingsStore = audioContextSettingsStore;
         _audioCaptureCoordinator = audioCaptureCoordinator;
         _audioObservationStore = audioObservationStore;
         _errorMessageStore = errorMessageStore;
@@ -200,7 +188,7 @@ public partial class SettingsWindow : Window
                 return;
             }
 
-            var currentUiSettings = _uiSettingsStore.Load();
+            var currentUiSettings = _settings.Ui.Load();
             var currentHistorySettings = currentUiSettings.GetEffectiveChatHistoryContext();
             var historySettings = new ChatHistoryContextSettings(
                 ClampInt(
@@ -214,8 +202,8 @@ public partial class SettingsWindow : Window
                     ChatHistoryContextSettings.MaximumMessageCount,
                     currentHistorySettings.AmbientMessageCount));
 
-            var currentElevenLabsSettings = _elevenLabsSettingsStore.Load();
-            _elevenLabsSettingsStore.Save(currentElevenLabsSettings with
+            var currentElevenLabsSettings = _settings.ElevenLabs.Load();
+            _settings.ElevenLabs.Save(currentElevenLabsSettings with
             {
                 ElevenLabsApiKey = ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password),
                 ElevenLabsAgentId = ToNullIfWhiteSpace(ElevenLabsAgentIdTextBox.Text),
@@ -224,14 +212,14 @@ public partial class SettingsWindow : Window
 
             var selectedModel = OpenRouterVisionModelComboBox.SelectedItem as OpenRouterModelInfo;
             var selectedAudioModel = OpenRouterAudioModelComboBox.SelectedItem as OpenRouterModelInfo;
-            var currentOpenRouterSettings = _openRouterSettingsStore.Load();
-            _openRouterSettingsStore.Save(new OpenRouterSettings(
+            var currentOpenRouterSettings = _settings.OpenRouter.Load();
+            _settings.OpenRouter.Save(new OpenRouterSettings(
                 ToNullIfWhiteSpace(OpenRouterApiKeyPasswordBox.Password),
                 ToNullIfWhiteSpace(selectedModel?.Id) ?? currentOpenRouterSettings.VisionModelId,
                 ToNullIfWhiteSpace(selectedAudioModel?.Id) ?? currentOpenRouterSettings.AudioAnalysisModelId,
                 OpenRouterRequireZdrCheckBox.IsChecked == true));
 
-            _profileSettingsStore.Save(new ProfileSettings(
+            _settings.Profile.Save(new ProfileSettings(
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
@@ -260,7 +248,7 @@ public partial class SettingsWindow : Window
                     .Where(row => row.ExecutablePath != SystemRowExecutablePath && row.AllowAudio)
                     .Select(row => new AudioApplicationRule(row.ExecutablePath, row.DisplayName, row.AllowAudio))
                     .ToArray());
-            _audioContextSettingsStore.Save(audioSettings);
+            _settings.AudioContext.Save(audioSettings);
             _audioCaptureCoordinator.ApplySettings(audioSettings);
 
             // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
@@ -276,7 +264,7 @@ public partial class SettingsWindow : Window
                 PushToTalkShortcut = _selectedPushToTalkShortcut,
                 ChatHistoryContext = historySettings
             };
-            _uiSettingsStore.Save(uiSettings);
+            _settings.Ui.Save(uiSettings);
             _permissionService.Save(observationSettings);
             _observationStore.ApplyRetentionLimit();
             _ambientDecisionStore.ApplyRetentionLimit();
@@ -294,20 +282,20 @@ public partial class SettingsWindow : Window
         _loadingSettings = true;
         try
         {
-            var settings = _elevenLabsSettingsStore.Load();
+            var settings = _settings.ElevenLabs.Load();
             ElevenLabsApiKeyPasswordBox.Password = settings.ElevenLabsApiKey ?? string.Empty;
             ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
             ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
 
-            var openRouterSettings = _openRouterSettingsStore.Load();
+            var openRouterSettings = _settings.OpenRouter.Load();
             OpenRouterApiKeyPasswordBox.Password = openRouterSettings.ApiKey ?? string.Empty;
             OpenRouterRequireZdrCheckBox.IsChecked = openRouterSettings.RequireZeroRetention;
 
-            var profileSettings = _profileSettingsStore.Load();
+            var profileSettings = _settings.Profile.Load();
             UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
             NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
 
-            var audioSettings = _audioContextSettingsStore.Load();
+            var audioSettings = _settings.AudioContext.Load();
             PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
             PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
             AudioContextDepthTextBox.Text = audioSettings.ContextDepth.ToString();
@@ -321,7 +309,7 @@ public partial class SettingsWindow : Window
 
             LoadAudioDevices(audioSettings.MicrophoneDeviceId, audioSettings.SystemAudioDeviceId);
 
-            var uiSettings = _uiSettingsStore.Load();
+            var uiSettings = _settings.Ui.Load();
             _selectedChatShortcut = uiSettings.ChatShortcut;
             _selectedPushToTalkShortcut = uiSettings.PushToTalkShortcut;
             var historySettings = uiSettings.GetEffectiveChatHistoryContext();

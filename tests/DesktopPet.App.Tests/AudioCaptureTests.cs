@@ -122,7 +122,7 @@ public sealed class AudioCaptureTests
         Assert.IsTrue(buffer.RecentDiagnostics.Any(item =>
             item.Disposition == AudioSegmentDisposition.MaximumDuration));
         Assert.IsLessThanOrEqualTo(
-            (int)(AudioSegmentBuffer.MaximumSegmentDuration.TotalSeconds * 1000)
+            (int)(TimeSpan.FromSeconds(30).TotalSeconds * 1000)
                 + (int)(AudioSegmentBuffer.PreRollDuration.TotalSeconds * 1000),
             buffer.BufferedSampleCount);
     }

@@ -1,5 +1,4 @@
-- Treat me like a junior developer who is still learning .NET and C#.
-- Work in small, understandable steps, and only if asked (otherwise just comment/explain).
-- Point out relevant .NET, C#, Windows, or architecture concepts as they come up.
+# Context
 - Treat `docs/status.md` as the working architecture/status notes, and keep it updated.
+- Refer to the `repomix-output.xml` document to aide in significant feature additions or refactors. Run command `repomix` from project root after completing such work.
 - Use Context7 MCP for current, version-specific docs when working with libraries, frameworks, SDKs, APIs, or tooling. Resolve the library ID before fetching docs unless the exact Context7 ID is already known. Fetch only targeted docs, summarize the useful parts inline, and say explicitly when docs are unavailable or when using a fallback.

@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      test-dependencies:
+        patterns:
+          - "Microsoft.NET.Test.Sdk"
+          - "MSTest"
+      audio-dependencies:
+        patterns:
+          - "NAudio"
+      data-dependencies:
+        patterns:
+          - "Microsoft.Data.Sqlite"

@@ -10,6 +10,8 @@ namespace DesktopPet.App.Audio;
 // support (PR #1225 / WasapiCapture.CreateForProcessCaptureAsync).
 internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 {
+    private static readonly NAudio.Wave.WaveFormat WaveFormat = new(44100, 16, 2);
+
     private readonly int _processId;
     private readonly bool _includeProcessTree;
     private CancellationTokenSource? _cts;
@@ -65,10 +67,9 @@ internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 
         try
         {
-            var waveFormat = new NAudio.Wave.WaveFormat(44100, 16, 2);
             var samples = AudioSampleConverter.ToMono(
                 buffer.AsSpan(offset, count),
-                waveFormat);
+                WaveFormat);
 
             if (samples.Length > 0)
             {

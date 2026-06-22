@@ -98,7 +98,7 @@ internal sealed class AudioSegmentBuffer
                 _pending.AddRange(_preRoll);
             }
 
-            Append(_pending, samples);
+            _pending.AddRange(samples);
             _pendingActiveSamples += samples.Length;
             if (_pendingActiveSamples >= SamplesFor(ActivityGate))
             {
@@ -150,10 +150,7 @@ internal sealed class AudioSegmentBuffer
 
     private void AppendSegment(ReadOnlySpan<float> samples, bool active)
     {
-        foreach (var sample in samples)
-        {
-            _segment.Add(sample);
-        }
+        _segment.AddRange(samples);
 
         Accumulate(samples);
         if (active)
@@ -292,13 +289,5 @@ internal sealed class AudioSegmentBuffer
         }
 
         return Math.Sqrt(sumSquares / samples.Length);
-    }
-
-    private static void Append(ICollection<float> destination, ReadOnlySpan<float> samples)
-    {
-        foreach (var sample in samples)
-        {
-            destination.Add(sample);
-        }
     }
 }

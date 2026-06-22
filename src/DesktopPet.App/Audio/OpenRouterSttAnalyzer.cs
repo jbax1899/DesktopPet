@@ -59,7 +59,6 @@ internal sealed class OpenRouterSttAnalyzer : IAudioSegmentAnalyzer
         {
             var wav = EncodeWave(segment.MonoSamples.Span, segment.SampleRate);
             var base64 = Convert.ToBase64String(wav);
-            Array.Clear(wav);
 
             var payload = BuildPayload(settings, model, base64);
             using var request = new HttpRequestMessage(

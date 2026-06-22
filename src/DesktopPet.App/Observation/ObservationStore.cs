@@ -48,6 +48,18 @@ public sealed class ObservationStore
         }
     }
 
+    public IReadOnlyList<ObservationRecord> GetRecent(int count)
+    {
+        lock (_sync)
+        {
+            return Load()
+                .OrderByDescending(record => record.CapturedAt)
+                .Take(count)
+                .Reverse()
+                .ToArray();
+        }
+    }
+
     public void Add(ObservationRecord record)
     {
         lock (_sync)

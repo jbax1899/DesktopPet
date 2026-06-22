@@ -13,6 +13,10 @@ namespace DesktopPet.App.Observation;
 internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions CaseInsensitiveOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private readonly HttpClient _httpClient;
     private readonly Func<OpenRouterSettings> _settingsProvider;
@@ -98,10 +102,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
                 return new VisualContextSummary(DesktopContextCollectionStatus.Empty, null);
             }
 
-            var observation = JsonSerializer.Deserialize<VisionObservation>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var observation = JsonSerializer.Deserialize<VisionObservation>(content, CaseInsensitiveOptions);
 
             if (observation is null)
             {
@@ -186,10 +187,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
                 return null;
             }
 
-            var observation = JsonSerializer.Deserialize<VisionObservation>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var observation = JsonSerializer.Deserialize<VisionObservation>(content, CaseInsensitiveOptions);
 
             if (observation is not null)
             {
@@ -237,12 +235,9 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 
         try
         {
-            return _observationStore.List()
-                .OrderByDescending(r => r.CapturedAt)
-                .Take(_permissionService?.Current.ObservationContextDepth
-                    ?? ObservationSettings.Default.ObservationContextDepth)
-                .Reverse()
-                .ToArray();
+            var depth = _permissionService?.Current.ObservationContextDepth
+                ?? ObservationSettings.Default.ObservationContextDepth;
+            return _observationStore.GetRecent(depth);
         }
         catch
         {
@@ -253,8 +248,8 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
     private static string EncodeImageToBase64(Bitmap bitmap)
     {
         using var stream = new MemoryStream();
-        bitmap.Save(stream, ImageFormat.Png);
-        return Convert.ToBase64String(stream.ToArray());
+        bitmap.Save(stream, ImageFormat.Jpeg);
+        return Convert.ToBase64String(stream.GetBuffer(), 0, (int)stream.Length);
     }
 
     private static string BuildSystemPrompt(VisualAnalysisRequest request)
@@ -433,7 +428,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
                 content = new object[]
                 {
                     new { type = "text", text = userContent },
-                    new { type = "image_url", image_url = new { url = $"data:image/png;base64,{base64Image}" } }
+                    new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{base64Image}" } }
                 }
             }
         };

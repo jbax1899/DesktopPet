@@ -66,10 +66,8 @@ internal sealed class ImageCaptureCoordinator : IVisionObservationProvider, IDis
         {
             try
             {
-                return _observationStore.List()
-                    .OrderByDescending(r => r.CapturedAt)
-                    .Take(_permissionService.Current.ObservationContextDepth)
-                    .ToArray();
+                return _observationStore.GetRecent(
+                    _permissionService.Current.ObservationContextDepth);
             }
             catch
             {

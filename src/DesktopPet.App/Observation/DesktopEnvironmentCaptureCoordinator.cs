@@ -67,7 +67,7 @@ internal sealed partial class DesktopEnvironmentCaptureCoordinator : IDesktopEnv
         {
             lock (_sync)
             {
-                return _recent.ToArray();
+                return _recent.AsReadOnly();
             }
         }
     }

@@ -5,12 +5,14 @@ public sealed class AudioCaptureCoordinator : IDisposable
     internal static readonly TimeSpan SpeechSuppressionCooldown = TimeSpan.FromMilliseconds(500);
 
     private readonly object _sync = new();
-    private readonly Func<AudioSourceKind, IAudioCaptureSource> _sourceFactory;
+    private readonly Func<AudioSourceKind, string?, IAudioCaptureSource> _sourceFactory;
     private readonly AudioAnalysisCoordinator? _analysisCoordinator;
     private readonly TimeProvider _timeProvider;
     private readonly Dictionary<AudioSourceKind, SourceSession> _sessions;
     private readonly Dictionary<string, SourceSession> _perAppSessions;
     private readonly System.Threading.Timer _silenceTimer;
+    private string? _microphoneDeviceId;
+    private string? _systemAudioDeviceId;
     private int _speechSuppressionCount;
     private DateTimeOffset _speechSuppressedUntil;
     private bool _disposed;
@@ -22,17 +24,17 @@ public sealed class AudioCaptureCoordinator : IDisposable
     private bool _isPushToTalkRecording;
 
     public AudioCaptureCoordinator()
-        : this(kind => kind switch
+        : this((kind, deviceId) => kind switch
         {
-            AudioSourceKind.Microphone => new MicrophoneCaptureSource(),
-            AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(),
+            AudioSourceKind.Microphone => new MicrophoneCaptureSource(deviceId),
+            AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(deviceId),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         }, null, TimeProvider.System)
     {
     }
 
     internal AudioCaptureCoordinator(
-        Func<AudioSourceKind, IAudioCaptureSource> sourceFactory,
+        Func<AudioSourceKind, string?, IAudioCaptureSource> sourceFactory,
         AudioAnalysisCoordinator? analysisCoordinator = null,
         TimeProvider? timeProvider = null)
     {
@@ -55,6 +57,8 @@ public sealed class AudioCaptureCoordinator : IDisposable
         var maxDuration = TimeSpan.FromSeconds(settings.MaximumSegmentDurationSeconds);
         lock (_sync)
         {
+            _microphoneDeviceId = settings.MicrophoneDeviceId;
+            _systemAudioDeviceId = settings.SystemAudioDeviceId;
             ApplySource(
                 _sessions[AudioSourceKind.Microphone],
                 settings.Enabled && settings.MicrophoneEnabled,
@@ -218,7 +222,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
             IAudioCaptureSource? source = null;
             try
             {
-                source = _sourceFactory(AudioSourceKind.Microphone);
+                source = _sourceFactory(AudioSourceKind.Microphone, _microphoneDeviceId);
                 source.SamplesAvailable += OnPushToTalkSamplesAvailable;
                 source.CaptureFailed += OnPushToTalkCaptureFailed;
                 _pushToTalkSource = source;
@@ -350,10 +354,17 @@ public sealed class AudioCaptureCoordinator : IDisposable
         session.State = AudioCaptureState.Starting;
         session.LastError = null;
 
+        var deviceId = session.Kind switch
+        {
+            AudioSourceKind.Microphone => _microphoneDeviceId,
+            AudioSourceKind.SystemAudio => _systemAudioDeviceId,
+            _ => null
+        };
+
         IAudioCaptureSource? source = null;
         try
         {
-            source = _sourceFactory(session.Kind);
+            source = _sourceFactory(session.Kind, deviceId);
             source.SamplesAvailable += OnSamplesAvailable;
             source.CaptureFailed += OnCaptureFailed;
             session.Source = source;
@@ -473,14 +484,6 @@ public sealed class AudioCaptureCoordinator : IDisposable
     {
         var source = session.Source;
         session.Source = null;
-        if (source is not null)
-        {
-            source.SamplesAvailable -= OnSamplesAvailable;
-            source.CaptureFailed -= OnCaptureFailed;
-            source.Stop();
-            source.Dispose();
-        }
-
         session.State = AudioCaptureState.Stopped;
         session.CurrentLevel = 0;
         session.LastError = null;
@@ -493,6 +496,26 @@ public sealed class AudioCaptureCoordinator : IDisposable
             session.DiscardedCount = 0;
         }
         session.SegmentBuffer.Reset(clearDiagnostics);
+
+        if (source is not null)
+        {
+            source.SamplesAvailable -= OnSamplesAvailable;
+            source.CaptureFailed -= OnCaptureFailed;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    source.Stop();
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    source.Dispose();
+                }
+            });
+        }
     }
 
     private void OnSamplesAvailable(object? sender, AudioSamplesAvailableEventArgs e)

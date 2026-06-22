@@ -7,12 +7,14 @@ internal abstract class WasapiCaptureSource : IAudioCaptureSource
 {
     private IWaveIn? _capture;
     private MMDevice? _device;
+    private readonly string? _deviceId;
     private bool _stopping;
     private bool _disposed;
 
-    protected WasapiCaptureSource(AudioSourceKind kind)
+    protected WasapiCaptureSource(AudioSourceKind kind, string? deviceId = null)
     {
         Kind = kind;
+        _deviceId = deviceId;
     }
 
     public AudioSourceKind Kind { get; }
@@ -37,7 +39,9 @@ internal abstract class WasapiCaptureSource : IAudioCaptureSource
         {
             _stopping = false;
             using var enumerator = new MMDeviceEnumerator();
-            _device = GetDefaultDevice(enumerator);
+            _device = string.IsNullOrEmpty(_deviceId)
+                ? GetDefaultDevice(enumerator)
+                : enumerator.GetDevice(_deviceId);
             DeviceName = _device.FriendlyName;
             _capture = CreateCapture(_device);
             FormatDescription = FormatWaveFormat(_capture.WaveFormat);
@@ -148,8 +152,8 @@ internal abstract class WasapiCaptureSource : IAudioCaptureSource
 
 internal sealed class MicrophoneCaptureSource : WasapiCaptureSource
 {
-    public MicrophoneCaptureSource()
-        : base(AudioSourceKind.Microphone)
+    public MicrophoneCaptureSource(string? deviceId = null)
+        : base(AudioSourceKind.Microphone, deviceId)
     {
     }
 
@@ -161,8 +165,8 @@ internal sealed class MicrophoneCaptureSource : WasapiCaptureSource
 
 internal sealed class SystemLoopbackCaptureSource : WasapiCaptureSource
 {
-    public SystemLoopbackCaptureSource()
-        : base(AudioSourceKind.SystemAudio)
+    public SystemLoopbackCaptureSource(string? deviceId = null)
+        : base(AudioSourceKind.SystemAudio, deviceId)
     {
     }
 

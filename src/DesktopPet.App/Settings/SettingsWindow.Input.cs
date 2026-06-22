@@ -5,20 +5,40 @@ namespace DesktopPet.App.Settings;
 
 public partial class SettingsWindow
 {
-    private void OnRecordShortcutClicked(object sender, RoutedEventArgs e)
+    private void OnRecordChatShortcutClicked(object sender, RoutedEventArgs e)
     {
+        _recordingTarget = ShortcutTarget.Chat;
         _isRecordingShortcut = true;
         ChatShortcutButton.Content = "Press shortcut...";
         StatusTextBlock.Text = "Press a key with Ctrl, Alt, Shift, or Win. Esc cancels.";
         ChatShortcutButton.Focus();
     }
 
-    private void OnResetShortcutClicked(object sender, RoutedEventArgs e)
+    private void OnResetChatShortcutClicked(object sender, RoutedEventArgs e)
     {
         _isRecordingShortcut = false;
+        _recordingTarget = ShortcutTarget.None;
         _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
-        UpdateShortcutButton();
+        UpdateShortcutButtons();
         StatusTextBlock.Text = "Shortcut reset. Save to apply.";
+    }
+
+    private void OnRecordPushToTalkShortcutClicked(object sender, RoutedEventArgs e)
+    {
+        _recordingTarget = ShortcutTarget.PushToTalk;
+        _isRecordingShortcut = true;
+        PushToTalkShortcutButton.Content = "Press shortcut...";
+        StatusTextBlock.Text = "Press a key with Ctrl, Alt, Shift, or Win. Esc cancels.";
+        PushToTalkShortcutButton.Focus();
+    }
+
+    private void OnResetPushToTalkShortcutClicked(object sender, RoutedEventArgs e)
+    {
+        _isRecordingShortcut = false;
+        _recordingTarget = ShortcutTarget.None;
+        _selectedPushToTalkShortcut = KeyboardShortcut.DefaultPushToTalkShortcut;
+        UpdateShortcutButtons();
+        StatusTextBlock.Text = "Mic hotkey reset. Save to apply.";
     }
 
     private void OnWindowPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -34,7 +54,8 @@ public partial class SettingsWindow
         if (key == Key.Escape)
         {
             _isRecordingShortcut = false;
-            UpdateShortcutButton();
+            _recordingTarget = ShortcutTarget.None;
+            UpdateShortcutButtons();
             StatusTextBlock.Text = "Shortcut recording cancelled.";
             return;
         }
@@ -52,15 +73,26 @@ public partial class SettingsWindow
             return;
         }
 
-        _selectedChatShortcut = shortcut;
+        switch (_recordingTarget)
+        {
+            case ShortcutTarget.Chat:
+                _selectedChatShortcut = shortcut;
+                break;
+            case ShortcutTarget.PushToTalk:
+                _selectedPushToTalkShortcut = shortcut;
+                break;
+        }
+
         _isRecordingShortcut = false;
-        UpdateShortcutButton();
+        _recordingTarget = ShortcutTarget.None;
+        UpdateShortcutButtons();
         StatusTextBlock.Text = "Shortcut captured. Save to apply.";
     }
 
-    private void UpdateShortcutButton()
+    private void UpdateShortcutButtons()
     {
         ChatShortcutButton.Content = _selectedChatShortcut.DisplayText;
+        PushToTalkShortcutButton.Content = _selectedPushToTalkShortcut.DisplayText;
     }
 
     private static Key GetRealKey(System.Windows.Input.KeyEventArgs e)
@@ -73,5 +105,12 @@ public partial class SettingsWindow
         return e.Key == Key.ImeProcessed
             ? e.ImeProcessedKey
             : e.Key;
+    }
+
+    private enum ShortcutTarget
+    {
+        None,
+        Chat,
+        PushToTalk
     }
 }

@@ -1,3 +1,4 @@
+using DesktopPet.App.Settings;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
@@ -12,18 +13,8 @@ public sealed class PushToTalkHotkeyService : IDisposable
     private const int WmKeyup = 0x0101;
     private const int WmSyskeydown = 0x0104;
     private const int WmSyskeyup = 0x0105;
-    private const int VkControl = 0x11;
-    private const int VkLcontrol = 0xA2;
-    private const int VkRcontrol = 0xA3;
-    private const int VkShift = 0x10;
-    private const int VkLshift = 0xA0;
-    private const int VkRshift = 0xA1;
-    private const int VkMenu = 0x12;
-    private const int VkLmenu = 0xA4;
-    private const int VkRmenu = 0xA5;
     private const int VkLwin = 0x5B;
     private const int VkRwin = 0x5C;
-    private const int VkSpace = 0x20;
 
     private readonly Dispatcher _dispatcher;
     private readonly Action _onKeyPressed;
@@ -37,13 +28,35 @@ public sealed class PushToTalkHotkeyService : IDisposable
     private bool _winHeld;
     private bool _firedPress;
     private bool _disposed;
+    private KeyboardShortcut _shortcut;
+    private int _triggerVk;
+    private bool _requireCtrl;
+    private bool _requireShift;
+    private bool _requireAlt;
+    private bool _requireWin;
 
-    public PushToTalkHotkeyService(Action onKeyPressed, Action onKeyReleased)
+    public PushToTalkHotkeyService(
+        KeyboardShortcut shortcut,
+        Action onKeyPressed,
+        Action onKeyReleased)
     {
         _dispatcher = Dispatcher.CurrentDispatcher;
         _onKeyPressed = onKeyPressed;
         _onKeyReleased = onKeyReleased;
         _hookProc = OnHookCallback;
+        _shortcut = shortcut;
+        ApplyShortcut(shortcut);
+    }
+
+    public void ApplyShortcut(KeyboardShortcut shortcut)
+    {
+        _shortcut = shortcut;
+        _requireCtrl = shortcut.Control;
+        _requireShift = shortcut.Shift;
+        _requireAlt = shortcut.Alt;
+        _requireWin = shortcut.Windows;
+        _triggerVk = shortcut.TryGetWpfKey(out var key) ? KeyInterop.VirtualKeyFromKey(key) : 0;
+        _firedPress = false;
     }
 
     public void EnsureHookInstalled()
@@ -118,7 +131,7 @@ public sealed class PushToTalkHotkeyService : IDisposable
     {
         UpdateModifierState(vkCode, held: true);
 
-        if (vkCode == VkSpace)
+        if (vkCode == _triggerVk && _triggerVk != 0)
         {
             TryFirePress();
         }
@@ -126,13 +139,10 @@ public sealed class PushToTalkHotkeyService : IDisposable
 
     private void HandleKeyUp(int vkCode)
     {
-        if (vkCode == VkSpace)
+        if (vkCode == _triggerVk && _firedPress)
         {
-            if (_firedPress)
-            {
-                _firedPress = false;
-                _dispatcher.BeginInvoke(_onKeyReleased);
-            }
+            _firedPress = false;
+            _dispatcher.BeginInvoke(_onKeyReleased);
         }
 
         UpdateModifierState(vkCode, held: false);
@@ -140,7 +150,11 @@ public sealed class PushToTalkHotkeyService : IDisposable
 
     private void TryFirePress()
     {
-        if (_ctrlHeld && !_shiftHeld && !_altHeld && !_winHeld && !_firedPress)
+        if (_requireCtrl == _ctrlHeld
+            && _requireShift == _shiftHeld
+            && _requireAlt == _altHeld
+            && _requireWin == _winHeld
+            && !_firedPress)
         {
             _firedPress = true;
             _dispatcher.BeginInvoke(_onKeyPressed);
@@ -151,13 +165,13 @@ public sealed class PushToTalkHotkeyService : IDisposable
     {
         switch (vkCode)
         {
-            case VkControl or VkLcontrol or VkRcontrol:
+            case 0x11 or 0xA2 or 0xA3:
                 _ctrlHeld = held;
                 break;
-            case VkShift or VkLshift or VkRshift:
+            case 0x10 or 0xA0 or 0xA1:
                 _shiftHeld = held;
                 break;
-            case VkMenu or VkLmenu or VkRmenu:
+            case 0x12 or 0xA4 or 0xA5:
                 _altHeld = held;
                 break;
             case VkLwin or VkRwin:

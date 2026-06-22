@@ -12,7 +12,7 @@ public sealed record KeyboardShortcut(
 {
     public static KeyboardShortcut DefaultChatShortcut { get; } = new("Space", false, true, false, false);
 
-    public static KeyboardShortcut DefaultPushToTalkShortcut { get; } = new("Space", true, false, false, false);
+    public static KeyboardShortcut DefaultPushToTalkShortcut { get; } = new("Space", false, true, false, false);
 
     [JsonIgnore]
     public string DisplayText

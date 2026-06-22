@@ -26,12 +26,14 @@ public partial class SettingsWindow : Window
     private readonly IObservationPermissionService _permissionService;
     private readonly ObservationStore _observationStore;
     private readonly AmbientDecisionStore _ambientDecisionStore;
-    private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly IDesktopEnvironmentCaptureCoordinator _observationCoordinator;
     private readonly ObservableCollection<ApplicationRuleRow> _observationRows = [];
     private readonly ObservableCollection<OpenRouterModelInfo> _visionModels = [];
     private readonly ObservableCollection<OpenRouterModelInfo> _audioModels = [];
     private readonly DispatcherTimer _audioDiagnosticsTimer;
     private KeyboardShortcut _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
+    private KeyboardShortcut _selectedPushToTalkShortcut = KeyboardShortcut.DefaultPushToTalkShortcut;
+    private ShortcutTarget _recordingTarget;
     private bool _isRecordingShortcut;
     private bool _loadingObservationSettings;
     private bool _syncingCommentThreshold;
@@ -56,7 +58,7 @@ public partial class SettingsWindow : Window
         IObservationPermissionService permissionService,
         ObservationStore observationStore,
         AmbientDecisionStore ambientDecisionStore,
-        IDesktopObservationCoordinator observationCoordinator)
+        IDesktopEnvironmentCaptureCoordinator observationCoordinator)
     {
         _elevenLabsSettingsStore = elevenLabsSettingsStore;
         _pronunciationService = pronunciationService;
@@ -164,6 +166,8 @@ public partial class SettingsWindow : Window
                 ClampInt(AudioAnalysisTimeoutSecondsTextBox.Text, 5, 180, 45),
                 (int)TranscriptVerbositySlider.Value,
                 ClampInt(MaxSegmentDurationSecondsTextBox.Text, 5, 60, 30),
+                GetSelectedDeviceId(MicrophoneDeviceComboBox),
+                GetSelectedDeviceId(SystemAudioDeviceComboBox),
                 _observationRows
                     .Where(row => row.ExecutablePath != SystemRowExecutablePath && row.AllowAudio)
                     .Select(row => new AudioApplicationRule(row.ExecutablePath, row.DisplayName, row.AllowAudio))
@@ -181,6 +185,7 @@ public partial class SettingsWindow : Window
             var uiSettings = currentUiSettings with
             {
                 ChatShortcut = _selectedChatShortcut,
+                PushToTalkShortcut = _selectedPushToTalkShortcut,
                 ChatHistoryContext = historySettings
             };
             _uiSettingsStore.Save(uiSettings);
@@ -231,12 +236,15 @@ public partial class SettingsWindow : Window
         TranscriptVerbosityValueText.Text = audioSettings.TranscriptVerbosityLevel.ToString();
         MaxSegmentDurationSecondsTextBox.Text = audioSettings.MaximumSegmentDurationSeconds.ToString();
 
+        LoadAudioDevices(audioSettings.MicrophoneDeviceId, audioSettings.SystemAudioDeviceId);
+
         var uiSettings = _uiSettingsStore.Load();
         _selectedChatShortcut = uiSettings.ChatShortcut;
+        _selectedPushToTalkShortcut = uiSettings.PushToTalkShortcut;
         var historySettings = uiSettings.GetEffectiveChatHistoryContext();
         RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
         AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
-        UpdateShortcutButton();
+        UpdateShortcutButtons();
 
         var hotkeyWarning = _getHotkeyWarning();
         if (hotkeyWarning is not null)
@@ -245,6 +253,37 @@ public partial class SettingsWindow : Window
         }
 
         LoadObservationSettings();
+    }
+
+    private void LoadAudioDevices(string? microphoneDeviceId, string? systemAudioDeviceId)
+    {
+        var microphones = AudioDeviceHelper.GetMicrophoneDevices();
+        MicrophoneDeviceComboBox.ItemsSource = microphones;
+        MicrophoneDeviceComboBox.SelectedValuePath = nameof(AudioDeviceInfo.Id);
+        MicrophoneDeviceComboBox.DisplayMemberPath = nameof(AudioDeviceInfo.DisplayName);
+        MicrophoneDeviceComboBox.SelectedItem = string.IsNullOrEmpty(microphoneDeviceId)
+            ? microphones.FirstOrDefault(d => d.IsDefault)
+            : microphones.FirstOrDefault(d => d.Id == microphoneDeviceId)
+              ?? microphones.FirstOrDefault(d => d.IsDefault);
+
+        var speakers = AudioDeviceHelper.GetSystemAudioDevices();
+        SystemAudioDeviceComboBox.ItemsSource = speakers;
+        SystemAudioDeviceComboBox.SelectedValuePath = nameof(AudioDeviceInfo.Id);
+        SystemAudioDeviceComboBox.DisplayMemberPath = nameof(AudioDeviceInfo.DisplayName);
+        SystemAudioDeviceComboBox.SelectedItem = string.IsNullOrEmpty(systemAudioDeviceId)
+            ? speakers.FirstOrDefault(d => d.IsDefault)
+            : speakers.FirstOrDefault(d => d.Id == systemAudioDeviceId)
+              ?? speakers.FirstOrDefault(d => d.IsDefault);
+    }
+
+    private static string? GetSelectedDeviceId(System.Windows.Controls.ComboBox comboBox)
+    {
+        if (comboBox.SelectedItem is AudioDeviceInfo device)
+        {
+            return device.IsDefault ? null : device.Id;
+        }
+
+        return null;
     }
 
     private static int ParseInt(System.Windows.Controls.TextBox textBox, int fallback) =>

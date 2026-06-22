@@ -4,9 +4,9 @@ using DesktopPet.App.Memory;
 
 namespace DesktopPet.App.Observation;
 
-internal sealed class AmbientCommentCoordinator : IDisposable
+internal sealed class CommentaryCoordinator : IDisposable
 {
-    private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly IDesktopEnvironmentCaptureCoordinator _environmentCoordinator;
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientCommentPolicy _policy;
     private readonly IAmbientCommentGenerator _generator;
@@ -26,8 +26,8 @@ internal sealed class AmbientCommentCoordinator : IDisposable
     private long _turnId;
     private bool _disposed;
 
-    public AmbientCommentCoordinator(
-        IDesktopObservationCoordinator observationCoordinator,
+    public CommentaryCoordinator(
+        IDesktopEnvironmentCaptureCoordinator environmentCoordinator,
         IObservationPermissionService permissionService,
         IAmbientCommentPolicy policy,
         IAmbientCommentGenerator generator,
@@ -42,7 +42,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         IWindowCaptureService windowCaptureService,
         IVisualContextAnalyzer visualAnalyzer)
     {
-        _observationCoordinator = observationCoordinator;
+        _environmentCoordinator = environmentCoordinator;
         _permissionService = permissionService;
         _policy = policy;
         _generator = generator;
@@ -57,7 +57,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
         _windowCaptureService = windowCaptureService;
         _visualAnalyzer = visualAnalyzer;
 
-        _observationCoordinator.ChangeDetected += OnChangeDetected;
+        _environmentCoordinator.ChangeDetected += OnChangeDetected;
         _activityState.UserRequestStarted += OnUserRequestStarted;
     }
 
@@ -68,7 +68,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
             return;
         }
 
-        _observationCoordinator.ChangeDetected -= OnChangeDetected;
+        _environmentCoordinator.ChangeDetected -= OnChangeDetected;
         _activityState.UserRequestStarted -= OnUserRequestStarted;
         Interlocked.Increment(ref _turnId);
         _currentCancellation?.Cancel();
@@ -264,7 +264,7 @@ internal sealed class AmbientCommentCoordinator : IDisposable
                 }
 
                 var lastSpokeAt = _policy.GetLastSpokenAt();
-                var recentObservations = _observationCoordinator.RecentObservations;
+                var recentObservations = _environmentCoordinator.RecentObservations;
                 var visionObservation = await _visualAnalyzer.AnalyzeDetailedAsync(
                     capture.Image,
                     new VisualAnalysisRequest(change.Observation.ApplicationName, change.Observation.ActivityDescription),

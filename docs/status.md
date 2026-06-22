@@ -8,6 +8,14 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 - **WPF/local code** owns the overlay, playback, character behavior, Windows
   observation, permissions, privacy reduction, timing, and ambient policy.
+- **Capture systems** are independent coordinators that each manage their own
+  lifecycle: `DesktopEnvironmentCaptureCoordinator` polls the foreground window
+  and UI Automation, `ImageCaptureCoordinator` captures screenshots and runs
+  vision analysis, and `AudioCaptureCoordinator` manages mic/system/per-app
+  audio capture and STT.
+- **`CommentaryCoordinator`** is the commentary loop that pulls from all capture
+  systems, evaluates policy, generates ambient comments via ElevenLabs, and
+  handles speech synthesis and playback.
 - **ElevenLabs** provides Agent text replies and `eleven_v3` speech. It receives
   profile, memory, conversation, temporal, and reduced desktop context through
   dynamic variables.
@@ -78,16 +86,24 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   labels. An Advanced setting, enabled by default, also captures and analyzes
   the active window when Vision permission allows it. Unsupported, disabled,
   or timed-out inspection falls back to the available context.
+- `DesktopEnvironmentCaptureCoordinator` polls the foreground window and
+  optionally collects UI Automation structure. It fires `ChangeDetected` events
+  on stable application/title changes and periodic check-ins.
+- `ImageCaptureCoordinator` captures screenshots and runs vision analysis on
+  change events, storing the latest `VisionObservation` and thumbnail for
+  consumers via `IVisionObservationProvider`.
+- `CommentaryCoordinator` is the commentary loop that reacts to environment
+  changes and pulls from all capture systems. It optionally captures and
+  analyzes screenshots inline, evaluates local policy, requests a short ambient
+  ElevenLabs comment, and handles speech synthesis and playback. Silence is the
+  normal valid outcome.
 - Permitted screenshots are captured in memory, downscaled to 1280x720, and
   analyzed by the configured OpenRouter vision model using structured output.
   Two 10-tick sliders control vision detail: Detail (summarized → verbatim)
-  and Verbosity (succinct → verbose). These replace the former Brief/Detailed/
-  Narrative radio buttons.
-- Background observation reacts to stable application/title changes and
-  periodic check-ins. Rapid switching is filtered by a minimum dwell time.
+  and Verbosity (succinct → verbose).
+- Rapid switching is filtered by a minimum dwell time.
 - Local policy evaluates freshness, user activity, cooldown, duplicate topics,
   and vision interest before requesting a short ambient ElevenLabs comment.
-  Silence is the normal valid outcome.
 - Settings expose commentary presets, an exact comment threshold, vision
   detail (two 10-tick sliders: Detail level and Verbosity), and a collapsed
   Advanced section for timing, interest-score weights, provider cost limits,

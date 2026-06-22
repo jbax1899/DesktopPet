@@ -97,7 +97,7 @@ public sealed class AudioAnalysisTests
             store);
         var systemAudio = new FakeCaptureSource(AudioSourceKind.SystemAudio);
         using var captureCoordinator = new AudioCaptureCoordinator(
-            kind => kind == AudioSourceKind.SystemAudio
+            (kind, _) => kind == AudioSourceKind.SystemAudio
                 ? systemAudio
                 : new FakeCaptureSource(kind),
             analysisCoordinator);

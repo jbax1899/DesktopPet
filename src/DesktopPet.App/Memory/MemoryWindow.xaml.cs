@@ -31,7 +31,7 @@ public partial class MemoryWindow : Window
     private readonly IChatHistoryStore _chatHistoryStore;
     private readonly ChatAudioStore _chatAudioStore;
     private readonly Func<ChatHistoryMessage, Task> _playCachedAudio;
-    private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly IDesktopEnvironmentCaptureCoordinator _observationCoordinator;
     private readonly AmbientDecisionStore _ambientDecisionStore;
     private readonly ObservationStore _observationStore;
     private readonly AudioObservationStore _audioObservationStore;
@@ -52,7 +52,7 @@ public partial class MemoryWindow : Window
         IChatHistoryStore chatHistoryStore,
         ChatAudioStore chatAudioStore,
         Func<ChatHistoryMessage, Task> playCachedAudio,
-        IDesktopObservationCoordinator observationCoordinator,
+        IDesktopEnvironmentCaptureCoordinator observationCoordinator,
         AmbientDecisionStore ambientDecisionStore,
         ObservationStore observationStore,
         AudioObservationStore audioObservationStore,

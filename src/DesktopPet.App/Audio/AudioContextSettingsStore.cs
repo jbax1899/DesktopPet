@@ -52,6 +52,8 @@ public sealed class AudioContextSettingsStore
             ReadInt(root, nameof(AudioContextSettings.AnalysisTimeoutSeconds), defaults.AnalysisTimeoutSeconds),
             ReadInt(root, nameof(AudioContextSettings.TranscriptVerbosityLevel), defaults.TranscriptVerbosityLevel),
             ReadInt(root, nameof(AudioContextSettings.MaximumSegmentDurationSeconds), defaults.MaximumSegmentDurationSeconds),
+            ReadString(root, nameof(AudioContextSettings.MicrophoneDeviceId), defaults.MicrophoneDeviceId),
+            ReadString(root, nameof(AudioContextSettings.SystemAudioDeviceId), defaults.SystemAudioDeviceId),
             ReadAudioApplicationRules(root, nameof(AudioContextSettings.AudioApplicationRules)))
             .Normalize();
     }
@@ -96,6 +98,13 @@ public sealed class AudioContextSettingsStore
     {
         return root.TryGetProperty(name, out var value) && value.TryGetDouble(out var result)
             ? result
+            : fallback;
+    }
+
+    private static string? ReadString(JsonElement root, string name, string? fallback)
+    {
+        return root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
             : fallback;
     }
 

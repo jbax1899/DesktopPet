@@ -19,6 +19,8 @@ public sealed record AudioContextSettings(
     int AnalysisTimeoutSeconds,
     int TranscriptVerbosityLevel,
     int MaximumSegmentDurationSeconds,
+    string? MicrophoneDeviceId,
+    string? SystemAudioDeviceId,
     IReadOnlyList<AudioApplicationRule> AudioApplicationRules)
 {
     public AudioContextSettings(bool enabled, bool microphoneEnabled, bool systemAudioEnabled)
@@ -36,6 +38,8 @@ public sealed record AudioContextSettings(
             Default.AnalysisTimeoutSeconds,
             Default.TranscriptVerbosityLevel,
             Default.MaximumSegmentDurationSeconds,
+            Default.MicrophoneDeviceId,
+            Default.SystemAudioDeviceId,
             Default.AudioApplicationRules)
     {
     }
@@ -54,6 +58,8 @@ public sealed record AudioContextSettings(
         AnalysisTimeoutSeconds: 45,
         TranscriptVerbosityLevel: 5,
         MaximumSegmentDurationSeconds: 30,
+        MicrophoneDeviceId: null,
+        SystemAudioDeviceId: null,
         AudioApplicationRules: []);
 
     public AudioContextSettings Normalize() => this with

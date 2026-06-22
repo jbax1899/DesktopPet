@@ -47,7 +47,8 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly IUiAutomationContextCollector _uiAutomationContextCollector;
     private readonly IWindowCaptureService _windowCaptureService;
     private readonly IVisualContextAnalyzer _visualContextAnalyzer;
-    private readonly IDesktopObservationCoordinator _observationCoordinator;
+    private readonly IDesktopEnvironmentCaptureCoordinator _environmentCoordinator;
+    private readonly ImageCaptureCoordinator _imageCaptureCoordinator;
     private readonly IAmbientActivityState _ambientActivityState;
     private readonly IAmbientCommentPolicy _ambientCommentPolicy;
     private readonly IAmbientCommentGenerator _ambientCommentGenerator;
@@ -59,7 +60,7 @@ public sealed class DesktopPetApplication : IDisposable
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
-    private readonly AmbientCommentCoordinator _ambientCommentCoordinator;
+    private readonly CommentaryCoordinator _commentaryCoordinator;
     private readonly TrayController _trayController;
 
     private SettingsWindow? _settingsWindow;
@@ -104,10 +105,10 @@ public sealed class DesktopPetApplication : IDisposable
             _transcriptWorkingBuffer,
             _audioObservationStore);
         _audioCaptureCoordinator = new AudioCaptureCoordinator(
-            kind => kind switch
+            (kind, deviceId) => kind switch
             {
-                AudioSourceKind.Microphone => new MicrophoneCaptureSource(),
-                AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(),
+                AudioSourceKind.Microphone => new MicrophoneCaptureSource(deviceId),
+                AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(deviceId),
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             },
             _audioAnalysisCoordinator);
@@ -134,7 +135,7 @@ public sealed class DesktopPetApplication : IDisposable
         _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
         _creditInfoService = new CreditInfoService(_httpClient, _elevenLabsSettingsStore.Load, _openRouterSettingsStore.Load);
         _pronunciationService = new ElevenLabsPronunciationService(_httpClient);
-        _observationCoordinator = new DesktopObservationCoordinator(
+        _environmentCoordinator = new DesktopEnvironmentCaptureCoordinator(
             _foregroundWindowCollector,
             _observationPermissionService,
             _uiAutomationContextCollector);
@@ -142,6 +143,14 @@ public sealed class DesktopPetApplication : IDisposable
         _ambientCommentPolicy = new AmbientCommentPolicy(
             _observationPermissionService,
             _ambientActivityState);
+        _imageCaptureCoordinator = new ImageCaptureCoordinator(
+            _environmentCoordinator,
+            _observationPermissionService,
+            _foregroundWindowCollector,
+            _windowCaptureService,
+            _visualContextAnalyzer,
+            _observationStore,
+            _ambientCommentPolicy);
         _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(
             _chatService,
             _observationStore,
@@ -194,8 +203,8 @@ public sealed class DesktopPetApplication : IDisposable
             _observationPermissionService,
             _audioObservationContextProvider.GetCurrentContext,
             _audioSegmentAnalyzer);
-        _ambientCommentCoordinator = new AmbientCommentCoordinator(
-            _observationCoordinator,
+        _commentaryCoordinator = new CommentaryCoordinator(
+            _environmentCoordinator,
             _observationPermissionService,
             _ambientCommentPolicy,
             _ambientCommentGenerator,
@@ -223,10 +232,13 @@ public sealed class DesktopPetApplication : IDisposable
         _overlayWindow.SetInitialPosition(uiSettings.OverlayPosition);
         _overlayWindow.Show();
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
-        _pushToTalkHotkeyService = new PushToTalkHotkeyService(OnPushToTalkKeyPressed, OnPushToTalkKeyReleased);
+        _pushToTalkHotkeyService = new PushToTalkHotkeyService(
+            uiSettings.PushToTalkShortcut,
+            OnPushToTalkKeyPressed,
+            OnPushToTalkKeyReleased);
         _pushToTalkHotkeyService.EnsureHookInstalled();
         ApplyUiSettings(uiSettings);
-        _observationCoordinator.Start();
+        _environmentCoordinator.Start();
         _audioCaptureCoordinator.ApplySettings(_audioContextSettingsStore.Load());
     }
 
@@ -234,10 +246,11 @@ public sealed class DesktopPetApplication : IDisposable
     {
         _settingsWindow?.Close();
         _memoryWindow?.Close();
-        _ambientCommentCoordinator.Dispose();
+        _commentaryCoordinator.Dispose();
+        _imageCaptureCoordinator.Dispose();
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
-        _observationCoordinator.Dispose();
+        _environmentCoordinator.Dispose();
         _audioCaptureCoordinator.Dispose();
         _audioAnalysisCoordinator.Dispose();
         _chatHotkeyService?.Dispose();
@@ -269,7 +282,7 @@ public sealed class DesktopPetApplication : IDisposable
                 _observationPermissionService,
                 _observationStore,
                 _ambientDecisionStore,
-                _observationCoordinator);
+                _environmentCoordinator);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 
@@ -286,7 +299,7 @@ public sealed class DesktopPetApplication : IDisposable
                 _chatHistoryStore,
                 _chatAudioStore,
                 _conversationController.ReplayCachedSpeechAsync,
-                _observationCoordinator,
+                _environmentCoordinator,
                 _ambientDecisionStore,
                 _observationStore,
                 _audioObservationStore,
@@ -355,6 +368,7 @@ public sealed class DesktopPetApplication : IDisposable
 
     private PetError? ApplyUiSettings(UiSettings settings)
     {
+        _pushToTalkHotkeyService?.ApplyShortcut(settings.PushToTalkShortcut);
         return _chatHotkeyService?.Register(settings.ChatShortcut);
     }
 

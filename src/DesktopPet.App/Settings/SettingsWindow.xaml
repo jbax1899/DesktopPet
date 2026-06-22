@@ -51,6 +51,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150" />
@@ -106,10 +108,29 @@
                             <Button x:Name="ChatShortcutButton"
                                     MinWidth="130"
                                     Padding="10,4"
-                                    Click="OnRecordShortcutClicked" />
+                                    Click="OnRecordChatShortcutClicked" />
                             <Button Margin="8,0,0,0"
                                     Padding="10,4"
-                                    Click="OnResetShortcutClicked"
+                                    Click="OnResetChatShortcutClicked"
+                                    Content="Reset" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="6"
+                                   Grid.Column="0"
+                                   Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Text="Mic hotkey"
+                                   ToolTip="Hold-to-speak key for push-to-talk microphone capture." />
+                        <StackPanel Grid.Row="6"
+                                    Grid.Column="1"
+                                    Orientation="Horizontal">
+                            <Button x:Name="PushToTalkShortcutButton"
+                                    MinWidth="130"
+                                    Padding="10,4"
+                                    Click="OnRecordPushToTalkShortcutClicked" />
+                            <Button Margin="8,0,0,0"
+                                    Padding="10,4"
+                                    Click="OnResetPushToTalkShortcutClicked"
                                     Content="Reset" />
                         </StackPanel>
                     </Grid>
@@ -275,8 +296,30 @@
                         <TextBlock Margin="0,0,0,10"
                                    FontSize="11"
                                    Foreground="#FF64748B"
-                                   Text="Raw audio is never saved. Full transcripts stay in memory temporarily; only reduced observations and optional short excerpts are stored. Enable audio per-application in the Windows section below."
-                                   TextWrapping="Wrap" />
+                                    Text="Raw audio is never saved. Full transcripts stay in memory temporarily; only reduced observations and optional short excerpts are stored. Enable audio per-application in the Windows section below."
+                                    TextWrapping="Wrap" />
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="Microphone" />
+                            <ComboBox x:Name="MicrophoneDeviceComboBox"
+                                      Grid.Column="1"
+                                      ToolTip="Microphone input device. Default uses the system default device." />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="System audio" />
+                            <ComboBox x:Name="SystemAudioDeviceComboBox"
+                                      Grid.Column="1"
+                                      ToolTip="System audio output device for loopback capture. Default uses the system default device." />
+                        </Grid>
                         <TextBlock Margin="0,0,0,4"
                                    FontWeight="SemiBold"
                                    Text="Transcript verbosity" />

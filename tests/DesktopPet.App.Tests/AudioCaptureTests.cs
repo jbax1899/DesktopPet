@@ -146,7 +146,7 @@ public sealed class AudioCaptureTests
     public void ReapplyingSettingsDoesNotRecreateActiveSources()
     {
         var created = new List<FakeCaptureSource>();
-        using var coordinator = new AudioCaptureCoordinator(kind =>
+        using var coordinator = new AudioCaptureCoordinator((kind, _) =>
         {
             var source = new FakeCaptureSource(kind);
             created.Add(source);
@@ -171,7 +171,7 @@ public sealed class AudioCaptureTests
     public void DisablingClearsActiveSegmentState()
     {
         FakeCaptureSource? microphone = null;
-        using var coordinator = new AudioCaptureCoordinator(kind =>
+        using var coordinator = new AudioCaptureCoordinator((kind, _) =>
         {
             var source = new FakeCaptureSource(kind);
             if (kind == AudioSourceKind.Microphone)
@@ -198,7 +198,7 @@ public sealed class AudioCaptureTests
     [TestMethod]
     public void OneSourceCanFailWhileOtherSourceCaptures()
     {
-        using var coordinator = new AudioCaptureCoordinator(kind =>
+        using var coordinator = new AudioCaptureCoordinator((kind, _) =>
             kind == AudioSourceKind.Microphone
                 ? new FakeCaptureSource(kind, failOnStart: true)
                 : new FakeCaptureSource(kind));
@@ -217,7 +217,7 @@ public sealed class AudioCaptureTests
     public void MissingLoopbackCallbacksAreTreatedAsSilenceForActiveSegment()
     {
         FakeCaptureSource? systemAudio = null;
-        using var coordinator = new AudioCaptureCoordinator(kind =>
+        using var coordinator = new AudioCaptureCoordinator((kind, _) =>
         {
             var source = new FakeCaptureSource(kind);
             if (kind == AudioSourceKind.SystemAudio)
@@ -250,7 +250,7 @@ public sealed class AudioCaptureTests
         FakeCaptureSource? microphone = null;
         var timeProvider = new ManualTimeProvider(DateTimeOffset.UtcNow);
         using var coordinator = new AudioCaptureCoordinator(
-            kind =>
+            (kind, _) =>
             {
                 var source = new FakeCaptureSource(kind);
                 if (kind == AudioSourceKind.Microphone)

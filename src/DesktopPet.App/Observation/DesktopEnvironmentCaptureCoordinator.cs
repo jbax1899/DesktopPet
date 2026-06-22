@@ -20,7 +20,7 @@ public sealed record DesktopObservationChange(
     ReducedDesktopObservation Observation,
     string TopicKey);
 
-public interface IDesktopObservationCoordinator : IDisposable
+public interface IDesktopEnvironmentCaptureCoordinator : IDisposable
 {
     event EventHandler<ReducedDesktopObservation>? ObservationAdded;
 
@@ -32,7 +32,7 @@ public interface IDesktopObservationCoordinator : IDisposable
     void ApplySettings();
 }
 
-internal sealed partial class DesktopObservationCoordinator : IDesktopObservationCoordinator
+internal sealed partial class DesktopEnvironmentCaptureCoordinator : IDesktopEnvironmentCaptureCoordinator
 {
     private readonly IForegroundWindowCollector _collector;
     private readonly IObservationPermissionService _permissionService;
@@ -47,7 +47,7 @@ internal sealed partial class DesktopObservationCoordinator : IDesktopObservatio
     private DateTimeOffset _lastCheckInAt;
     private readonly Dictionary<string, DateTimeOffset> _lastStructuralInspection = new(StringComparer.OrdinalIgnoreCase);
 
-    public DesktopObservationCoordinator(
+    public DesktopEnvironmentCaptureCoordinator(
         IForegroundWindowCollector collector,
         IObservationPermissionService permissionService,
         IUiAutomationContextCollector uiAutomationCollector)

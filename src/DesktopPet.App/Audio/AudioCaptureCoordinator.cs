@@ -583,7 +583,46 @@ public sealed class AudioCaptureCoordinator : IDisposable
                 return;
             }
 
-            foreach (var session in _sessions.Values.Concat(_perAppSessions.Values))
+            foreach (var session in _sessions.Values)
+            {
+                if (session.State != AudioCaptureState.Capturing
+                    || IsSpeechSuppressed(now)
+                    || session.SampleRate <= 0
+                    || session.LastFrameAt is null
+                    || now - session.LastFrameAt.Value < TimeSpan.FromMilliseconds(250))
+                {
+                    continue;
+                }
+
+                session.CurrentLevel = 0;
+                if (!session.SegmentBuffer.HasBufferedActivity)
+                {
+                    continue;
+                }
+
+                var silenceStart = session.LastSilenceAt ?? session.LastFrameAt.Value;
+                var elapsed = now - silenceStart;
+                if (elapsed <= TimeSpan.Zero)
+                {
+                    continue;
+                }
+
+                var injectedDuration = elapsed > TimeSpan.FromMilliseconds(500)
+                    ? TimeSpan.FromMilliseconds(500)
+                    : elapsed;
+                var sampleCount = Math.Max(
+                    1,
+                    (int)Math.Ceiling(injectedDuration.TotalSeconds * session.SampleRate));
+                RecordResult(
+                    session,
+                    session.SegmentBuffer.ProcessSamples(
+                        new float[sampleCount],
+                        session.SampleRate,
+                        silenceStart + injectedDuration));
+                session.LastSilenceAt = silenceStart + injectedDuration;
+            }
+
+            foreach (var session in _perAppSessions.Values)
             {
                 if (session.State != AudioCaptureState.Capturing
                     || IsSpeechSuppressed(now)

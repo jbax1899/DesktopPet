@@ -344,27 +344,10 @@ public sealed class AudioAnalysisCoordinator : IDisposable
             return null;
         }
 
-        var builder = new StringBuilder(transcript.Length);
-        foreach (var character in transcript)
-        {
-            if (char.IsControl(character))
-            {
-                if (char.IsWhiteSpace(character))
-                {
-                    builder.Append(' ');
-                }
-
-                continue;
-            }
-
-            builder.Append(character);
-        }
-
-        var oneLine = string.Join(
+        var sanitized = new string(transcript.Where(c => !char.IsControl(c) || char.IsWhiteSpace(c)).ToArray());
+        var collapsed = string.Join(
             " ",
-            builder.ToString().Split(
-                [' ', '\t', '\r', '\n'],
-                StringSplitOptions.RemoveEmptyEntries));
-        return oneLine.Length <= 160 ? oneLine : oneLine[..160];
+            sanitized.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
+        return collapsed.Length <= 160 ? collapsed : collapsed[..160];
     }
 }

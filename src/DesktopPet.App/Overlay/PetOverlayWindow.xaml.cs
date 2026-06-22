@@ -135,7 +135,7 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(() => ShowTemporaryMood(mood, duration));
+            Dispatcher.BeginInvoke(() => ShowTemporaryMood(mood, duration));
             return;
         }
 
@@ -149,7 +149,7 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(MarkActivity);
+            Dispatcher.BeginInvoke(MarkActivity);
             return;
         }
 
@@ -527,7 +527,7 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(() => EndMood(scopeId));
+            Dispatcher.BeginInvoke(() => EndMood(scopeId));
             return;
         }
 
@@ -609,7 +609,7 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(StopSpeaking);
+            Dispatcher.BeginInvoke(StopSpeaking);
             return;
         }
 
@@ -622,7 +622,7 @@ public partial class PetOverlayWindow : Window, ICharacterStateController
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(() => SetMouthOpen(openness));
+            Dispatcher.BeginInvoke(() => SetMouthOpen(openness));
             return;
         }
 

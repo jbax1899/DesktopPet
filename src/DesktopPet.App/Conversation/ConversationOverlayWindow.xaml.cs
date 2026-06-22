@@ -26,6 +26,16 @@ public partial class ConversationOverlayWindow : Window
     private const double ErrorGap = 10;
     private const int TranscriptCharactersPerSecond = 42;
     private static readonly TimeSpan TranscriptFrameInterval = TimeSpan.FromMilliseconds(33);
+    private static readonly System.Windows.Media.Brush SubmittedMessageBrush;
+    private static readonly System.Windows.Media.Brush DefaultInputBrush;
+
+    static ConversationOverlayWindow()
+    {
+        SubmittedMessageBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xDD, 0x37, 0x41, 0x51));
+        SubmittedMessageBrush.Freeze();
+        DefaultInputBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xFF, 0x0F, 0x17, 0x2A));
+        DefaultInputBrush.Freeze();
+    }
 
     private readonly Func<Rect> _petBoundsProvider;
     private readonly DispatcherTimer _transcriptTimer;
@@ -38,6 +48,7 @@ public partial class ConversationOverlayWindow : Window
     private long _transcriptVersion;
     private bool _isShowingSubmittedMessage;
     private bool _isSubmitting;
+    private Typeface? _cachedTypeface;
 
     public ConversationOverlayWindow(Func<Rect> petBoundsProvider)
     {
@@ -420,6 +431,12 @@ public partial class ConversationOverlayWindow : Window
         double fontSize,
         System.Windows.Media.Brush foreground)
     {
+        var typeface = new Typeface(fontFamily, fontStyle, fontWeight, fontStretch);
+        if (_cachedTypeface is null || _cachedTypeface != typeface)
+        {
+            _cachedTypeface = typeface;
+        }
+
         var longestLine = (string.IsNullOrEmpty(text) ? " " : text)
             .ReplaceLineEndings("\n")
             .Split('\n')
@@ -430,7 +447,7 @@ public partial class ConversationOverlayWindow : Window
             longestLine,
             CultureInfo.CurrentCulture,
             System.Windows.FlowDirection.LeftToRight,
-            new Typeface(fontFamily, fontStyle, fontWeight, fontStretch),
+            _cachedTypeface,
             fontSize,
             foreground,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
@@ -443,7 +460,7 @@ public partial class ConversationOverlayWindow : Window
         _isShowingSubmittedMessage = true;
         InputTextBox.Text = message;
         InputTextBox.FontStyle = FontStyles.Italic;
-        InputTextBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xDD, 0x37, 0x41, 0x51));
+        InputTextBox.Foreground = SubmittedMessageBrush;
         InputTextBox.CaretIndex = InputTextBox.Text.Length;
     }
 
@@ -457,7 +474,7 @@ public partial class ConversationOverlayWindow : Window
         _isShowingSubmittedMessage = false;
         InputTextBox.Clear();
         InputTextBox.FontStyle = FontStyles.Normal;
-        InputTextBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xFF, 0x0F, 0x17, 0x2A));
+        InputTextBox.Foreground = DefaultInputBrush;
     }
 
     private static bool ShouldClearSubmittedMessageForKey(Key key)

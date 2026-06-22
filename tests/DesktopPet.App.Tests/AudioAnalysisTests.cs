@@ -34,7 +34,7 @@ public sealed class AudioAnalysisTests
         var now = DateTimeOffset.UtcNow;
         Process(buffer, 0.2f, 500, ref now);
         Process(buffer, 0.2f, 600, ref now);
-        var result = Process(buffer, 0, 1500, ref now);
+        var result = Process(buffer, 0, 3500, ref now);
 
         var segment = result.CompletedSegments.Single();
         var owned = segment.MonoSamples.ToArray();
@@ -104,7 +104,7 @@ public sealed class AudioAnalysisTests
 
         captureCoordinator.ApplySettings(EnabledAnalysisSettings());
         systemAudio.Emit(0.2f, TimeSpan.FromMilliseconds(1100));
-        var end = systemAudio.CapturedAt + TimeSpan.FromSeconds(2);
+        var end = systemAudio.CapturedAt + TimeSpan.FromSeconds(3);
         for (var now = systemAudio.CapturedAt + TimeSpan.FromMilliseconds(500);
              now <= end;
              now += TimeSpan.FromMilliseconds(500))

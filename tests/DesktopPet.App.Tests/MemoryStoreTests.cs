@@ -31,7 +31,7 @@ public sealed class MemoryStoreTests
     [TestMethod]
     public void ChatHistoryStoreDeletesSelectedMessageAndClearsRemainingMessages()
     {
-        var database = new DesktopPetDatabase(_directory);
+        using var database = new DesktopPetDatabase(_directory);
         database.Initialize();
         var store = new SqliteChatHistoryStore(database);
         var changed = 0;

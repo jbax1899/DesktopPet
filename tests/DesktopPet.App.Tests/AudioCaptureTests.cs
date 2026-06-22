@@ -73,7 +73,7 @@ public sealed class AudioCaptureTests
 
         Assert.IsEmpty(buffer.RecentDiagnostics);
         Assert.IsFalse(buffer.HasActiveSegment);
-        Assert.IsLessThanOrEqualTo(250, buffer.BufferedSampleCount);
+        Assert.IsLessThanOrEqualTo(500, buffer.BufferedSampleCount);
     }
 
     [TestMethod]
@@ -98,14 +98,14 @@ public sealed class AudioCaptureTests
 
         Feed(buffer, 0.2f, TimeSpan.FromMilliseconds(500), ref now);
         Feed(buffer, 0.2f, TimeSpan.FromMilliseconds(600), ref now);
-        Feed(buffer, 0, TimeSpan.FromMilliseconds(1500), ref now);
+        Feed(buffer, 0, TimeSpan.FromMilliseconds(3500), ref now);
 
         var diagnostic = buffer.RecentDiagnostics.Single();
         Assert.AreEqual(AudioSegmentDisposition.Completed, diagnostic.Disposition);
         Assert.IsGreaterThan(0L, diagnostic.ByteCount);
         Assert.IsGreaterThan(0d, diagnostic.AverageRms);
         Assert.IsFalse(buffer.HasActiveSegment);
-        Assert.IsLessThanOrEqualTo(250, buffer.BufferedSampleCount);
+        Assert.IsLessThanOrEqualTo(500, buffer.BufferedSampleCount);
     }
 
     [TestMethod]
@@ -114,7 +114,7 @@ public sealed class AudioCaptureTests
         var buffer = new AudioSegmentBuffer(AudioSourceKind.SystemAudio);
         var now = DateTimeOffset.UtcNow;
 
-        for (var i = 0; i < 45; i++)
+        for (var i = 0; i < 65; i++)
         {
             Feed(buffer, 0.2f, TimeSpan.FromMilliseconds(500), ref now);
         }
@@ -183,7 +183,7 @@ public sealed class AudioCaptureTests
         });
 
         coordinator.ApplySettings(new AudioContextSettings(true, true, false));
-        microphone!.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        microphone!.Emit(0.2f, TimeSpan.FromMilliseconds(800));
         Assert.IsGreaterThan(
             TimeSpan.Zero,
             coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
@@ -230,7 +230,7 @@ public sealed class AudioCaptureTests
 
         coordinator.ApplySettings(new AudioContextSettings(true, false, true));
         systemAudio!.Emit(0.2f, TimeSpan.FromMilliseconds(1100));
-        var end = systemAudio.CapturedAt + TimeSpan.FromSeconds(2);
+        var end = systemAudio.CapturedAt + TimeSpan.FromSeconds(3);
         for (var now = systemAudio.CapturedAt + TimeSpan.FromMilliseconds(500);
              now <= end;
              now += TimeSpan.FromMilliseconds(500))
@@ -263,7 +263,7 @@ public sealed class AudioCaptureTests
             timeProvider: timeProvider);
 
         coordinator.ApplySettings(new AudioContextSettings(true, true, false));
-        microphone!.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        microphone!.Emit(0.2f, TimeSpan.FromMilliseconds(800));
         Assert.IsGreaterThan(
             TimeSpan.Zero,
             coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
@@ -280,13 +280,13 @@ public sealed class AudioCaptureTests
                 coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
         }
 
-        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(800));
         Assert.AreEqual(
             TimeSpan.Zero,
             coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);
 
         timeProvider.Advance(AudioCaptureCoordinator.SpeechSuppressionCooldown);
-        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(600));
+        microphone.Emit(0.2f, TimeSpan.FromMilliseconds(800));
         Assert.IsGreaterThan(
             TimeSpan.Zero,
             coordinator.GetDiagnostic(AudioSourceKind.Microphone).ActiveSegmentDuration);

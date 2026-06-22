@@ -113,7 +113,7 @@ public sealed class AudioContextSettingsStore
     {
         if (!root.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
         {
-            return [];
+            return AudioContextSettings.Default.AudioApplicationRules;
         }
 
         var rules = new List<AudioApplicationRule>();
@@ -141,6 +141,8 @@ public sealed class AudioContextSettingsStore
             rules.Add(new AudioApplicationRule(exePath, displayName ?? string.Empty, allowCapture));
         }
 
-        return rules;
+        return rules.Count == 0
+            ? AudioContextSettings.Default.AudioApplicationRules
+            : rules.ToArray();
     }
 }

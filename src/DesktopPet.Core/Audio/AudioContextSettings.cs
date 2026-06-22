@@ -48,7 +48,7 @@ public sealed record AudioContextSettings(
         Enabled: false,
         MicrophoneEnabled: false,
         SystemAudioEnabled: false,
-        AnalysisEnabled: true,
+        AnalysisEnabled: false,
         PersistMicrophoneTranscriptExcerpt: true,
         PersistSystemAudioTranscriptExcerpt: true,
         ContextDepth: 5,

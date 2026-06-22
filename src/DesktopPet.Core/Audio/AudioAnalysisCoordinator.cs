@@ -4,7 +4,7 @@ namespace DesktopPet.App.Audio;
 
 public sealed class AudioAnalysisCoordinator : IDisposable
 {
-    internal const int MaximumQueuedSegments = 4;
+    internal const int MaximumQueuedSegments = 2;
 
     private readonly object _sync = new();
     private readonly IAudioSegmentAnalyzer _analyzer;

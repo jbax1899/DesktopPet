@@ -11,6 +11,7 @@ public sealed class ObservationStore
     private readonly string _thumbnailDirectory;
     private readonly object _sync = new();
     private readonly Func<int> _maximumRecordsProvider;
+    private List<ObservationRecord>? _cache;
 
     public ObservationStore()
         : this(
@@ -54,6 +55,7 @@ public sealed class ObservationStore
             var records = Load();
             records.Add(record);
             SavePruned(records, _maximumRecordsProvider());
+            InvalidateCache();
         }
     }
 
@@ -67,6 +69,7 @@ public sealed class ObservationStore
             {
                 records[index] = records[index] with { Outcome = outcome, SpokenAt = spokenAt };
                 Save(records);
+                InvalidateCache();
             }
         }
     }
@@ -84,6 +87,7 @@ public sealed class ObservationStore
 
             records.Remove(removed);
             Save(records);
+            InvalidateCache();
             DeleteThumbnail(removed.ThumbnailPath);
             return true;
         }
@@ -94,6 +98,7 @@ public sealed class ObservationStore
         lock (_sync)
         {
             _file.Delete();
+            InvalidateCache();
 
             if (Directory.Exists(_thumbnailDirectory))
             {
@@ -107,12 +112,18 @@ public sealed class ObservationStore
         lock (_sync)
         {
             SavePruned(Load(), _maximumRecordsProvider());
+            InvalidateCache();
         }
     }
 
     private List<ObservationRecord> Load()
     {
-        return _file.Load([]);
+        return _cache ??= _file.Load([]);
+    }
+
+    private void InvalidateCache()
+    {
+        _cache = null;
     }
 
     private void Save(IReadOnlyCollection<ObservationRecord> records)
@@ -122,14 +133,18 @@ public sealed class ObservationStore
 
     private void SavePruned(IEnumerable<ObservationRecord> records, int maximumRecords)
     {
-        var ordered = records.OrderByDescending(item => item.CapturedAt).ToArray();
-        var kept = ordered.Take(maximumRecords).ToArray();
-        foreach (var removed in ordered.Skip(maximumRecords))
+        var ordered = records.OrderByDescending(item => item.CapturedAt).ToList();
+        for (var i = maximumRecords; i < ordered.Count; i++)
         {
-            DeleteThumbnail(removed.ThumbnailPath);
+            DeleteThumbnail(ordered[i].ThumbnailPath);
         }
 
-        Save(kept);
+        if (ordered.Count > maximumRecords)
+        {
+            ordered.RemoveRange(maximumRecords, ordered.Count - maximumRecords);
+        }
+
+        _file.Save(ordered);
     }
 
     private static void DeleteThumbnail(string? thumbnailPath)

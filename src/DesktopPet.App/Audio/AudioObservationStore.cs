@@ -10,6 +10,7 @@ public sealed class AudioObservationStore
     private readonly JsonFileStore<List<AudioObservation>> _file;
     private readonly object _sync = new();
     private readonly Func<int> _maximumRecordsProvider;
+    private List<AudioObservation>? _cache;
 
     public AudioObservationStore()
         : this(
@@ -48,6 +49,7 @@ public sealed class AudioObservationStore
             var records = Load();
             records.Add(observation);
             SavePruned(records);
+            InvalidateCache();
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
@@ -63,6 +65,7 @@ public sealed class AudioObservationStore
             if (changed)
             {
                 Save(records);
+                InvalidateCache();
             }
         }
 
@@ -79,6 +82,7 @@ public sealed class AudioObservationStore
         lock (_sync)
         {
             _file.Delete();
+            InvalidateCache();
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
@@ -89,19 +93,23 @@ public sealed class AudioObservationStore
         lock (_sync)
         {
             SavePruned(Load());
+            InvalidateCache();
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    private List<AudioObservation> Load() => _file.Load([]);
+    private List<AudioObservation> Load() => _cache ??= _file.Load([]);
+
+    private void InvalidateCache() => _cache = null;
 
     private void Save(IEnumerable<AudioObservation> records) => _file.Save(records.ToList());
 
     private void SavePruned(IEnumerable<AudioObservation> records)
     {
-        Save(records
-            .OrderByDescending(item => item.CreatedAt)
-            .Take(Math.Max(1, _maximumRecordsProvider())));
+        var ordered = records.OrderByDescending(item => item.CreatedAt)
+            .Take(Math.Max(1, _maximumRecordsProvider()))
+            .ToList();
+        _file.Save(ordered);
     }
 }

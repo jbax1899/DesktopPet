@@ -239,7 +239,12 @@ public sealed class DesktopPetApplication : IDisposable
         _pushToTalkHotkeyService.EnsureHookInstalled();
         ApplyUiSettings(uiSettings);
         _environmentCoordinator.Start();
-        _audioCaptureCoordinator.ApplySettings(_audioContextSettingsStore.Load());
+        var audioSettings = _audioContextSettingsStore.Load();
+        _audioCaptureCoordinator.ApplySettings(audioSettings);
+        _audioCaptureCoordinator.ApplyPerAppCaptures(
+            audioSettings.AudioApplicationRules,
+            audioSettings.SystemAudioEnabled,
+            TimeSpan.FromSeconds(audioSettings.MaximumSegmentDurationSeconds));
     }
 
     public void Dispose()

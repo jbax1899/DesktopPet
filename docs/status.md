@@ -110,6 +110,7 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   context depth, and retention. Presets lock their exact cooldown,
   duplicate-suppression, and check-in values; Custom unlocks them.
   Configurable durations use seconds, except screenshot delay in milliseconds.
+  Commentary is its own section under Data Capture, decoupled from Vision.
 - The comment threshold is evaluated after vision analysis. Its weighted score
   combines novelty, relevance, privacy safety, and interruption cost.
 - Duplicate-topic suppression applies to metadata-only and vision-backed
@@ -130,12 +131,15 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
 
 - Ambient audio capture is separately opt-in and supports the default
   microphone, default system-output loopback device, and per-application
-  audio capture via the Windows process loopback API.
+  audio capture via the Windows process loopback API. Per-app captures are
+  restored from saved settings on application startup.
 - Per-application audio capture uses `ActivateAudioInterfaceAsync` with
   `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK` (Windows 10 build 19041+).
   The `DesktopPet.Audio.ProcessLoopback.Native` project wraps the Win32
   interop, providing a clean `StartAsync`/`Stop` API that delivers raw PCM16
-  frames via callback.
+  frames via callback. Stop is synchronous to avoid races when switching
+  per-app captures (the old capture must fully release the native audio client
+  before a new one activates).
   // TODO: Replace with NAudio's built-in process loopback once NAudio 3.x ships
   // support (PR #1225 / WasapiCapture.CreateForProcessCaptureAsync).
 - The application grid includes an Audio column with per-app toggle buttons.
@@ -244,6 +248,8 @@ Setup instructions and ElevenLabs dynamic variables live in `README.md`.
   cooldown.
 - Replace `DesktopPet.Audio.ProcessLoopback.Native` interop with NAudio's
   built-in process loopback once NAudio 3.x ships support (PR #1225).
+- Fix pre-existing test build error: `AudioSegmentBuffer.MaximumSegmentDuration`
+  does not exist (test references a member that was removed or renamed).
 
 ## Later Work
 

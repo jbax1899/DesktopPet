@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Desktop Pet Settings"
         Width="620"
-        Height="780"
+        Height="740"
         MinWidth="580"
         MinHeight="600"
         ResizeMode="CanResize"
@@ -25,19 +25,6 @@
         </Style>
     </Window.Resources>
     <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Bottom"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-            <TextBlock x:Name="StatusTextBlock"
-                       MinWidth="180"
-                       Margin="0,0,12,0"
-                       VerticalAlignment="Center" />
-            <Button Width="90"
-                    Padding="10,4"
-                    Click="OnSaveClicked"
-                    Content="Save" />
-        </StackPanel>
-
         <TabControl HorizontalContentAlignment="Stretch">
             <!-- ═══ General ═══ -->
             <TabItem Header="General">
@@ -450,64 +437,6 @@
                                    FontWeight="SemiBold"
                                    Text="Vision" />
 
-                        <TextBlock FontWeight="SemiBold" Text="Commentary" />
-                        <UniformGrid Margin="0,4,0,0" Columns="5">
-                            <RadioButton x:Name="CommentaryOffRadioButton"
-                                         GroupName="Commentary"
-                                         Content="Off"
-                                         ToolTip="Disable ambient comments entirely."
-                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryQuietRadioButton"
-                                         GroupName="Commentary"
-                                         Content="Quiet"
-                                         ToolTip="At least 600 seconds between comments, 600-second check-ins, and 1,200-second duplicate suppression."
-                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryBalancedRadioButton"
-                                         GroupName="Commentary"
-                                         Content="Balanced"
-                                         ToolTip="At least 300 seconds between comments, 300-second check-ins, and 900-second duplicate suppression."
-                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryTalkativeRadioButton"
-                                         GroupName="Commentary"
-                                         Content="Talkative"
-                                         ToolTip="At least 120 seconds between comments, 180-second check-ins, and 600-second duplicate suppression."
-                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                         Checked="OnCommentaryLevelChanged" />
-                            <RadioButton x:Name="CommentaryCustomRadioButton"
-                                         GroupName="Commentary"
-                                         Content="Custom"
-                                         ToolTip="Unlock the three exact commentary timing fields in Advanced."
-                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                         Checked="OnCommentaryLevelChanged" />
-                        </UniformGrid>
-                        <TextBlock x:Name="CommentaryLegendTextBlock" Margin="2,4,0,10" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
-
-                        <TextBlock FontWeight="SemiBold" Text="Comment threshold" />
-                        <Grid Margin="0,4,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="58" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Slider x:Name="CommentThresholdSlider"
-                                    Minimum="0" Maximum="100" TickFrequency="1"
-                                    IsSnapToTickEnabled="True"
-                                    ToolTip="Minimum weighted interest score required before Pebble may make a vision-backed comment. Lower values comment more often."
-                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                    ValueChanged="OnCommentThresholdSliderChanged" />
-                            <TextBox x:Name="CommentThresholdTextBox"
-                                     Grid.Column="1" Margin="8,0,4,0"
-                                     HorizontalContentAlignment="Right"
-                                     ToolTip="Exact comment threshold from 0% to 100%. Lower values allow more vision-backed comments."
-                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
-                                     TextChanged="OnCommentThresholdTextChanged"
-                                     PreviewTextInput="OnNumericPreviewTextInput" />
-                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="%" />
-                        </Grid>
-
                         <TextBlock FontWeight="SemiBold" Text="Vision detail" />
 
                         <TextBlock Margin="0,6,0,2" FontSize="11" Text="Detail level" />
@@ -576,18 +505,6 @@
                                   ToolTip="Show exact timing, scoring, provider-cost, context, and retention controls."
                                   ToolTipService.ShowsToolTipOnKeyboardFocus="True">
                             <StackPanel Margin="12,8,0,4">
-                                <TextBlock FontWeight="SemiBold" Text="Commentary" />
-                                <UniformGrid Columns="2" Margin="0,6,0,0">
-                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (seconds)" /><TextBox x:Name="CooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
-                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (seconds)" /><TextBox x:Name="CheckInSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
-                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (seconds)" /><TextBox x:Name="DuplicateWindowSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
-                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
-                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
-                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
-                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Privacy safety weight (%)" /><TextBox x:Name="PrivacyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly non-sensitive content raises the comment score. All four weights must total 100%." /></StackPanel>
-                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Low interruption cost weight (%)" /><TextBox x:Name="InterruptionWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly a low estimated interruption cost raises the comment score. All four weights must total 100%." /></StackPanel>
-                                </UniformGrid>
-
                                 <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Observation timing" />
                                 <UniformGrid Columns="2" Margin="0,6,0,0">
                                     <StackPanel Margin="0,0,12,6"><TextBlock Text="Foreground polling (seconds)" /><TextBox x:Name="PollIntervalSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often DesktopPet checks the foreground window. Lower values react faster but do more local work." /></StackPanel>
@@ -619,6 +536,90 @@
                                     <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent observation age (seconds)" /><TextBox x:Name="RecentObservationAgeSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Discard reduced in-memory foreground observations older than this age." /></StackPanel>
                                     <StackPanel Margin="0,0,12,6"><TextBlock Text="Stored visual observations" /><TextBox x:Name="StoredObservationCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum visual observation records retained on disk. Lowering this deletes the oldest records and their thumbnails on Save." /></StackPanel>
                                     <StackPanel Margin="0,0,0,6"><TextBlock Text="Stored ambient decisions" /><TextBox x:Name="StoredDecisionCountTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Maximum ambient policy decision records retained on disk. Lowering this removes the oldest records on Save." /></StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ═══════════════════ -->
+                        <Border Style="{StaticResource SectionSeparator}" />
+
+                        <!-- ═══ Commentary ═══ -->
+                        <TextBlock Margin="0,0,0,10"
+                                   FontWeight="SemiBold"
+                                   Text="Commentary" />
+
+                        <UniformGrid Margin="0,4,0,0" Columns="5">
+                            <RadioButton x:Name="CommentaryOffRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Off"
+                                         ToolTip="Disable ambient comments entirely."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryQuietRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Quiet"
+                                         ToolTip="At least 600 seconds between comments, 600-second check-ins, and 1,200-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryBalancedRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Balanced"
+                                         ToolTip="At least 300 seconds between comments, 300-second check-ins, and 900-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryTalkativeRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Talkative"
+                                         ToolTip="At least 120 seconds between comments, 180-second check-ins, and 600-second duplicate suppression."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                            <RadioButton x:Name="CommentaryCustomRadioButton"
+                                         GroupName="Commentary"
+                                         Content="Custom"
+                                         ToolTip="Unlock the three exact commentary timing fields in Advanced."
+                                         ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                         Checked="OnCommentaryLevelChanged" />
+                        </UniformGrid>
+                        <TextBlock x:Name="CommentaryLegendTextBlock" Margin="2,4,0,10" FontSize="10" Foreground="#FF64748B" TextWrapping="Wrap" />
+
+                        <TextBlock FontWeight="SemiBold" Text="Comment threshold" />
+                        <Grid Margin="0,4,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="58" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="CommentThresholdSlider"
+                                    Minimum="0" Maximum="100" TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    ToolTip="Minimum weighted interest score required before Pebble may make a vision-backed comment. Lower values comment more often."
+                                    ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                    ValueChanged="OnCommentThresholdSliderChanged" />
+                            <TextBox x:Name="CommentThresholdTextBox"
+                                     Grid.Column="1" Margin="8,0,4,0"
+                                     HorizontalContentAlignment="Right"
+                                     ToolTip="Exact comment threshold from 0% to 100%. Lower values allow more vision-backed comments."
+                                     ToolTipService.ShowsToolTipOnKeyboardFocus="True"
+                                     TextChanged="OnCommentThresholdTextChanged"
+                                     PreviewTextInput="OnNumericPreviewTextInput" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="%" />
+                        </Grid>
+
+                        <Expander Header="Advanced"
+                                  Margin="0,4,0,10"
+                                  IsExpanded="False"
+                                  ToolTip="Show exact commentary timing, scoring weights, and policy controls."
+                                  ToolTipService.ShowsToolTipOnKeyboardFocus="True">
+                            <StackPanel Margin="12,8,0,4">
+                                <UniformGrid Columns="2" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Minimum comment interval (seconds)" /><TextBox x:Name="CooldownSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Minimum time between spoken ambient comments. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Periodic check-in (seconds)" /><TextBox x:Name="CheckInSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How often to reconsider the current activity even when the application and title have not changed. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Duplicate suppression (seconds)" /><TextBox x:Name="DuplicateWindowSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How long to suppress another comment about the same application, event type, and activity. Presets lock this field." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Recent typing quiet period (seconds)" /><TextBox x:Name="RecentTypingQuietSecondsTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="Stay quiet for this long after the user submits typed input." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Novelty weight (%)" /><TextBox x:Name="NoveltyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly unusual or changed content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Relevance weight (%)" /><TextBox x:Name="RelevanceWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly companion-relevant content affects the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,12,6"><TextBlock Text="Privacy safety weight (%)" /><TextBox x:Name="PrivacyWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly non-sensitive content raises the comment score. All four weights must total 100%." /></StackPanel>
+                                    <StackPanel Margin="0,0,0,6"><TextBlock Text="Low interruption cost weight (%)" /><TextBox x:Name="InterruptionWeightTextBox" Style="{StaticResource AdvancedNumberTextBox}" ToolTip="How strongly a low estimated interruption cost raises the comment score. All four weights must total 100%." /></StackPanel>
                                 </UniformGrid>
                             </StackPanel>
                         </Expander>

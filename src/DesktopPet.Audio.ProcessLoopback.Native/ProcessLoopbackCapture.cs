@@ -65,7 +65,7 @@ public static class ProcessLoopbackCapture
 
         try { _audioClient?.Stop(); } catch { /* best effort */ }
 
-        _captureThread?.Join(2000);
+        _captureThread?.Join(5000);
         _captureThread = null;
 
         if (_audioClient is not null)

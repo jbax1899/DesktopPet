@@ -501,20 +501,15 @@ public sealed class AudioCaptureCoordinator : IDisposable
         {
             source.SamplesAvailable -= OnSamplesAvailable;
             source.CaptureFailed -= OnCaptureFailed;
-            _ = Task.Run(() =>
+            try
             {
-                try
-                {
-                    source.Stop();
-                }
-                catch
-                {
-                }
-                finally
-                {
-                    source.Dispose();
-                }
-            });
+                source.Stop();
+            }
+            catch
+            {
+            }
+
+            _ = Task.Run(source.Dispose);
         }
     }
 

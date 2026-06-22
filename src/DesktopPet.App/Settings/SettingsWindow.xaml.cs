@@ -35,6 +35,7 @@ public partial class SettingsWindow : Window
     private KeyboardShortcut _selectedPushToTalkShortcut = KeyboardShortcut.DefaultPushToTalkShortcut;
     private ShortcutTarget _recordingTarget;
     private bool _isRecordingShortcut;
+    private bool _loadingSettings;
     private bool _loadingObservationSettings;
     private bool _syncingCommentThreshold;
     private bool _syncingVisionDetail;
@@ -87,6 +88,7 @@ public partial class SettingsWindow : Window
         ApplicationsGrid.ItemsSource = _observationRows;
         OpenRouterVisionModelComboBox.ItemsSource = _visionModels;
         OpenRouterAudioModelComboBox.ItemsSource = _audioModels;
+        SubscribeSettingEvents();
         LoadSettings();
         _ = LoadVisionModelsAsync();
         _ = LoadAudioModelsAsync();
@@ -96,18 +98,105 @@ public partial class SettingsWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        ApplyAllSettings();
         _audioDiagnosticsTimer.Stop();
         _audioDiagnosticsTimer.Tick -= OnAudioDiagnosticsTick;
         base.OnClosed(e);
     }
 
-    private void OnSaveClicked(object sender, RoutedEventArgs e)
+    private void SubscribeSettingEvents()
+    {
+        RoutedEventHandler settingChanged = OnSettingChanged;
+        System.Windows.Controls.SelectionChangedEventHandler comboChanged = (_, _) => OnSettingChanged(this, EventArgs.Empty);
+
+        // General
+        UserNameTextBox.LostFocus += settingChanged;
+        NicknameTextBox.LostFocus += settingChanged;
+
+        // Cloud Providers
+        ElevenLabsApiKeyPasswordBox.LostFocus += settingChanged;
+        ElevenLabsAgentIdTextBox.LostFocus += settingChanged;
+        ElevenLabsVoiceIdTextBox.LostFocus += settingChanged;
+        OpenRouterApiKeyPasswordBox.LostFocus += settingChanged;
+        OpenRouterVisionModelComboBox.SelectionChanged += comboChanged;
+        OpenRouterAudioModelComboBox.SelectionChanged += comboChanged;
+        OpenRouterRequireZdrCheckBox.Checked += settingChanged;
+        OpenRouterRequireZdrCheckBox.Unchecked += settingChanged;
+
+        // Audio
+        MicrophoneDeviceComboBox.SelectionChanged += comboChanged;
+        SystemAudioDeviceComboBox.SelectionChanged += comboChanged;
+        TranscriptVerbositySlider.ValueChanged += (_, _) => OnSettingChanged(this, EventArgs.Empty);
+        PersistMicrophoneExcerptCheckBox.Checked += settingChanged;
+        PersistMicrophoneExcerptCheckBox.Unchecked += settingChanged;
+        PersistSystemAudioExcerptCheckBox.Checked += settingChanged;
+        PersistSystemAudioExcerptCheckBox.Unchecked += settingChanged;
+        AudioContextDepthTextBox.LostFocus += settingChanged;
+        TranscriptRetentionSecondsTextBox.LostFocus += settingChanged;
+        StoredAudioObservationCountTextBox.LostFocus += settingChanged;
+        MinimumAudioConfidenceTextBox.LostFocus += settingChanged;
+        AudioAnalysisTimeoutSecondsTextBox.LostFocus += settingChanged;
+        MaxSegmentDurationSecondsTextBox.LostFocus += settingChanged;
+
+        // Vision
+        CaptureScreenshotOnChatSendCheckBox.Checked += settingChanged;
+        CaptureScreenshotOnChatSendCheckBox.Unchecked += settingChanged;
+        VisionDetailSlider.ValueChanged += (_, _) => OnSettingChanged(this, EventArgs.Empty);
+        VisionVerbositySlider.ValueChanged += (_, _) => OnSettingChanged(this, EventArgs.Empty);
+        VisionCooldownSecondsTextBox.LostFocus += settingChanged;
+        VisionTimeoutSecondsTextBox.LostFocus += settingChanged;
+        ScreenshotWidthTextBox.LostFocus += settingChanged;
+        ScreenshotHeightTextBox.LostFocus += settingChanged;
+        ObservationContextDepthTextBox.LostFocus += settingChanged;
+        CommentTopicLimitTextBox.LostFocus += settingChanged;
+
+        // Vision Advanced - Observation timing
+        PollIntervalSecondsTextBox.LostFocus += settingChanged;
+        MinimumDwellSecondsTextBox.LostFocus += settingChanged;
+        StructureCooldownSecondsTextBox.LostFocus += settingChanged;
+        CaptureDelayMillisecondsTextBox.LostFocus += settingChanged;
+
+        // Vision Advanced - Retention
+        RecentObservationCountTextBox.LostFocus += settingChanged;
+        RecentObservationAgeSecondsTextBox.LostFocus += settingChanged;
+        StoredObservationCountTextBox.LostFocus += settingChanged;
+        StoredDecisionCountTextBox.LostFocus += settingChanged;
+
+        // Commentary
+        CommentThresholdSlider.ValueChanged += (_, _) => OnSettingChanged(this, EventArgs.Empty);
+        CommentThresholdTextBox.LostFocus += settingChanged;
+        CooldownSecondsTextBox.LostFocus += settingChanged;
+        CheckInSecondsTextBox.LostFocus += settingChanged;
+        DuplicateWindowSecondsTextBox.LostFocus += settingChanged;
+        RecentTypingQuietSecondsTextBox.LostFocus += settingChanged;
+        NoveltyWeightTextBox.LostFocus += settingChanged;
+        RelevanceWeightTextBox.LostFocus += settingChanged;
+        PrivacyWeightTextBox.LostFocus += settingChanged;
+        InterruptionWeightTextBox.LostFocus += settingChanged;
+
+        // History context
+        RegularHistoryMessageCountTextBox.LostFocus += settingChanged;
+        AmbientHistoryMessageCountTextBox.LostFocus += settingChanged;
+    }
+
+    private void OnSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loadingSettings || _loadingObservationSettings) return;
+        ApplyAllSettings();
+    }
+
+    private void OnSettingChanged(object? sender, EventArgs e)
+    {
+        if (_loadingSettings || _loadingObservationSettings) return;
+        ApplyAllSettings();
+    }
+
+    private void ApplyAllSettings()
     {
         try
         {
-            if (!TryBuildObservationSettings(out var observationSettings, out var validationMessage))
+            if (!TryBuildObservationSettings(out var observationSettings, out _))
             {
-                StatusTextBlock.Text = validationMessage;
                 return;
             }
 
@@ -146,7 +235,6 @@ public partial class SettingsWindow : Window
                 ToNullIfWhiteSpace(UserNameTextBox.Text),
                 ToNullIfWhiteSpace(NicknameTextBox.Text)));
 
-            // Derive audio settings from the System row and per-app rows.
             var systemRow = _observationRows.FirstOrDefault(r => r.ExecutablePath == SystemRowExecutablePath);
             var systemAudioEnabled = systemRow?.AllowAudio == true;
             var anyPerAppAudio = _observationRows
@@ -189,70 +277,64 @@ public partial class SettingsWindow : Window
                 ChatHistoryContext = historySettings
             };
             _uiSettingsStore.Save(uiSettings);
-            RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
-            AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
-
             _permissionService.Save(observationSettings);
             _observationStore.ApplyRetentionLimit();
             _ambientDecisionStore.ApplyRetentionLimit();
             _observationCoordinator.ApplySettings();
-            LoadObservationSettings();
 
-            var hotkeyWarning = _applyUiSettings(uiSettings);
-            StatusTextBlock.Text = hotkeyWarning is null
-                ? "Saved."
-                : $"Saved, but {_errorMessageStore.GetMessage(hotkeyWarning.Code)}";
+            _applyUiSettings(uiSettings);
         }
-        catch (Exception ex)
+        catch
         {
-            StatusTextBlock.Text = $"Save failed: {ex.Message}";
         }
     }
 
     private void LoadSettings()
     {
-        var settings = _elevenLabsSettingsStore.Load();
-        ElevenLabsApiKeyPasswordBox.Password = settings.ElevenLabsApiKey ?? string.Empty;
-        ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
-        ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
-
-        var openRouterSettings = _openRouterSettingsStore.Load();
-        OpenRouterApiKeyPasswordBox.Password = openRouterSettings.ApiKey ?? string.Empty;
-        OpenRouterRequireZdrCheckBox.IsChecked = openRouterSettings.RequireZeroRetention;
-
-        var profileSettings = _profileSettingsStore.Load();
-        UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
-        NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
-
-        var audioSettings = _audioContextSettingsStore.Load();
-        PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
-        PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
-        AudioContextDepthTextBox.Text = audioSettings.ContextDepth.ToString();
-        TranscriptRetentionSecondsTextBox.Text = audioSettings.TranscriptRetentionSeconds.ToString();
-        StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
-        MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
-        AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();
-        TranscriptVerbositySlider.Value = audioSettings.TranscriptVerbosityLevel;
-        TranscriptVerbosityValueText.Text = audioSettings.TranscriptVerbosityLevel.ToString();
-        MaxSegmentDurationSecondsTextBox.Text = audioSettings.MaximumSegmentDurationSeconds.ToString();
-
-        LoadAudioDevices(audioSettings.MicrophoneDeviceId, audioSettings.SystemAudioDeviceId);
-
-        var uiSettings = _uiSettingsStore.Load();
-        _selectedChatShortcut = uiSettings.ChatShortcut;
-        _selectedPushToTalkShortcut = uiSettings.PushToTalkShortcut;
-        var historySettings = uiSettings.GetEffectiveChatHistoryContext();
-        RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
-        AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
-        UpdateShortcutButtons();
-
-        var hotkeyWarning = _getHotkeyWarning();
-        if (hotkeyWarning is not null)
+        _loadingSettings = true;
+        try
         {
-            StatusTextBlock.Text = _errorMessageStore.GetMessage(hotkeyWarning.Code);
-        }
+            var settings = _elevenLabsSettingsStore.Load();
+            ElevenLabsApiKeyPasswordBox.Password = settings.ElevenLabsApiKey ?? string.Empty;
+            ElevenLabsAgentIdTextBox.Text = settings.ElevenLabsAgentId ?? string.Empty;
+            ElevenLabsVoiceIdTextBox.Text = settings.ElevenLabsVoiceId ?? string.Empty;
 
-        LoadObservationSettings();
+            var openRouterSettings = _openRouterSettingsStore.Load();
+            OpenRouterApiKeyPasswordBox.Password = openRouterSettings.ApiKey ?? string.Empty;
+            OpenRouterRequireZdrCheckBox.IsChecked = openRouterSettings.RequireZeroRetention;
+
+            var profileSettings = _profileSettingsStore.Load();
+            UserNameTextBox.Text = profileSettings.UserName ?? string.Empty;
+            NicknameTextBox.Text = profileSettings.Nickname ?? string.Empty;
+
+            var audioSettings = _audioContextSettingsStore.Load();
+            PersistMicrophoneExcerptCheckBox.IsChecked = audioSettings.PersistMicrophoneTranscriptExcerpt;
+            PersistSystemAudioExcerptCheckBox.IsChecked = audioSettings.PersistSystemAudioTranscriptExcerpt;
+            AudioContextDepthTextBox.Text = audioSettings.ContextDepth.ToString();
+            TranscriptRetentionSecondsTextBox.Text = audioSettings.TranscriptRetentionSeconds.ToString();
+            StoredAudioObservationCountTextBox.Text = audioSettings.StoredObservationCount.ToString();
+            MinimumAudioConfidenceTextBox.Text = audioSettings.MinimumAnalysisConfidence.ToString("0.00");
+            AudioAnalysisTimeoutSecondsTextBox.Text = audioSettings.AnalysisTimeoutSeconds.ToString();
+            TranscriptVerbositySlider.Value = audioSettings.TranscriptVerbosityLevel;
+            TranscriptVerbosityValueText.Text = audioSettings.TranscriptVerbosityLevel.ToString();
+            MaxSegmentDurationSecondsTextBox.Text = audioSettings.MaximumSegmentDurationSeconds.ToString();
+
+            LoadAudioDevices(audioSettings.MicrophoneDeviceId, audioSettings.SystemAudioDeviceId);
+
+            var uiSettings = _uiSettingsStore.Load();
+            _selectedChatShortcut = uiSettings.ChatShortcut;
+            _selectedPushToTalkShortcut = uiSettings.PushToTalkShortcut;
+            var historySettings = uiSettings.GetEffectiveChatHistoryContext();
+            RegularHistoryMessageCountTextBox.Text = historySettings.RegularMessageCount.ToString();
+            AmbientHistoryMessageCountTextBox.Text = historySettings.AmbientMessageCount.ToString();
+            UpdateShortcutButtons();
+
+            LoadObservationSettings();
+        }
+        finally
+        {
+            _loadingSettings = false;
+        }
     }
 
     private void LoadAudioDevices(string? microphoneDeviceId, string? systemAudioDeviceId)

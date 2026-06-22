@@ -160,6 +160,10 @@ public partial class SettingsWindow
     {
         if (CommentaryLegendTextBlock is null) return;
         UpdateCommentaryPresetState(populateValues: !_loadingObservationSettings);
+        if (!_loadingObservationSettings)
+        {
+            ApplyAllSettings();
+        }
     }
 
     private void UpdateCommentaryPresetState(bool populateValues)
@@ -205,6 +209,8 @@ public partial class SettingsWindow
 
     private void OnVisionCheckBoxChecked(object sender, RoutedEventArgs e)
     {
+        if (_loadingSettings || _loadingObservationSettings) return;
+
         var openRouterSettings = _openRouterSettingsStore.Load();
         if (string.IsNullOrWhiteSpace(openRouterSettings.ApiKey)
             || string.IsNullOrWhiteSpace(openRouterSettings.VisionModelId))
@@ -222,21 +228,28 @@ public partial class SettingsWindow
         }
 
         UpdatePerAppColumnEnabledState();
+        ApplyAllSettings();
     }
 
     private void OnAudioCheckBoxToggled(object sender, RoutedEventArgs e)
     {
+        if (_loadingSettings || _loadingObservationSettings) return;
         UpdatePerAppColumnEnabledState();
+        ApplyAllSettings();
     }
 
     private void OnMetadataCheckBoxToggled(object sender, RoutedEventArgs e)
     {
+        if (_loadingSettings || _loadingObservationSettings) return;
         UpdatePerAppColumnEnabledState();
+        ApplyAllSettings();
     }
 
     private void OnVisionCheckBoxToggled(object sender, RoutedEventArgs e)
     {
+        if (_loadingSettings || _loadingObservationSettings) return;
         UpdatePerAppColumnEnabledState();
+        ApplyAllSettings();
     }
 
     private void UpdatePerAppColumnEnabledState()

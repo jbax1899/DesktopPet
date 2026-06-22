@@ -10,7 +10,7 @@ public sealed record KeyboardShortcut(
     bool Alt,
     bool Windows)
 {
-    public static KeyboardShortcut DefaultChatShortcut { get; } = new("Space", false, true, false, false);
+    public static KeyboardShortcut DefaultChatShortcut { get; } = new("Space", true, false, false, false);
 
     public static KeyboardShortcut DefaultPushToTalkShortcut { get; } = new("Space", false, true, false, false);
 

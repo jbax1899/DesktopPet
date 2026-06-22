@@ -10,7 +10,6 @@ public partial class SettingsWindow
         var apiKey = ToNullIfWhiteSpace(ElevenLabsApiKeyPasswordBox.Password);
         if (apiKey is null)
         {
-            StatusTextBlock.Text = "Enter an ElevenLabs API key first.";
             return;
         }
 

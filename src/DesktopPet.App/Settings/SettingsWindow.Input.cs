@@ -10,7 +10,6 @@ public partial class SettingsWindow
         _recordingTarget = ShortcutTarget.Chat;
         _isRecordingShortcut = true;
         ChatShortcutButton.Content = "Press shortcut...";
-        StatusTextBlock.Text = "Press a key with Ctrl, Alt, Shift, or Win. Esc cancels.";
         ChatShortcutButton.Focus();
     }
 
@@ -20,7 +19,7 @@ public partial class SettingsWindow
         _recordingTarget = ShortcutTarget.None;
         _selectedChatShortcut = KeyboardShortcut.DefaultChatShortcut;
         UpdateShortcutButtons();
-        StatusTextBlock.Text = "Shortcut reset. Save to apply.";
+        ApplyAllSettings();
     }
 
     private void OnRecordPushToTalkShortcutClicked(object sender, RoutedEventArgs e)
@@ -28,7 +27,6 @@ public partial class SettingsWindow
         _recordingTarget = ShortcutTarget.PushToTalk;
         _isRecordingShortcut = true;
         PushToTalkShortcutButton.Content = "Press shortcut...";
-        StatusTextBlock.Text = "Press a key with Ctrl, Alt, Shift, or Win. Esc cancels.";
         PushToTalkShortcutButton.Focus();
     }
 
@@ -38,7 +36,7 @@ public partial class SettingsWindow
         _recordingTarget = ShortcutTarget.None;
         _selectedPushToTalkShortcut = KeyboardShortcut.DefaultPushToTalkShortcut;
         UpdateShortcutButtons();
-        StatusTextBlock.Text = "Mic hotkey reset. Save to apply.";
+        ApplyAllSettings();
     }
 
     private void OnWindowPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -56,20 +54,17 @@ public partial class SettingsWindow
             _isRecordingShortcut = false;
             _recordingTarget = ShortcutTarget.None;
             UpdateShortcutButtons();
-            StatusTextBlock.Text = "Shortcut recording cancelled.";
             return;
         }
 
         if (KeyboardShortcut.IsModifierKey(key))
         {
-            StatusTextBlock.Text = "Press a non-modifier key too.";
             return;
         }
 
         var shortcut = KeyboardShortcut.FromWpfInput(key, Keyboard.Modifiers);
         if (!shortcut.IsValid())
         {
-            StatusTextBlock.Text = "Shortcut must include Ctrl, Alt, Shift, or Win.";
             return;
         }
 
@@ -86,7 +81,7 @@ public partial class SettingsWindow
         _isRecordingShortcut = false;
         _recordingTarget = ShortcutTarget.None;
         UpdateShortcutButtons();
-        StatusTextBlock.Text = "Shortcut captured. Save to apply.";
+        ApplyAllSettings();
     }
 
     private void UpdateShortcutButtons()

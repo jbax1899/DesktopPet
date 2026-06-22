@@ -264,6 +264,7 @@ public sealed class DesktopPetApplication : IDisposable
         _trayController.Dispose();
         _audioPlayer.Dispose();
         _httpClient.Dispose();
+        _database.Dispose();
     }
 
     private void ShowSettings()

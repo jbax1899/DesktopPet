@@ -13,7 +13,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
 
     public IReadOnlyList<MemoryEntry> List()
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
@@ -48,7 +48,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
             trimmedText,
             DateTime.UtcNow);
 
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
@@ -66,7 +66,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
 
     public void Delete(string id)
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM memories WHERE id = $id;";
         command.Parameters.AddWithValue("$id", id);
@@ -79,7 +79,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
 
     public void Clear()
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM memories;";
 

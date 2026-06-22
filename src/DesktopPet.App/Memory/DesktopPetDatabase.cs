@@ -4,10 +4,11 @@ using System.IO;
 
 namespace DesktopPet.App.Memory;
 
-public sealed class DesktopPetDatabase
+public sealed class DesktopPetDatabase : IDisposable
 {
     private readonly string _dataDirectory;
     private readonly string _databasePath;
+    private SqliteConnection? _connection;
 
     public DesktopPetDatabase()
         : this(Path.Combine(
@@ -25,9 +26,9 @@ public sealed class DesktopPetDatabase
     public void Initialize()
     {
         Directory.CreateDirectory(_dataDirectory);
+        EnsureConnection();
 
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
+        using var command = _connection!.CreateCommand();
         command.CommandText =
             """
             PRAGMA journal_mode = WAL;
@@ -60,6 +61,23 @@ public sealed class DesktopPetDatabase
 
     public SqliteConnection OpenConnection()
     {
+        EnsureConnection();
+        return _connection!;
+    }
+
+    public void Dispose()
+    {
+        _connection?.Dispose();
+        _connection = null;
+    }
+
+    private void EnsureConnection()
+    {
+        if (_connection is not null)
+        {
+            return;
+        }
+
         var connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = _databasePath,
@@ -68,14 +86,12 @@ public sealed class DesktopPetDatabase
             DefaultTimeout = 5
         }.ToString();
 
-        var connection = new SqliteConnection(connectionString);
-        connection.Open();
+        _connection = new SqliteConnection(connectionString);
+        _connection.Open();
 
-        using var command = connection.CreateCommand();
+        using var command = _connection.CreateCommand();
         command.CommandText = "PRAGMA busy_timeout = 5000;";
         command.ExecuteNonQuery();
-
-        return connection;
     }
 
     internal static string FormatDate(DateTime value)

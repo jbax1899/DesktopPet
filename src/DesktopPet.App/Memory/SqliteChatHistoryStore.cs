@@ -21,7 +21,7 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
 
     public IReadOnlyList<ChatHistoryMessage> List()
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
@@ -66,7 +66,7 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
             DateTime.UtcNow,
             Origin: origin);
 
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
@@ -152,7 +152,7 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
 
     private void UpdateValue(string id, string columnName, string? value)
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = $"UPDATE chat_messages SET {columnName} = $value WHERE id = $id;";
         command.Parameters.AddWithValue("$value", value is null ? DBNull.Value : value);
@@ -166,7 +166,7 @@ public sealed class SqliteChatHistoryStore : IChatHistoryStore
 
     private void ExecuteDelete(string commandText, string? id = null)
     {
-        using var connection = _database.OpenConnection();
+        var connection = _database.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = commandText;
         if (id is not null)

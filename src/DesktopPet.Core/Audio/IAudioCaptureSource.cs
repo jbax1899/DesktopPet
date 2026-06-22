@@ -1,6 +1,6 @@
 namespace DesktopPet.App.Audio;
 
-internal interface IAudioCaptureSource : IDisposable
+public interface IAudioCaptureSource : IDisposable
 {
     AudioSourceKind Kind { get; }
 

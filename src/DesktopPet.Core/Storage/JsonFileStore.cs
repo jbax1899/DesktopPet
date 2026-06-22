@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace DesktopPet.App.Storage;
 
-internal sealed class JsonFileStore<T>
+public sealed class JsonFileStore<T>
 {
     private readonly string _filePath;
     private readonly string _backupPath;

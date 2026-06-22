@@ -1,6 +1,6 @@
 namespace DesktopPet.App.Observation;
 
-internal sealed class ImageCaptureCoordinator : IVisionObservationProvider, IDisposable
+public sealed class ImageCaptureCoordinator : IVisionObservationProvider, IDisposable
 {
     private readonly IDesktopEnvironmentCaptureCoordinator _observationCoordinator;
     private readonly IObservationPermissionService _permissionService;
@@ -200,5 +200,5 @@ internal sealed class ImageCaptureCoordinator : IVisionObservationProvider, IDis
         }
     }
 
-    internal sealed record CapturedAnalysis(VisionObservation Observation, string? ThumbnailPath);
+    public sealed record CapturedAnalysis(VisionObservation Observation, string? ThumbnailPath);
 }

@@ -29,7 +29,7 @@ public interface IAmbientCommentPolicy
     DateTimeOffset? GetLastSpokenAt();
 }
 
-internal sealed class AmbientCommentPolicy : IAmbientCommentPolicy
+public sealed class AmbientCommentPolicy : IAmbientCommentPolicy
 {
     private readonly IObservationPermissionService _permissionService;
     private readonly IAmbientActivityState _activityState;

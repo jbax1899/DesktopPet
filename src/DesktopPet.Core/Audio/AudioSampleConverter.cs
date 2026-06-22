@@ -4,7 +4,7 @@ using NAudio.Wave;
 
 namespace DesktopPet.App.Audio;
 
-internal static class AudioSampleConverter
+public static class AudioSampleConverter
 {
     public static float[] ToMono(ReadOnlySpan<byte> bytes, WaveFormat format)
     {

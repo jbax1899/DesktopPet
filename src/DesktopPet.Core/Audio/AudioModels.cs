@@ -84,7 +84,7 @@ public sealed class CompletedAudioSegment : IDisposable
     }
 }
 
-internal sealed record AudioSegmentProcessingResult(
+public sealed record AudioSegmentProcessingResult(
     IReadOnlyList<AudioSegmentDiagnostic> Diagnostics,
     IReadOnlyList<CompletedAudioSegment> CompletedSegments)
 {
@@ -176,7 +176,7 @@ public sealed record AudioAnalysisDiagnostic(
     string? LastSafeFailure,
     DateTimeOffset? LastSuccessAt);
 
-internal sealed class AudioSamplesAvailableEventArgs : EventArgs
+public sealed class AudioSamplesAvailableEventArgs : EventArgs
 {
     public AudioSamplesAvailableEventArgs(float[] monoSamples, int sampleRate, DateTimeOffset capturedAt)
     {

@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DesktopPet.Audio.ProcessLoopback.Native\DesktopPet.Audio.ProcessLoopback.Native.csproj" />
+    <ProjectReference Include="..\DesktopPet.Core\DesktopPet.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

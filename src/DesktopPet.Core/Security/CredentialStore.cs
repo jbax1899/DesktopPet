@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace DesktopPet.App.Security;
 
-internal sealed class CredentialStore
+public sealed class CredentialStore
 {
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("DesktopPet.Credentials.v1");
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

@@ -21,16 +21,16 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
     private readonly HttpClient _httpClient;
     private readonly Func<ElevenLabsSettings> _settingsProvider;
-    private readonly Func<UiSettings> _uiSettingsProvider;
+    private readonly Func<ChatHistoryContextSettings> _chatHistoryContextProvider;
 
     public ElevenLabsAgentChatService(
         HttpClient httpClient,
         Func<ElevenLabsSettings> settingsProvider,
-        Func<UiSettings> uiSettingsProvider)
+        Func<ChatHistoryContextSettings> chatHistoryContextProvider)
     {
         _httpClient = httpClient;
         _settingsProvider = settingsProvider;
-        _uiSettingsProvider = uiSettingsProvider;
+        _chatHistoryContextProvider = chatHistoryContextProvider;
     }
 
     public async Task<ChatReply> ReplyAsync(ChatRequest request, CancellationToken cancellationToken)
@@ -110,7 +110,7 @@ public sealed class ElevenLabsAgentChatService : IChatService
 
         var contextSnapshot = AgentContextBuilder.Build(
             request,
-            _uiSettingsProvider().GetEffectiveChatHistoryContext());
+            _chatHistoryContextProvider());
         var dynamicVariables = contextSnapshot.Values;
         if (dynamicVariables.Count > 0)
         {

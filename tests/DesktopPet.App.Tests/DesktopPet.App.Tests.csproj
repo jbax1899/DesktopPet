@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DesktopPet.App\DesktopPet.App.csproj" />
+    <ProjectReference Include="..\..\src\DesktopPet.Core\DesktopPet.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -21,7 +21,7 @@ public sealed class AudioObservationStore
     {
     }
 
-    internal AudioObservationStore(string filePath, Func<int>? maximumRecordsProvider = null)
+    public AudioObservationStore(string filePath, Func<int>? maximumRecordsProvider = null)
     {
         _file = new JsonFileStore<List<AudioObservation>>(
             filePath,

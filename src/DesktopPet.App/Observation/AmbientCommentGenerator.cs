@@ -17,7 +17,7 @@ public interface IAmbientCommentGenerator
         CancellationToken cancellationToken);
 }
 
-internal sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
+public sealed class ElevenLabsAmbientCommentGenerator : IAmbientCommentGenerator
 {
     private readonly IChatService _chatService;
     private readonly ObservationStore _observationStore;

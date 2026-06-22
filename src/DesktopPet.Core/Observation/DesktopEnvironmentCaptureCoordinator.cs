@@ -32,7 +32,7 @@ public interface IDesktopEnvironmentCaptureCoordinator : IDisposable
     void ApplySettings();
 }
 
-internal sealed partial class DesktopEnvironmentCaptureCoordinator : IDesktopEnvironmentCaptureCoordinator
+public sealed partial class DesktopEnvironmentCaptureCoordinator : IDesktopEnvironmentCaptureCoordinator
 {
     private readonly IForegroundWindowCollector _collector;
     private readonly IObservationPermissionService _permissionService;

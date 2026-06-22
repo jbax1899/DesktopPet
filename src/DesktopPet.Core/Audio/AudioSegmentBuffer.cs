@@ -1,6 +1,6 @@
 namespace DesktopPet.App.Audio;
 
-internal sealed class AudioSegmentBuffer
+public sealed class AudioSegmentBuffer
 {
     internal const double ActivityThreshold = 0.02;
     internal static readonly TimeSpan ActivityGate = TimeSpan.FromMilliseconds(750);

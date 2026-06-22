@@ -7,7 +7,7 @@ using DesktopPet.App.Cloud;
 
 namespace DesktopPet.App.Audio;
 
-internal sealed class OpenRouterSttAnalyzer : IAudioSegmentAnalyzer
+public sealed class OpenRouterSttAnalyzer : IAudioSegmentAnalyzer
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

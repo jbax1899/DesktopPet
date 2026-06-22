@@ -1,13 +1,13 @@
 namespace DesktopPet.App.Observation;
 
-internal readonly record struct WindowBounds(int Left, int Top, int Right, int Bottom)
+public readonly record struct WindowBounds(int Left, int Top, int Right, int Bottom)
 {
     public int Width => Math.Max(0, Right - Left);
 
     public int Height => Math.Max(0, Bottom - Top);
 }
 
-internal sealed record ForegroundWindowSnapshot(
+public sealed record ForegroundWindowSnapshot(
     nint WindowHandle,
     int ProcessId,
     string ProcessName,
@@ -18,7 +18,7 @@ internal sealed record ForegroundWindowSnapshot(
     bool IsMinimized,
     DateTimeOffset ObservedAt);
 
-internal interface IForegroundWindowCollector
+public interface IForegroundWindowCollector
 {
     ForegroundWindowSnapshot? CollectPermittedMetadata();
 }

@@ -1,6 +1,6 @@
 namespace DesktopPet.App.Observation;
 
-internal sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
+public sealed class ForegroundDesktopContextProvider : IDesktopContextProvider
 {
     private const int MaximumActivityLength = 160;
 

@@ -27,7 +27,7 @@ public sealed class AmbientDecisionStore
     {
     }
 
-    internal AmbientDecisionStore(string filePath, Func<int>? maximumRecordsProvider = null)
+    public AmbientDecisionStore(string filePath, Func<int>? maximumRecordsProvider = null)
     {
         _file = new JsonFileStore<List<AmbientDecisionRecord>>(
             filePath,

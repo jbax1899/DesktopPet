@@ -29,7 +29,7 @@ public sealed class ObservationSettingsStore
 
     public void Save(ObservationSettings settings) => _settingsFile.Save(settings);
 
-    internal static ObservationSettings Normalize(ObservationSettings settings)
+    public static ObservationSettings Normalize(ObservationSettings settings)
     {
         var rules = settings.ApplicationRules
             .Where(rule => !string.IsNullOrWhiteSpace(rule.ExecutablePath))

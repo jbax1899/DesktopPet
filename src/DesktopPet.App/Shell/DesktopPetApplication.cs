@@ -9,7 +9,6 @@ using DesktopPet.App.Observation;
 using DesktopPet.App.Settings;
 using DesktopPet.App.Tray;
 using DesktopPet.App.Voice;
-using System.IO;
 using System.Net.Http;
 using System.Windows;
 using WpfApplication = System.Windows.Application;
@@ -19,44 +18,14 @@ namespace DesktopPet.App.Shell;
 public sealed class DesktopPetApplication : IDisposable
 {
     private readonly WpfApplication _application;
-    private readonly ElevenLabsSettingsStore _elevenLabsSettingsStore;
-    private readonly OpenRouterSettingsStore _openRouterSettingsStore;
-    private readonly UiSettingsStore _uiSettingsStore;
-    private readonly ProfileSettingsStore _profileSettingsStore;
-    private readonly AudioContextSettingsStore _audioContextSettingsStore;
-    private readonly TranscriptWorkingBuffer _transcriptWorkingBuffer;
-    private readonly AudioObservationStore _audioObservationStore;
-    private readonly AudioObservationContextProvider _audioObservationContextProvider;
-    private readonly IAudioSegmentAnalyzer _audioSegmentAnalyzer;
-    private readonly AudioAnalysisCoordinator _audioAnalysisCoordinator;
-    private readonly AudioCaptureCoordinator _audioCaptureCoordinator;
-    private readonly CharacterErrorMessageStore _errorMessageStore;
+    private readonly SettingsHub _settings;
     private readonly HttpClient _httpClient;
-    private readonly IChatService _chatService;
-    private readonly IVoiceSynthesisService _voiceSynthesisService;
-    private readonly DesktopPetDatabase _database;
-    private readonly IMemoryStore _memoryStore;
-    private readonly IChatHistoryStore _chatHistoryStore;
-    private readonly ChatAudioStore _chatAudioStore;
-    private readonly StreamingMp3AudioPlayer _audioPlayer;
+    private readonly CharacterErrorMessageStore _errorMessageStore;
+    private readonly MemoryServiceFactory _memory;
+    private readonly CloudServiceFactory _cloud;
+    private readonly AudioServiceFactory _audio;
+    private readonly ObservationServiceFactory _observation;
     private readonly SpeechPlayback _speechPlayback;
-    private readonly ForegroundDesktopContextProvider _desktopContextProvider;
-    private readonly ObservationSettingsStore _observationSettingsStore;
-    private readonly IObservationPermissionService _observationPermissionService;
-    private readonly IForegroundWindowCollector _foregroundWindowCollector;
-    private readonly IUiAutomationContextCollector _uiAutomationContextCollector;
-    private readonly IWindowCaptureService _windowCaptureService;
-    private readonly IVisualContextAnalyzer _visualContextAnalyzer;
-    private readonly IDesktopEnvironmentCaptureCoordinator _environmentCoordinator;
-    private readonly ImageCaptureCoordinator _imageCaptureCoordinator;
-    private readonly IAmbientActivityState _ambientActivityState;
-    private readonly IAmbientCommentPolicy _ambientCommentPolicy;
-    private readonly IAmbientCommentGenerator _ambientCommentGenerator;
-    private readonly AmbientDecisionStore _ambientDecisionStore;
-    private readonly ObservationStore _observationStore;
-    private readonly OpenRouterModelsService _openRouterModelsService;
-    private readonly CreditInfoService _creditInfoService;
-    private readonly ElevenLabsPronunciationService _pronunciationService;
     private readonly PetOverlayWindow _overlayWindow;
     private readonly ConversationOverlayWindow _conversationOverlayWindow;
     private readonly ConversationController _conversationController;
@@ -74,103 +43,19 @@ public sealed class DesktopPetApplication : IDisposable
     {
         _application = application;
 
-        _elevenLabsSettingsStore = new ElevenLabsSettingsStore();
-        _openRouterSettingsStore = new OpenRouterSettingsStore();
-        _uiSettingsStore = new UiSettingsStore();
-        _profileSettingsStore = new ProfileSettingsStore();
-        _audioContextSettingsStore = new AudioContextSettingsStore();
-        _errorMessageStore = new CharacterErrorMessageStore();
-        _database = new DesktopPetDatabase();
-        _database.Initialize();
+        _settings = new SettingsHub();
         _httpClient = new HttpClient();
-        _transcriptWorkingBuffer = new TranscriptWorkingBuffer(
-            () => TimeSpan.FromSeconds(
-                _audioContextSettingsStore.Load().Normalize().TranscriptRetentionSeconds));
-        _audioObservationStore = new AudioObservationStore(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "DesktopPet",
-                "audio-observations.json"),
-            () => _audioContextSettingsStore.Load().Normalize().StoredObservationCount);
-        _audioObservationContextProvider = new AudioObservationContextProvider(
-            _audioObservationStore,
-            _transcriptWorkingBuffer,
-            _audioContextSettingsStore.Load);
-        _audioSegmentAnalyzer = new OpenRouterSttAnalyzer(
-            _httpClient,
-            _openRouterSettingsStore.Load,
-            _audioContextSettingsStore.Load);
-        _audioAnalysisCoordinator = new AudioAnalysisCoordinator(
-            _audioSegmentAnalyzer,
-            _transcriptWorkingBuffer,
-            _audioObservationStore);
-        _audioCaptureCoordinator = new AudioCaptureCoordinator(
-            (kind, deviceId) => kind switch
-            {
-                AudioSourceKind.Microphone => new MicrophoneCaptureSource(deviceId),
-                AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(deviceId),
-                _ => throw new ArgumentOutOfRangeException(nameof(kind))
-            },
-            _audioAnalysisCoordinator);
-        _chatService = new ElevenLabsAgentChatService(
-            _httpClient,
-            _elevenLabsSettingsStore.Load,
-            _uiSettingsStore.Load);
-        _voiceSynthesisService = new ElevenLabsVoiceSynthesisService(_httpClient, _elevenLabsSettingsStore.Load);
-        _memoryStore = new SqliteMemoryStore(_database);
-        _chatHistoryStore = new SqliteChatHistoryStore(_database);
-        _chatAudioStore = new ChatAudioStore();
-        _audioPlayer = new StreamingMp3AudioPlayer();
-        _observationSettingsStore = new ObservationSettingsStore();
-        _observationPermissionService = new ObservationPermissionService(_observationSettingsStore);
-        _foregroundWindowCollector = new ForegroundWindowCollector(_observationPermissionService);
-        _uiAutomationContextCollector = new UiAutomationContextCollector(_observationPermissionService);
-        _windowCaptureService = new WindowCaptureService(_observationPermissionService);
-        _observationStore = new ObservationStore(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "DesktopPet"),
-            () => _observationPermissionService.Current.StoredObservationCount);
-        _visualContextAnalyzer = new OpenRouterVisionAnalyzer(_httpClient, _openRouterSettingsStore.Load, _observationPermissionService, _observationStore);
-        _openRouterModelsService = new OpenRouterModelsService(_httpClient, _openRouterSettingsStore.Load);
-        _creditInfoService = new CreditInfoService(_httpClient, _elevenLabsSettingsStore.Load, _openRouterSettingsStore.Load);
-        _pronunciationService = new ElevenLabsPronunciationService(_httpClient);
-        _environmentCoordinator = new DesktopEnvironmentCaptureCoordinator(
-            _foregroundWindowCollector,
-            _observationPermissionService,
-            _uiAutomationContextCollector);
-        _ambientActivityState = new AmbientActivityState();
-        _ambientCommentPolicy = new AmbientCommentPolicy(
-            _observationPermissionService,
-            _ambientActivityState);
-        _imageCaptureCoordinator = new ImageCaptureCoordinator(
-            _environmentCoordinator,
-            _observationPermissionService,
-            _foregroundWindowCollector,
-            _windowCaptureService,
-            _visualContextAnalyzer,
-            _observationStore,
-            _ambientCommentPolicy);
-        _ambientCommentGenerator = new ElevenLabsAmbientCommentGenerator(
-            _chatService,
-            _observationStore,
-            _chatHistoryStore,
-            _memoryStore,
-            _profileSettingsStore.Load,
-            _observationPermissionService,
-            _audioObservationContextProvider.GetCurrentContext);
-        _ambientDecisionStore = new AmbientDecisionStore(
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "DesktopPet",
-                "ambient-decisions.json"),
-            () => _observationPermissionService.Current.StoredAmbientDecisionCount);
-        _desktopContextProvider = new ForegroundDesktopContextProvider(
-            _foregroundWindowCollector,
-            _observationPermissionService,
-            _uiAutomationContextCollector,
-            _windowCaptureService,
-            _visualContextAnalyzer);
+        _errorMessageStore = new CharacterErrorMessageStore();
+
+        _memory = new MemoryServiceFactory();
+        _cloud = new CloudServiceFactory(_httpClient, _settings);
+        _audio = new AudioServiceFactory(_httpClient, _settings);
+        _observation = new ObservationServiceFactory(
+            _settings, _httpClient,
+            _cloud.ChatService,
+            _memory.MemoryStore,
+            _memory.ChatHistoryStore,
+            _audio.AudioObservationContextProvider);
 
         _overlayWindow = new PetOverlayWindow(new OverlayCommands(
             ShowChat,
@@ -180,44 +65,44 @@ public sealed class DesktopPetApplication : IDisposable
             SaveOverlayPosition);
         _conversationOverlayWindow = new ConversationOverlayWindow(_overlayWindow.GetScreenBounds);
         _speechPlayback = new SpeechPlayback(
-            _audioPlayer,
-            _audioCaptureCoordinator,
+            _audio.AudioPlayer,
+            _audio.AudioCaptureCoordinator,
             _overlayWindow,
-            _ambientActivityState,
-            _chatHistoryStore,
-            _chatAudioStore);
+            _observation.AmbientActivityState,
+            _memory.ChatHistoryStore,
+            _memory.ChatAudioStore);
         _conversationController = new ConversationController(
             _conversationOverlayWindow,
-            _chatService,
-            _voiceSynthesisService,
-            _chatHistoryStore,
-            _chatAudioStore,
-            _profileSettingsStore.Load,
+            _cloud.ChatService,
+            _cloud.VoiceSynthesisService,
+            _memory.ChatHistoryStore,
+            _memory.ChatAudioStore,
+            _settings.Profile.Load,
             _speechPlayback,
             _overlayWindow,
             _errorMessageStore,
-            _memoryStore,
-            _desktopContextProvider,
-            _ambientActivityState,
-            _observationStore,
-            _observationPermissionService,
-            _audioObservationContextProvider.GetCurrentContext,
-            _audioSegmentAnalyzer);
+            _memory.MemoryStore,
+            _observation.DesktopContextProvider,
+            _observation.AmbientActivityState,
+            _observation.ObservationStore,
+            _observation.ObservationPermissionService,
+            _audio.AudioObservationContextProvider.GetCurrentContext,
+            _audio.AudioSegmentAnalyzer);
         _commentaryCoordinator = new CommentaryCoordinator(
-            _environmentCoordinator,
-            _observationPermissionService,
-            _ambientCommentPolicy,
-            _ambientCommentGenerator,
-            _voiceSynthesisService,
+            _observation.EnvironmentCoordinator,
+            _observation.ObservationPermissionService,
+            _observation.AmbientCommentPolicy,
+            _observation.AmbientCommentGenerator,
+            _cloud.VoiceSynthesisService,
             _speechPlayback,
             _conversationOverlayWindow,
-            _ambientActivityState,
-            _ambientDecisionStore,
-            _observationStore,
-            _chatHistoryStore,
-            _foregroundWindowCollector,
-            _windowCaptureService,
-            _visualContextAnalyzer);
+            _observation.AmbientActivityState,
+            _observation.AmbientDecisionStore,
+            _observation.ObservationStore,
+            _memory.ChatHistoryStore,
+            _observation.ForegroundWindowCollector,
+            _observation.WindowCaptureService,
+            _observation.VisualContextAnalyzer);
         _trayController = new TrayController(
             _overlayWindow,
             ShowSettings,
@@ -228,7 +113,7 @@ public sealed class DesktopPetApplication : IDisposable
 
     public void Start()
     {
-        var uiSettings = _uiSettingsStore.Load();
+        var uiSettings = _settings.Ui.Load();
         _overlayWindow.SetInitialPosition(uiSettings.OverlayPosition);
         _overlayWindow.Show();
         _chatHotkeyService = new GlobalHotkeyService(_overlayWindow, ShowChat);
@@ -238,10 +123,10 @@ public sealed class DesktopPetApplication : IDisposable
             OnPushToTalkKeyReleased);
         _pushToTalkHotkeyService.EnsureHookInstalled();
         ApplyUiSettings(uiSettings);
-        _environmentCoordinator.Start();
-        var audioSettings = _audioContextSettingsStore.Load();
-        _audioCaptureCoordinator.ApplySettings(audioSettings);
-        _audioCaptureCoordinator.ApplyPerAppCaptures(
+        _observation.EnvironmentCoordinator.Start();
+        var audioSettings = _settings.AudioContext.Load();
+        _audio.AudioCaptureCoordinator.ApplySettings(audioSettings);
+        _audio.AudioCaptureCoordinator.ApplyPerAppCaptures(
             audioSettings.AudioApplicationRules,
             audioSettings.SystemAudioEnabled,
             TimeSpan.FromSeconds(audioSettings.MaximumSegmentDurationSeconds));
@@ -252,19 +137,16 @@ public sealed class DesktopPetApplication : IDisposable
         _settingsWindow?.Close();
         _memoryWindow?.Close();
         _commentaryCoordinator.Dispose();
-        _imageCaptureCoordinator.Dispose();
+        _observation.Dispose();
         _conversationOverlayWindow.Close();
         _conversationController.Dispose();
-        _environmentCoordinator.Dispose();
-        _audioCaptureCoordinator.Dispose();
-        _audioAnalysisCoordinator.Dispose();
         _chatHotkeyService?.Dispose();
         _pushToTalkHotkeyService?.Dispose();
         _listeningMoodScope?.Dispose();
         _trayController.Dispose();
-        _audioPlayer.Dispose();
+        _audio.Dispose();
+        _memory.Dispose();
         _httpClient.Dispose();
-        _database.Dispose();
     }
 
     private void ShowSettings()
@@ -272,23 +154,19 @@ public sealed class DesktopPetApplication : IDisposable
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(
-                _elevenLabsSettingsStore,
-                _pronunciationService,
-                _openRouterSettingsStore,
-                _openRouterModelsService,
-                _creditInfoService,
-                _uiSettingsStore,
-                _profileSettingsStore,
-                _audioContextSettingsStore,
-                _audioCaptureCoordinator,
-                _audioObservationStore,
+                _settings,
+                _cloud.PronunciationService,
+                _cloud.OpenRouterModelsService,
+                _cloud.CreditInfoService,
+                _audio.AudioCaptureCoordinator,
+                _audio.AudioObservationStore,
                 _errorMessageStore,
                 ApplyUiSettings,
                 GetHotkeyWarning,
-                _observationPermissionService,
-                _observationStore,
-                _ambientDecisionStore,
-                _environmentCoordinator);
+                _observation.ObservationPermissionService,
+                _observation.ObservationStore,
+                _observation.AmbientDecisionStore,
+                _observation.EnvironmentCoordinator);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 
@@ -301,19 +179,19 @@ public sealed class DesktopPetApplication : IDisposable
         if (_memoryWindow is null)
         {
             _memoryWindow = new MemoryWindow(
-                _memoryStore,
-                _chatHistoryStore,
-                _chatAudioStore,
+                _memory.MemoryStore,
+                _memory.ChatHistoryStore,
+                _memory.ChatAudioStore,
                 _conversationController.ReplayCachedSpeechAsync,
-                _environmentCoordinator,
-                _ambientDecisionStore,
-                _observationStore,
-                _audioObservationStore,
-                _audioAnalysisCoordinator,
-                _observationPermissionService,
-                _profileSettingsStore.Load,
-                _uiSettingsStore.Load,
-                _audioObservationContextProvider.GetCurrentContext);
+                _observation.EnvironmentCoordinator,
+                _observation.AmbientDecisionStore,
+                _observation.ObservationStore,
+                _audio.AudioObservationStore,
+                _audio.AudioAnalysisCoordinator,
+                _observation.ObservationPermissionService,
+                _settings.Profile.Load,
+                _settings.Ui.Load,
+                _audio.AudioObservationContextProvider.GetCurrentContext);
             _memoryWindow.Closed += (_, _) => _memoryWindow = null;
         }
 
@@ -323,7 +201,7 @@ public sealed class DesktopPetApplication : IDisposable
 
     private void ShowChat()
     {
-        _desktopContextProvider.PrepareCurrentContext();
+        _observation.DesktopContextProvider.PrepareCurrentContext();
         _conversationOverlayWindow.ToggleInput();
     }
 
@@ -346,8 +224,8 @@ public sealed class DesktopPetApplication : IDisposable
             return;
         }
 
-        _desktopContextProvider.PrepareCurrentContext();
-        _audioCaptureCoordinator.StartPushToTalkRecording();
+        _observation.DesktopContextProvider.PrepareCurrentContext();
+        _audio.AudioCaptureCoordinator.StartPushToTalkRecording();
         _isPushToTalkRecording = true;
         _listeningMoodScope = _overlayWindow.BeginMood(PetMood.Listening);
     }
@@ -363,7 +241,7 @@ public sealed class DesktopPetApplication : IDisposable
         _listeningMoodScope?.Dispose();
         _listeningMoodScope = null;
 
-        var segment = _audioCaptureCoordinator.StopPushToTalkRecording();
+        var segment = _audio.AudioCaptureCoordinator.StopPushToTalkRecording();
         if (segment is null)
         {
             return;
@@ -380,12 +258,12 @@ public sealed class DesktopPetApplication : IDisposable
 
     private void SaveOverlayPosition(Rect bounds)
     {
-        var settings = _uiSettingsStore.Load() with
+        var settings = _settings.Ui.Load() with
         {
             OverlayPosition = new OverlayPosition(bounds.Left, bounds.Top)
         };
 
-        _uiSettingsStore.Save(settings);
+        _settings.Ui.Save(settings);
     }
 
     private PetError? GetHotkeyWarning()

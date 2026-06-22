@@ -6,6 +6,7 @@ public sealed class AudioCaptureCoordinator : IDisposable
 
     private readonly object _sync = new();
     private readonly Func<AudioSourceKind, string?, IAudioCaptureSource> _sourceFactory;
+    private readonly Func<int, IAudioCaptureSource>? _processLoopbackFactory;
     private readonly AudioAnalysisCoordinator? _analysisCoordinator;
     private readonly TimeProvider _timeProvider;
     private readonly Dictionary<AudioSourceKind, SourceSession> _sessions;
@@ -23,24 +24,16 @@ public sealed class AudioCaptureCoordinator : IDisposable
     private int _pushToTalkSampleRate;
     private bool _isPushToTalkRecording;
 
-    public AudioCaptureCoordinator()
-        : this((kind, deviceId) => kind switch
-        {
-            AudioSourceKind.Microphone => new MicrophoneCaptureSource(deviceId),
-            AudioSourceKind.SystemAudio => new SystemLoopbackCaptureSource(deviceId),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        }, null, TimeProvider.System)
-    {
-    }
-
-    internal AudioCaptureCoordinator(
+    public AudioCaptureCoordinator(
         Func<AudioSourceKind, string?, IAudioCaptureSource> sourceFactory,
         AudioAnalysisCoordinator? analysisCoordinator = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        Func<int, IAudioCaptureSource>? processLoopbackFactory = null)
     {
         _sourceFactory = sourceFactory;
         _analysisCoordinator = analysisCoordinator;
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _processLoopbackFactory = processLoopbackFactory;
         _sessions = Enum.GetValues<AudioSourceKind>()
             .ToDictionary(kind => kind, kind => new SourceSession(kind));
         _perAppSessions = new Dictionary<string, SourceSession>(StringComparer.OrdinalIgnoreCase);
@@ -405,7 +398,14 @@ public sealed class AudioCaptureCoordinator : IDisposable
         IAudioCaptureSource? source = null;
         try
         {
-            source = new ProcessLoopbackCaptureSource(processId.Value);
+            if (_processLoopbackFactory is null)
+            {
+                session.State = AudioCaptureState.Error;
+                session.LastError = "Per-app audio capture is not configured.";
+                return false;
+            }
+
+            source = _processLoopbackFactory(processId.Value);
             source.SamplesAvailable += OnSamplesAvailable;
             source.CaptureFailed += OnCaptureFailed;
             session.Source = source;

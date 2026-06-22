@@ -2,6 +2,8 @@
 
 A tiny companion that lives on your desktop, notices what you're working on, and can chat with you.
 
+<img width="125" height="125" alt="bug_small" src="https://github.com/user-attachments/assets/a5bbfe45-a7df-4470-ba13-b1b2577e1cbe" /> 
+
 ## Features
 
 - A cute draggable pet that stays on your screen

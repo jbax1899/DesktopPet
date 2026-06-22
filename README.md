@@ -29,8 +29,7 @@ A tiny companion that lives on your desktop, notices what you're working on, and
 
 ## Agent Prompt Template
 
-You can use this as your ElevenLabs Agent prompt. The `{{…}}` variables are filled in
-automatically by Desktop Pet (if enabled).
+You can use this as your ElevenLabs Agent prompt. The `{{…}}` variables are supplied by the system if enabled.
 
 ```
 ### Identity

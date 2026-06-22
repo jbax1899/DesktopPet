@@ -3,6 +3,12 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Agents
+AGENTS.md
+
+# Repomix output
+repomix-output.xml
+
 # dotenv files
 .env
 

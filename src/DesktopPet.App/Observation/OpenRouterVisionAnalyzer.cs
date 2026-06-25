@@ -353,20 +353,30 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 
         var detailPart = detailLevel switch
         {
-            <= 2 => "Focus only on the user's core action and the single most important element.",
-            <= 4 => "Describe what the user is doing and the most notable screen elements.",
-            <= 6 => "Describe the user's activity, notable on-screen elements, and visible text labels.",
-            <= 8 => "Describe the user's activity, all visible UI elements, text, and layout.",
-            _ => "Describe everything visible in full detail — all text, controls, layout, content, and visual elements."
+            1 => "Focus only on the user's single most important action. Ignore everything else.",
+            2 => "Focus on the user's core action and one key element on screen.",
+            3 => "Describe the user's main action and the most prominent screen element.",
+            4 => "Describe what the user is doing and the most notable few screen elements.",
+            5 => "Describe the user's activity, the main window content, and a few key UI elements.",
+            6 => "Describe the user's activity, notable on-screen elements, visible text labels, and controls.",
+            7 => "Describe the user's activity, most UI elements, visible text, and the general layout.",
+            8 => "Describe the user's activity, all visible UI elements, text, layout, and content areas.",
+            9 => "Describe everything visible in detail — all text, controls, layout, content, and visual elements.",
+            _ => "Describe everything visible in exhaustive detail — every text label, control, layout section, content area, icon, color, and visual element on screen."
         };
 
         var verbosityPart = verbosityLevel switch
         {
-            <= 2 => "Use one terse sentence. No adjectives or elaboration.",
-            <= 4 => "Use brief, direct sentences with minimal description.",
-            <= 6 => "Use clear, descriptive sentences.",
-            <= 8 => "Use detailed, descriptive language with context and character.",
-            _ => "Write a rich, narrative description. Describe the mood, energy, and story of what is happening. Give Pebble something interesting to comment on."
+            1 => "Use a single terse phrase. No sentences, no adjectives, no elaboration.",
+            2 => "Use one short sentence. Minimal words, no decoration.",
+            3 => "Use one or two brief sentences. Direct and to the point.",
+            4 => "Use brief, direct sentences with minimal description.",
+            5 => "Use clear, concise sentences with just enough detail.",
+            6 => "Use clear, descriptive sentences with moderate detail.",
+            7 => "Use descriptive sentences with some context and character.",
+            8 => "Use detailed, descriptive language with context, character, and nuance.",
+            9 => "Write a rich, detailed description. Set the scene, describe mood and energy.",
+            _ => "Write a rich, narrative description. Describe the mood, energy, and story of what is happening in vivid detail. Give Pebble something interesting to comment on."
         };
 
         return $"Produce an observation. {detailPart} {verbosityPart}";
@@ -378,11 +388,16 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 
         var summaryDescription = verbosityLevel switch
         {
-            <= 2 => "A single terse sentence describing what is visible",
-            <= 4 => "One or two sentences describing what is visible",
-            <= 6 => "A short paragraph describing what is visible, with key details",
-            <= 8 => "A detailed paragraph describing what is visible, including text, UI elements, and layout",
-            _ => "A detailed description focused on what has CHANGED or PROGRESSED since the previous observation. Describe new or evolved elements in rich detail. Do not re-describe elements already covered in the observation history."
+            1 => "A single terse phrase (under 5 words) stating what is visible",
+            2 => "A single short sentence describing what is visible",
+            3 => "One sentence describing what is visible, with minimal detail",
+            4 => "One or two sentences describing what is visible",
+            5 => "Two to three sentences describing what is visible with key details",
+            6 => "A short paragraph describing what is visible, with key details",
+            7 => "A paragraph describing what is visible, including notable elements and details",
+            8 => "A detailed paragraph describing what is visible, including text, UI elements, and layout",
+            9 => "A detailed description of everything visible, including text, UI elements, layout, content, and visual elements",
+            _ => "A comprehensive, detailed description of everything visible — all text, UI elements, layout, content, and visual elements. Focus on what has CHANGED or PROGRESSED since the previous observation. Do not re-describe elements already covered in the observation history."
         };
 
         return $$"""
@@ -459,7 +474,7 @@ internal sealed class OpenRouterVisionAnalyzer : IVisualContextAnalyzer
 
         if (observation.NotableChanges.Count > 0)
         {
-            parts.Add($"Changes: {string.Join("; ", observation.NotableChanges.Take(3))}");
+            parts.Add($"Changes: {string.Join("; ", observation.NotableChanges)}");
         }
 
         return string.Join(". ", parts);

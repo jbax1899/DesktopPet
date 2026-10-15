@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DesktopPet.App/DesktopPet.App.csproj" />
-    <Project Path="src/DesktopPet.Audio.ProcessLoopback.Native/DesktopPet.Audio.ProcessLoopback.Native.csproj" />
     <Project Path="src/DesktopPet.Core/DesktopPet.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">

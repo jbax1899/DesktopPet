@@ -1,20 +1,19 @@
-using DesktopPet.Audio.ProcessLoopback.Native;
+using NAudio.CoreAudioApi;
+using NAudio.Wave;
 
 namespace DesktopPet.App.Audio;
 
-// IAudioCaptureSource implementation that captures audio from a specific process
-// using the Windows process loopback API (ActivateAudioInterfaceAsync with
-// AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK).
-//
-// TODO: Replace with NAudio's built-in process loopback once NAudio 3.x ships
-// support (PR #1225 / WasapiCapture.CreateForProcessCaptureAsync).
 internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 {
-    private static readonly NAudio.Wave.WaveFormat WaveFormat = new(44100, 16, 2);
+    private static readonly WaveFormat CaptureWaveFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
 
+    private readonly object _sync = new();
     private readonly int _processId;
     private readonly bool _includeProcessTree;
     private CancellationTokenSource? _cts;
+    private Task? _startTask;
+    private WasapiRecorder? _recorder;
+    private bool _stopping;
     private bool _disposed;
 
     public ProcessLoopbackCaptureSource(int processId, bool includeProcessTree = true)
@@ -28,7 +27,7 @@ internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 
     public string? DeviceName => $"Process {_processId}";
 
-    public string? FormatDescription => "44,100 Hz, 16-bit, 2 channels";
+    public string? FormatDescription => "44,100 Hz, 32-bit float, 2 channels";
 
     public event EventHandler<AudioSamplesAvailableEventArgs>? SamplesAvailable;
 
@@ -36,46 +35,117 @@ internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 
     public void Start()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_stopping || _recorder is not null || _startTask is { IsCompleted: false })
+            {
+                return;
+            }
 
-        _ = StartAsync();
+            _cts = new CancellationTokenSource();
+            _startTask = StartAsync(_cts.Token);
+        }
     }
 
-    private async Task StartAsync()
+    private async Task StartAsync(CancellationToken cancellationToken)
     {
+        WasapiRecorder? recorder = null;
         try
         {
-            _cts = new CancellationTokenSource();
-            await ProcessLoopbackCapture.StartAsync(
-                _processId,
-                _includeProcessTree,
-                OnPcmFrame,
-                _cts.Token);
+            if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
+            {
+                throw new PlatformNotSupportedException(
+                    "Process loopback capture requires Windows 10 build 19041 or later.");
+            }
+
+            var activeRecorder = await new WasapiRecorderBuilder()
+                .WithProcessLoopback(
+                    (uint)_processId,
+                    _includeProcessTree
+                        ? ProcessLoopbackMode.IncludeTargetProcessTree
+                        : ProcessLoopbackMode.ExcludeTargetProcessTree)
+                .WithFormat(CaptureWaveFormat)
+                .BuildAsync()
+                .ConfigureAwait(false);
+            recorder = activeRecorder;
+
+            lock (_sync)
+            {
+                if (_disposed || cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                activeRecorder.DataAvailable += (buffer, _, _, _) =>
+                    OnPcmFrame(buffer, activeRecorder.WaveFormat);
+                activeRecorder.RecordingStopped += OnRecordingStopped;
+                _recorder = activeRecorder;
+                try
+                {
+                    activeRecorder.StartRecording();
+                    recorder = null;
+                }
+                catch
+                {
+                    _recorder = null;
+                    activeRecorder.RecordingStopped -= OnRecordingStopped;
+                    throw;
+                }
+            }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             CaptureFailed?.Invoke(this, ex);
         }
+        finally
+        {
+            if (recorder is not null)
+            {
+                try
+                {
+                    await recorder.DisposeAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+            }
+        }
     }
 
-    private void OnPcmFrame(byte[] buffer, int offset, int count)
+    private void OnRecordingStopped(object? sender, StoppedEventArgs e)
     {
-        if (_disposed)
+        lock (_sync)
         {
-            return;
+            if (_disposed || _stopping || _cts?.IsCancellationRequested == true)
+            {
+                return;
+            }
+        }
+
+        CaptureFailed?.Invoke(
+            this,
+            e.Exception ?? new InvalidOperationException("Process audio capture stopped unexpectedly."));
+    }
+
+    private void OnPcmFrame(ReadOnlySpan<byte> buffer, WaveFormat waveFormat)
+    {
+        lock (_sync)
+        {
+            if (_disposed || _stopping || _cts?.IsCancellationRequested == true)
+            {
+                return;
+            }
         }
 
         try
         {
-            var samples = AudioSampleConverter.ToMono(
-                buffer.AsSpan(offset, count),
-                WaveFormat);
-
+            var samples = AudioSampleConverter.ToMono(buffer, waveFormat);
             if (samples.Length > 0)
             {
                 SamplesAvailable?.Invoke(
                     this,
-                    new AudioSamplesAvailableEventArgs(samples, 44100, DateTimeOffset.UtcNow));
+                    new AudioSamplesAvailableEventArgs(samples, waveFormat.SampleRate, DateTimeOffset.UtcNow));
             }
         }
         catch (Exception ex)
@@ -86,25 +156,69 @@ internal sealed class ProcessLoopbackCaptureSource : IAudioCaptureSource
 
     public void Stop()
     {
-        if (_disposed)
+        CancellationTokenSource? cts;
+        WasapiRecorder? recorder;
+        lock (_sync)
         {
-            return;
+            if (_stopping)
+            {
+                return;
+            }
+
+            _stopping = true;
+            cts = _cts;
+            _cts = null;
+            cts?.Cancel();
+            recorder = _recorder;
+            _recorder = null;
         }
 
-        _cts?.Cancel();
-        ProcessLoopbackCapture.Stop();
+        try
+        {
+            if (recorder is null)
+            {
+                return;
+            }
+
+            recorder.RecordingStopped -= OnRecordingStopped;
+            try
+            {
+                recorder.StopRecording();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                recorder.Dispose();
+            }
+            catch
+            {
+            }
+        }
+        finally
+        {
+            cts?.Dispose();
+            lock (_sync)
+            {
+                _stopping = false;
+            }
+        }
     }
 
     public void Dispose()
     {
-        if (_disposed)
+        lock (_sync)
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
         }
 
         Stop();
-        _cts?.Dispose();
-        _cts = null;
-        _disposed = true;
     }
 }

@@ -65,7 +65,6 @@ public sealed class AudioCaptureCoordinator : IDisposable
         _analysisCoordinator?.ApplySettings(settings);
     }
 
-    // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
     public void ApplyPerAppCaptures(
         IReadOnlyList<AudioApplicationRule> rules,
         bool systemAudioEnabled,
@@ -381,7 +380,6 @@ public sealed class AudioCaptureCoordinator : IDisposable
         }
     }
 
-    // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
     private bool TryStartPerAppSource(SourceSession session, string executablePath)
     {
         session.State = AudioCaptureState.Starting;

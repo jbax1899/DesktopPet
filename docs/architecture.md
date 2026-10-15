@@ -2,7 +2,7 @@
 
 ## Projects
 
-The codebase is organized into three projects:
+The codebase is organized into two projects:
 
 - **`DesktopPet.Core`** — WPF-free class library containing pure domain logic, storage, security, and provider integrations. No UI dependencies.
   - `Cloud/` — ElevenLabs and OpenRouter chat/voice services
@@ -17,8 +17,6 @@ The codebase is organized into three projects:
   - `Audio/` — WPF-dependent coordinators, capture sources, playback
   - `Observation/` — Desktop context, screenshots, vision analysis
   - `Overlay/` — WPF pet window, conversation overlay
-- **`DesktopPet.Audio.ProcessLoopback.Native`** — Standalone Win32 interop for process loopback capture.
-
 ## Key patterns
 
 - **`SettingsHub`** unifies 6 settings stores behind a single facade with a `Saved` event
@@ -39,7 +37,7 @@ The codebase is organized into three projects:
 - Keep ambient policy local-first and cancellable. User requests take priority, and newer activity may cancel stale ambient work.
 - Do not interrupt active speech until a newer submitted message has both reply text and TTS audio ready.
 - Keep playback, interruption, transcript ownership, mouth movement, and character state local.
-- Keep process loopback P/Invoke isolated in `DesktopPet.Audio.ProcessLoopback.Native` until NAudio adds native support. Replace with NAudio's built-in API when available.
+- Keep per-application process loopback capture behind `IAudioCaptureSource` and use NAudio's `WasapiRecorderBuilder` API.
 - Keep `IVoiceSynthesisService` small and the current provider boundaries unless they obstruct a concrete feature.
 - Keep chat history and manually managed memories in one bundled SQLite database while preserving their separate selection rules and UI surfaces.
 

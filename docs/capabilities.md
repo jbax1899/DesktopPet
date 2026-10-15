@@ -30,7 +30,7 @@
 ## Ambient audio capture
 
 - Ambient audio capture is separately opt-in and supports the default microphone, default system-output loopback, and per-application capture via the Windows process loopback API. Per-app captures are restored from saved settings on startup.
-- Per-application audio capture uses `ActivateAudioInterfaceAsync` with `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK` (Windows 10 19041+), wrapped by the `DesktopPet.Audio.ProcessLoopback.Native` project.
+- Per-application audio capture uses NAudio's `WasapiRecorderBuilder` process-loopback API (Windows 10 build 19041+), requests 44.1 kHz stereo float, and converts samples to mono in memory.
 - NAudio capture is reduced to a mono in-memory analysis stream with local activity gating, pre-roll, silence detection, and a 20-second max segment.
 - Shared speech playback suppresses capture processing while the pet speaks and for 500 milliseconds afterward.
 - Audio analysis is disabled by default. When enabled, completed segments enter a bounded sequential queue (1 active, 2 waiting) with OpenRouter STT.

@@ -16,7 +16,7 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
     private const double Release = 0.35;
 
     private readonly object _playbackLock = new();
-    private WaveOutEvent? _waveOut;
+    private WaveOut? _waveOut;
 
     public Task PlayAsync(
         Stream audioStream,
@@ -63,12 +63,11 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
 
         using var decompressor = new AcmMp3FrameDecompressor(CreateMp3WaveFormat(firstFrame));
         var waveFormat = decompressor.OutputFormat;
-        var bufferedProvider = new BufferedWaveProvider(waveFormat)
+        var bufferedProvider = new BufferedWaveProvider(waveFormat, BufferDuration)
         {
-            BufferDuration = BufferDuration,
             DiscardOnBufferOverflow = false
         };
-        using var waveOut = new WaveOutEvent();
+        using var waveOut = new WaveOut();
         var playbackState = new PlaybackStopState();
         var playbackComplete = false;
         var amplitudeFrames = new ConcurrentQueue<double>();
@@ -149,7 +148,7 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
         }
     }
 
-    private void SetCurrentPlayback(WaveOutEvent waveOut)
+    private void SetCurrentPlayback(WaveOut waveOut)
     {
         lock (_playbackLock)
         {
@@ -201,7 +200,7 @@ public sealed class StreamingMp3AudioPlayer : IDisposable
 
     private static void WaitForBufferedPlaybackToDrain(
         BufferedWaveProvider bufferedProvider,
-        WaveOutEvent waveOut,
+        WaveOut waveOut,
         PlaybackStopState playbackState,
         CancellationToken cancellationToken)
     {

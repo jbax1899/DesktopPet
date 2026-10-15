@@ -1,11 +1,14 @@
 # Work Status
 
-## Near-Term Work
+## Completed
 
-- Better credential storage, output-device selection, and richer subtitle or speech-bubble presentation.
-- Blinking, more natural idle motion, and a cleaner renderer/performance boundary.
-- Native Inochi2D experimentation, rig parameters, expressions, and mesh deformation.
+- Provider API credentials are protected with per-user Windows DPAPI and stored separately from provider settings.
+- Audio capture supports selectable microphone and system-output devices, plus per-application process capture with saved rules restored on startup.
+- Conversation messages use content-sized chat bubbles.
+- The pet has gaze, amplitude-driven mouth movement, and basic breathing and bob animation.
 
-## Later Work
+## Remaining Work
 
-- Replace `DesktopPet.Audio.ProcessLoopback.Native` interop with NAudio's built-in process loopback once NAudio 3.x ships support (PR #1225).
+- Select an output device for streamed speech playback.
+- Add blinking and more natural idle animation.
+- Extend character rigging with expressions and mesh deformation beyond the current puppet prototype.

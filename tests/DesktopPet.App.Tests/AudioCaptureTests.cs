@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using DesktopPet.App.Audio;
+using NAudio.Wave;
 
 namespace DesktopPet.App.Tests;
 
@@ -21,6 +23,21 @@ public sealed class AudioCaptureTests
         {
             Directory.Delete(_directory, recursive: true);
         }
+    }
+
+    [TestMethod]
+    public void ProcessLoopbackFloatSamplesConvertToMono()
+    {
+        var stereo = new byte[sizeof(float) * 2];
+        BinaryPrimitives.WriteInt32LittleEndian(stereo.AsSpan(0, sizeof(float)), BitConverter.SingleToInt32Bits(0.6f));
+        BinaryPrimitives.WriteInt32LittleEndian(stereo.AsSpan(sizeof(float), sizeof(float)), BitConverter.SingleToInt32Bits(-0.2f));
+
+        var samples = AudioSampleConverter.ToMono(
+            stereo,
+            WaveFormat.CreateIeeeFloatWaveFormat(44100, 2));
+
+        Assert.AreEqual(1, samples.Length);
+        Assert.AreEqual(0.2f, samples[0], 0.0001f);
     }
 
     [TestMethod]

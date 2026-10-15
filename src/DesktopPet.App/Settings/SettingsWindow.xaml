@@ -713,7 +713,6 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <!-- TODO: Remove custom audio column once NAudio 3.x ships process loopback (PR #1225) -->
                             <DataGridTemplateColumn Width="80"
                                                     CanUserSort="False">
                                 <DataGridTemplateColumn.Header>

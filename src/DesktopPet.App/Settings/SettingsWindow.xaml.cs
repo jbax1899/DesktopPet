@@ -251,7 +251,6 @@ public partial class SettingsWindow : Window
             _settings.AudioContext.Save(audioSettings);
             _audioCaptureCoordinator.ApplySettings(audioSettings);
 
-            // TODO: Simplify when NAudio handles process loopback natively (PR #1225).
             _audioCaptureCoordinator.ApplyPerAppCaptures(
                 audioSettings.AudioApplicationRules,
                 audioSettings.SystemAudioEnabled,

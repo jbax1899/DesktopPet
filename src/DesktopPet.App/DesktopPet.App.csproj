@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
-    <PackageReference Include="NAudio" Version="3.1.0" />
+    <PackageReference Include="NAudio" Version="3.3.0" />
   </ItemGroup>
 
 </Project>
